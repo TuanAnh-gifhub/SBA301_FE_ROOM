@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import HeaderComponent from "../components/Header/Header";
+import ChatBubble from "../pages/Customer/ChatBox/ChatBubble";
 import "react-toastify/dist/ReactToastify.css";
 
 declare global {
@@ -15,6 +16,7 @@ function RootLayout() {
       <main className="flex-1">
         <Outlet />
       </main>
+      <ChatBubble />
     </div>
   );
 }

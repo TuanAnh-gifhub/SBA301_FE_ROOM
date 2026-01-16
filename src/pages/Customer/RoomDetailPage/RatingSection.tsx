@@ -52,7 +52,7 @@ export default function RatingSection({
     );
   };
 
-  const renderRatingBar = (stars: number, count: number, label: string) => {
+  const renderRatingBar = (_stars: number, count: number, label: string) => {
     const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
     return (
       <div className="flex items-center gap-3">
