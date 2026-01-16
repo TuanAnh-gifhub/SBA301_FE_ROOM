@@ -35,10 +35,11 @@ body {
   min-height: 100vh;
 }
 
-h1 {
+/* Removed global h1 styles to allow Tailwind CSS classes to work properly */
+/* h1 {
   font-size: 3.2em;
   line-height: 1.1;
-}
+} */
 
 /* Removed global button styles to allow Tailwind CSS classes to work properly */
 /* If you need default button styles, use Tailwind utility classes instead */

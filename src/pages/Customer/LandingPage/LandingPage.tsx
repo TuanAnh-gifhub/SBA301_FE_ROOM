@@ -9,6 +9,7 @@ import { FaStar } from "react-icons/fa";
 import ScrambleText from "../../../components/Header/ScrambleText";
 import RoomCard, { TEMPLATE_ROOMS } from "./RoomCard";
 import Footer from "../../../components/Footer/Footer";
+import AboutUs from "../AboutUs/AboutUs";
 
 const useScrollspy = () => ({ setActiveSection: (_section: string) => { void _section; } });
 
@@ -484,15 +485,17 @@ const LandingPage = () => {
       )}
 
       <div
-        className="relative z-10 bg-transparent text-[#0e0e0e] text-base leading-[1.4] transition-all duration-300 px-3 sm:px-6"
+        className="relative z-10 bg-transparent text-[#0e0e0e] text-sm leading-[1.4] transition-all duration-300 px-3 sm:px-6"
         style={{
           marginLeft: 0, // Temporarily disabled sidebar margin
         }}
       >
         <div id="latest-listings" ref={latestListingsRef} className="max-w-7xl mx-auto p-8">
-          <h1 className="text-2xl md:text-3xl font-extrabold mb-4 text-[#4da6ff] tracking-tight">
-            <ScrambleText text="Phòng học mới nhất" triggerKey={decodeLatestListings} className="inline-block" />
-          </h1>
+          <div className="text-center mb-12">
+            <h1 className="text-xl md:text-2xl font-bold mb-4 text-[#4da6ff]">
+              <ScrambleText text="Phòng học mới nhất" triggerKey={decodeLatestListings} />
+            </h1>
+          </div>
 
           {error && (
             <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg text-sm">
@@ -582,9 +585,11 @@ const LandingPage = () => {
         </div>
 
         <div id="official-stores" ref={officialStoresRef} className="max-w-7xl mx-auto p-8">
-          <h1 className="text-2xl md:text-3xl font-extrabold mb-4 text-[#4da6ff] tracking-tight">
-            <ScrambleText text="Đặt Phòng Học Trực Tuyến" triggerKey={decodeOfficialStores} className="inline-block" />
-          </h1>
+          <div className="text-center mb-12">
+            <h1 className="text-xl md:text-2xl font-bold mb-4 text-[#4da6ff]">
+              <ScrambleText text="Đặt Phòng Học Trực Tuyến" triggerKey={decodeOfficialStores} />
+            </h1>
+          </div>
 
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="flex items-center text-blue-600">
@@ -629,13 +634,13 @@ const LandingPage = () => {
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center mr-3">
-                          <span className="text-white font-bold text-lg">
+                          <span className="text-white font-bold text-base">
                             {store.name ? store.name.charAt(0).toUpperCase() : 'S'}
                           </span>
                         </div>
                       )}
                       <div>
-                        <h3 className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{store.name}</h3>
+                        <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{store.name}</h3>
                         <div className="flex items-center text-blue-600">
                           <FaCheck className="w-3 h-3 mr-1" />
                           <span className="text-xs">Đã xác thực</span>
@@ -720,9 +725,11 @@ const LandingPage = () => {
         </div>
 
         <div id="featured-stores" ref={featuredStoresRef} className="max-w-7xl mx-auto p-8">
-          <h1 className="text-2xl md:text-3xl font-extrabold mb-4 text-[#4da6ff] tracking-tight">
-            <ScrambleText text="Địa điểm cho thuê nổi bật" triggerKey={decodeFeaturedStores} className="inline-block" />
-          </h1>
+          <div className="text-center mb-12">
+            <h1 className="text-xl md:text-2xl font-bold mb-4 text-[#4da6ff]">
+              <ScrambleText text="Địa điểm cho thuê nổi bật" triggerKey={decodeFeaturedStores} />
+            </h1>
+          </div>
 
           <div className="flex flex-wrap gap-2 mb-6">
             {roomCategories.map((category) => (
@@ -775,14 +782,14 @@ const LandingPage = () => {
                         />
                       ) : (
                         <div className="w-16 h-16 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          <span className="text-white font-bold text-2xl">
+                          <span className="text-white font-bold text-lg">
                             {store.name ? store.name.charAt(0).toUpperCase() : 'S'}
                           </span>
                         </div>
                       )}
                       <div className="absolute inset-0 rounded-full bg-linear-to-t from-[#4da6ff]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
-                    <h3 className={`font-bold mb-2 transition-colors duration-300 ${isDarkMode ? 'text-white group-hover:text-[#4da6ff]' : 'text-gray-900 group-hover:text-[#4da6ff]'}`}>{store.name}</h3>
+                    <h3 className={`text-lg font-bold mb-2 transition-colors duration-300 ${isDarkMode ? 'text-white group-hover:text-[#4da6ff]' : 'text-gray-900 group-hover:text-[#4da6ff]'}`}>{store.name}</h3>
 
                     <div className="flex items-center mb-2">
                       <FaStar className="w-4 h-4 text-yellow-400 mr-1 group-hover:text-yellow-500 group-hover:scale-110 transition-all duration-200" />
@@ -827,6 +834,9 @@ const LandingPage = () => {
           </div>
         </div>
       </div>
+
+      {/* About Us Section */}
+      <AboutUs isDarkMode={isDarkMode} />
 
       {/* Footer - Outside of content div to avoid sidebar margin */}
       <Footer ref={footerRef} isDarkMode={isDarkMode} />
