@@ -103,7 +103,7 @@ const RoomCard = ({
     >
       <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 h-full flex flex-col">
         {/* Image Container */}
-        <div className="relative h-48 overflow-hidden bg-gray-200">
+        <div className="relative h-64 overflow-hidden bg-gray-200">
           {image ? (
             <img
               src={image}
@@ -126,33 +126,33 @@ const RoomCard = ({
         </div>
 
         {/* Content */}
-        <div className="p-4 flex-1 flex flex-col">
+        <div className="p-3 flex-1 flex flex-col">
           {/* Title */}
-          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#4da6ff] transition-colors">
+          <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2 group-hover:text-[#4da6ff] transition-colors">
             {title}
           </h3>
 
           {/* Location */}
-          <p className="text-sm text-gray-600 mb-2">
+          <p className="text-sm text-gray-600 mb-1">
             {location}
           </p>
 
           {/* Capacity */}
-          <div className="flex items-center text-sm text-gray-600 mb-3">
+          <div className="flex items-center text-sm text-gray-600 mb-1.5">
             <FaUsers className="w-4 h-4 mr-2 text-[#4da6ff]" />
             <span>{capacity}</span>
           </div>
 
           {/* Feature */}
           {feature && (
-            <div className="flex items-center text-sm text-gray-600 mb-4">
+            <div className="flex items-center text-sm text-gray-600 mb-2">
               <FeatureIcon className="w-4 h-4 mr-2 text-[#4da6ff]" />
               <span>{feature.label}</span>
             </div>
           )}
 
           {/* View Details Button */}
-          <button className="mt-auto w-full bg-[#4da6ff] hover:bg-[#3d8cff] text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+          <button className="mt-auto w-full bg-[#4da6ff] hover:bg-[#3d8cff] text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
             View Details
           </button>
         </div>

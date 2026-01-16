@@ -490,7 +490,7 @@ const LandingPage = () => {
           marginLeft: 0, // Temporarily disabled sidebar margin
         }}
       >
-        <div id="latest-listings" ref={latestListingsRef} className="max-w-7xl mx-auto p-8">
+        <div id="latest-listings" ref={latestListingsRef} className="w-full mx-auto p-2 md:p-4">
           <div className="text-center mb-12">
             <h1 className="text-xl md:text-2xl font-bold mb-4 text-[#4da6ff]">
               <ScrambleText text="Phòng học mới nhất" triggerKey={decodeLatestListings} />
@@ -521,7 +521,7 @@ const LandingPage = () => {
           ) : rooms.length === 0 ? (
             // Show template rooms when no data
             <div className="mb-8 w-full relative flex items-center">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full px-4 lg:px-12">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full px-0">
                 {TEMPLATE_ROOMS.slice(0, 4).map((room) => (
                   <RoomCard
                     key={room.id}
@@ -544,7 +544,7 @@ const LandingPage = () => {
                 </svg>
               </button>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full px-4 lg:px-12">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full px-0">
                 {rooms.slice(latestListingsStart, latestListingsStart + 4).map((room) => (
                   <RoomCard
                     key={room.id}

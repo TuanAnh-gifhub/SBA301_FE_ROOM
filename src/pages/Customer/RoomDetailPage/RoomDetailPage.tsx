@@ -74,7 +74,7 @@ const MOCK_ROOM: Room = {
   status: "Nội thất cao cấp, chỉ cần xách vali vào ở",
   interiorStatus: "Nội thất cao cấp",
   description:
-    "Căn hộ studio thiết kế hiện đại, tận dụng tối đa ánh sáng tự nhiên, nội thất mới 100% gồm: giường nệm cao cấp, tủ quần áo, bếp trên dưới, tủ lạnh, máy giặt, máy lạnh, rèm, bàn ăn. Thích hợp cho sinh viên, người đi làm, gia đình trẻ cần không gian sống tiện nghi, an toàn.",
+    "Căn hộ studio thiết kế hiện đại, tận dụng tối đa ánh sáng tự nhiên, nội thất mới 100% gồm: giường nệm cao cấp, tủ quần áo, bếp trên dưới, tủ lạnh, máy giặt, máy lạnh, rèm, bàn ăn. Thích hợp cho sinh viên, người đi làm, gia đình trẻ cần không gian sống tiện nghi, an toàn và đảm bảo sức khỏe.",
   images: [
     "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=800",
     "https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg?auto=compress&cs=tinysrgb&w=800",
@@ -212,11 +212,19 @@ const RoomDetailPage = () => {
       }
     };
 
-    if (id) {
+    // Check if id exists and is not empty
+    if (id && id.trim() !== "") {
       fetchRoomDetail();
     } else {
-      setError("ID phòng không hợp lệ.");
-      setLoading(false);
+      // If no ID provided, use mock data for development/testing
+      console.warn("⚠️ No room ID in URL, using mock data");
+      setTimeout(() => {
+        setRoom(MOCK_ROOM);
+        setLoading(false);
+      }, 500);
+      // Uncomment below to show error instead of using mock data
+      // setError("ID phòng không hợp lệ.");
+      // setLoading(false);
     }
 
     window.scrollTo(0, 0);

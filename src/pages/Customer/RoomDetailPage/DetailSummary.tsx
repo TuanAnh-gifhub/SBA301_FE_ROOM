@@ -33,6 +33,8 @@ export default function DetailSummary({
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("10:00");
   const [numberOfPeople, setNumberOfPeople] = useState("1 người");
+  const [roomType, setRoomType] = useState("Phòng học");
+  const [roomQuantity, setRoomQuantity] = useState(1);
 
   useEffect(() => {
     // TODO: Implement favorite check logic when API is available
@@ -68,8 +70,8 @@ export default function DetailSummary({
   const startHour = parseInt(startTime.split(":")[0]);
   const endHour = parseInt(endTime.split(":")[0]);
   const hours = endHour - startHour;
-  const rentalPrice = pricePerHour * hours;
-  const serviceFee = 15000;
+  const rentalPrice = pricePerHour * hours * roomQuantity;
+  const serviceFee = 15000 * roomQuantity;
   const totalPrice = rentalPrice + serviceFee;
 
   const formatPrice = (price: number) => {
@@ -80,11 +82,11 @@ export default function DetailSummary({
     if (!isLoggedIn) {
       requireAuth?.(() => {
         // TODO: Navigate to booking page or show booking modal
-        console.log("Booking:", { selectedDate, startTime, endTime, numberOfPeople, totalPrice });
+        console.log("Booking:", { selectedDate, startTime, endTime, numberOfPeople, roomType, roomQuantity, totalPrice });
       });
     } else {
       // TODO: Implement booking logic
-      console.log("Booking:", { selectedDate, startTime, endTime, numberOfPeople, totalPrice });
+      console.log("Booking:", { selectedDate, startTime, endTime, numberOfPeople, roomType, roomQuantity, totalPrice });
     }
   };
 
@@ -234,6 +236,75 @@ export default function DetailSummary({
             </select>
           </div>
         </div>
+
+        {/* Loại phòng */}
+        <div>
+          <label className={`block text-sm font-medium mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+            Loại phòng
+          </label>
+          <select
+            value={roomType}
+            onChange={(e) => setRoomType(e.target.value)}
+            className={`w-full px-3 py-2.5 rounded-lg border appearance-none ${
+              isDarkMode
+                ? "bg-gray-700 border-gray-600 text-white"
+                : "bg-white border-gray-300 text-gray-900"
+            } focus:outline-none focus:ring-2 focus:ring-[#4da6ff]/30 focus:border-[#4da6ff]`}
+          >
+            <option value="Phòng học">Phòng học</option>
+            <option value="Phòng lab">Phòng lab</option>
+            <option value="Phòng nhóm">Phòng nhóm</option>
+            <option value="Phòng thuyết trình">Phòng thuyết trình</option>
+            <option value="Thư viện">Thư viện</option>
+            <option value="Phòng thí nghiệm">Phòng thí nghiệm</option>
+            <option value="Phòng họp">Phòng họp</option>
+          </select>
+        </div>
+
+        {/* Số lượng phòng */}
+        <div>
+          <label className={`block text-sm font-medium mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+            Số lượng phòng
+          </label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setRoomQuantity(Math.max(1, roomQuantity - 1))}
+              className={`w-10 h-10 rounded-lg border flex items-center justify-center font-semibold transition-all ${
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+              } focus:outline-none focus:ring-2 focus:ring-[#4da6ff]/30`}
+            >
+              −
+            </button>
+            <input
+              type="number"
+              min="1"
+              value={roomQuantity}
+              onChange={(e) => {
+                const value = parseInt(e.target.value) || 1;
+                setRoomQuantity(Math.max(1, value));
+              }}
+              className={`flex-1 px-3 py-2.5 rounded-lg border text-center font-semibold ${
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-white"
+                  : "bg-white border-gray-300 text-gray-900"
+              } focus:outline-none focus:ring-2 focus:ring-[#4da6ff]/30 focus:border-[#4da6ff]`}
+            />
+            <button
+              type="button"
+              onClick={() => setRoomQuantity(roomQuantity + 1)}
+              className={`w-10 h-10 rounded-lg border flex items-center justify-center font-semibold transition-all ${
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+              } focus:outline-none focus:ring-2 focus:ring-[#4da6ff]/30`}
+            >
+              +
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Cost Summary */}
@@ -241,7 +312,7 @@ export default function DetailSummary({
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <span className={`text-sm ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
-              Giá thuê ({hours} giờ)
+              Giá thuê ({hours} giờ × {roomQuantity} phòng)
             </span>
             <span className={`text-sm font-medium ${isDarkMode ? "text-gray-200" : "text-gray-900"}`}>
               {formatPrice(rentalPrice)} {room.priceCurrency || "VNĐ"}
