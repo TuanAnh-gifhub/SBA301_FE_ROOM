@@ -151,7 +151,7 @@ const LandingPage = () => {
         const footerRect = footerRef.current.getBoundingClientRect();
         const windowHeight = window.innerHeight;
         const footerTop = footerRect.top;
-        
+
         // If footer is visible, limit sidebar bottom
         if (footerTop < windowHeight) {
           const distanceFromBottom = windowHeight - footerTop;
@@ -167,7 +167,7 @@ const LandingPage = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleScroll, { passive: true });
     handleScroll(); // Check initial scroll position
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
@@ -194,6 +194,7 @@ const LandingPage = () => {
   const [sidebarBottom, setSidebarBottom] = useState<number | null>(null);
 
   const [latestListingsStart, setLatestListingsStart] = useState(0);
+  const [officialStoresStart, setOfficialStoresStart] = useState(0);
   const [featuredStoresStart, setFeaturedStoresStart] = useState(0);
 
   const [visibleStoreCount, setVisibleStoreCount] = useState(6);
@@ -385,17 +386,16 @@ const LandingPage = () => {
   return (
     <div className="relative min-h-screen w-full" style={{ background: isDarkMode ? '#1a1a2e' : '#f5f7fa' }}>
       <ParallaxBackground isDarkMode={isDarkMode} />
-      
+
       {/* Hero section with title, search bar & quick categories */}
       <HeroSection />
 
       {/* Collapsible Sidebar - Temporarily disabled */}
       {showSidebarComponent && (
-        <div 
-          className={`fixed left-0 z-40 transition-all duration-300 ${
-            showSidebar ? (sidebarExpanded ? 'w-52' : 'w-14') : 'w-0'
-          } ${isDarkMode ? 'bg-gray-900/95' : 'bg-white/95'} backdrop-blur-sm shadow-xl overflow-hidden`}
-          style={{ 
+        <div
+          className={`fixed left-0 z-40 transition-all duration-300 ${showSidebar ? (sidebarExpanded ? 'w-52' : 'w-14') : 'w-0'
+            } ${isDarkMode ? 'bg-gray-900/95' : 'bg-white/95'} backdrop-blur-sm shadow-xl overflow-hidden`}
+          style={{
             paddingTop: '80px',
             top: 0,
             bottom: sidebarBottom !== null ? `${sidebarBottom}px` : 0,
@@ -403,7 +403,7 @@ const LandingPage = () => {
           }}
         >
           {/* Sidebar Content */}
-          <div 
+          <div
             className="h-full py-2 overflow-y-auto scrollbar-hide"
             style={{
               scrollbarWidth: 'none',
@@ -419,27 +419,26 @@ const LandingPage = () => {
               <div className="flex items-center mb-2 px-1.5">
                 <button
                   onClick={() => setSidebarExpanded(!sidebarExpanded)}
-                  className={`w-7 h-7 rounded-lg ${
-                    isDarkMode ? 'bg-[#4da6ff]/15 hover:bg-[#4da6ff]/25 border border-[#4da6ff]/30' : 'bg-[#4da6ff]/15 hover:bg-[#4da6ff]/25 border border-[#4da6ff]/30'
-                  } text-[#4da6ff] flex items-center justify-center transition-all duration-200 hover:scale-105`}
+                  className={`w-7 h-7 rounded-lg ${isDarkMode ? 'bg-[#4da6ff]/15 hover:bg-[#4da6ff]/25 border border-[#4da6ff]/30' : 'bg-[#4da6ff]/15 hover:bg-[#4da6ff]/25 border border-[#4da6ff]/30'
+                    } text-[#4da6ff] flex items-center justify-center transition-all duration-200 hover:scale-105`}
                   title={sidebarExpanded ? 'Thu nhỏ menu' : 'Mở rộng menu'}
                 >
-                  <svg 
-                    width="14" 
-                    height="14" 
-                    viewBox="0 0 24 24" 
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
                     fill="none"
                     className="transition-all duration-300"
                   >
-                    <path 
+                    <path
                       d={
                         sidebarExpanded
                           ? "M15 6L9 12L15 18"
                           : "M9 6L15 12L9 18"
                       }
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
                       strokeLinejoin="round"
                       className="transition-all duration-300"
                     />
@@ -450,20 +449,16 @@ const LandingPage = () => {
                 <button
                   key={key}
                   onClick={() => handleCategoryClick(type)}
-                  className={`w-full flex items-center rounded-lg transition-all duration-200 ${
-                    sidebarExpanded ? 'gap-2 px-2 py-2' : 'justify-center py-2'
-                  } ${
-                    isDarkMode 
-                      ? 'hover:bg-[#4da6ff]/20 text-gray-200 hover:text-white' 
+                  className={`w-full flex items-center rounded-lg transition-all duration-200 ${sidebarExpanded ? 'gap-2 px-2 py-2' : 'justify-center py-2'
+                    } ${isDarkMode
+                      ? 'hover:bg-[#4da6ff]/20 text-gray-200 hover:text-white'
                       : 'hover:bg-[#4da6ff]/10 text-gray-700 hover:text-[#4da6ff]'
-                  } group relative`}
+                    } group relative`}
                   title={!sidebarExpanded ? label : undefined}
                 >
-                  <div className={`flex items-center justify-center ${
-                    sidebarExpanded ? 'w-7 h-7' : 'w-7 h-7'
-                  } rounded-lg ${
-                    isDarkMode ? 'bg-[#4da6ff]/10 group-hover:bg-[#4da6ff]/20' : 'bg-[#4da6ff]/10 group-hover:bg-[#4da6ff]/20'
-                  } transition-colors shrink-0`}>
+                  <div className={`flex items-center justify-center ${sidebarExpanded ? 'w-7 h-7' : 'w-7 h-7'
+                    } rounded-lg ${isDarkMode ? 'bg-[#4da6ff]/10 group-hover:bg-[#4da6ff]/20' : 'bg-[#4da6ff]/10 group-hover:bg-[#4da6ff]/20'
+                    } transition-colors shrink-0`}>
                     <Icon className={`${sidebarExpanded ? 'text-sm' : 'text-base'} text-[#4da6ff]`} />
                   </div>
                   {sidebarExpanded && (
@@ -471,7 +466,7 @@ const LandingPage = () => {
                       {label}
                     </span>
                   )}
-                  
+
                   {!sidebarExpanded && (
                     <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
                       {label}
@@ -490,19 +485,205 @@ const LandingPage = () => {
           marginLeft: 0, // Temporarily disabled sidebar margin
         }}
       >
-        <div id="latest-listings" ref={latestListingsRef} className="w-full mx-auto p-2 md:p-4">
-          <div className="text-center mb-12">
-            <h1 className="text-xl md:text-2xl font-bold mb-4 text-[#4da6ff]">
-              <ScrambleText text="Phòng học mới nhất" triggerKey={decodeLatestListings} />
-            </h1>
-          </div>
-
+        <div id="latest-listings" ref={latestListingsRef} className="max-w-7xl mx-auto p-8">
           {error && (
             <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg text-sm">
               {error}
             </div>
           )}
 
+          {loading ? (
+            <div className="mb-8 w-full px-4 lg:px-12">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className={`rounded-lg shadow-md overflow-hidden animate-pulse ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                  <div className={`h-[500px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
+                </div>
+                <div className="space-y-6">
+                  <div className={`h-32 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg animate-pulse`}></div>
+                  <div className="grid grid-cols-2 gap-6">
+                    {[1, 2].map((i) => (
+                      <div key={i} className={`rounded-lg shadow-md overflow-hidden animate-pulse ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                        <div className={`h-64 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-8 w-full">
+              <div className="text-center mb-12">
+                <h1 className="text-xl md:text-2xl font-bold mb-4 text-[#4da6ff]">
+                  <ScrambleText text="Phòng học mới nhất" triggerKey={decodeLatestListings} />
+                </h1>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                {/* Left Column - Large Card */}
+                <div className="space-y-6">
+
+                  {(() => {
+                    const room = rooms[latestListingsStart];
+                    const template = TEMPLATE_ROOMS[0];
+                    if (!room && rooms.length === 0) {
+                      return (
+                        <RoomCard
+                          key={template.id}
+                          {...template}
+                          variant="large"
+                          showOverlay={true}
+                        />
+                      );
+                    }
+                    return (
+                      <RoomCard
+                        key={room?.id || template.id}
+                        id={room?.id || template.id}
+                        listingId={room?.listingId}
+                        title={room?.title || template.title}
+                        location={room?.location || template.location}
+                        capacity={template.capacity}
+                        price={room ? Math.round(room.price / 23000) : template.price}
+                        image={room?.image}
+                        feature={template.feature}
+                        variant="large"
+                        showOverlay={true}
+                      />
+                    );
+                  })()}
+                </div>
+
+                {/* Right Column - Wide Card on top, 2 Small Cards below */}
+                <div className="space-y-6">
+                  {/* Wide card on top */}
+                  {(() => {
+                    const room = rooms[latestListingsStart + 1];
+                    const template = TEMPLATE_ROOMS[1];
+                    if (!room && rooms.length === 0) {
+                      return (
+                        <RoomCard
+                          key={template.id}
+                          {...template}
+                          variant="wide"
+                        />
+                      );
+                    }
+                    return (
+                      <RoomCard
+                        key={room?.id || template.id}
+                        id={room?.id || template.id}
+                        listingId={room?.listingId}
+                        title={room?.title || template.title}
+                        location={room?.location || template.location}
+                        capacity={template.capacity}
+                        price={room ? Math.round(room.price / 23000) : template.price}
+                        image={room?.image}
+                        feature={template.feature}
+                        variant="wide"
+                      />
+                    );
+                  })()}
+
+                  {/* 2 small cards below in grid */}
+                  <div className="grid grid-cols-2 gap-5">
+                    {[2, 3].map((offset) => {
+                      const roomIndex = latestListingsStart + offset;
+                      const room = rooms[roomIndex];
+                      const templateIndex = offset;
+                      const template = TEMPLATE_ROOMS[templateIndex] || TEMPLATE_ROOMS[0];
+
+                      if (!room && rooms.length === 0) {
+                        return (
+                          <RoomCard
+                            key={template.id}
+                            {...template}
+                            variant="compact"
+                          />
+                        );
+                      }
+                      return (
+                        <RoomCard
+                          key={room?.id || template.id}
+                          id={room?.id || template.id}
+                          listingId={room?.listingId}
+                          title={room?.title || template.title}
+                          location={room?.location || template.location}
+                          capacity={template.capacity}
+                          price={room ? Math.round(room.price / 23000) : template.price}
+                          image={room?.image}
+                          feature={template.feature}
+                          variant="compact"
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation buttons */}
+              <div className="flex justify-between items-center mt-8">
+                <button
+                  className={`rounded-lg shadow px-6 py-2 border hover:scale-105 hover:shadow-lg disabled:opacity-40 disabled:hover:scale-100 transition-all duration-300 ${isDarkMode ? 'bg-gray-700 border-[#4da6ff] hover:bg-[#4da6ff] hover:text-white disabled:hover:bg-gray-700 disabled:hover:text-gray-400' : 'bg-white border-[#4da6ff] hover:bg-[#4da6ff] hover:text-white disabled:hover:bg-white disabled:hover:text-gray-400'}`}
+                  onClick={() => setLatestListingsStart(s => Math.max(0, s - 1))}
+                  disabled={latestListingsStart === 0 || rooms.length === 0}
+                  aria-label="Xem phòng trước"
+                >
+                  <div className="flex items-center gap-2">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                      <path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span>Trước</span>
+                  </div>
+                </button>
+
+                <Link
+                  to="/products"
+                  className={`border px-6 py-2 rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 font-medium ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-200 hover:bg-[#4da6ff] hover:text-white hover:border-[#4da6ff]' : 'border-gray-300 bg-white text-gray-700 hover:bg-[#4da6ff] hover:text-white hover:border-[#4da6ff]'}`}
+                >
+                  Xem thêm {totalItems.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')} phòng học
+                </Link>
+
+                <button
+                  className={`rounded-lg shadow px-6 py-2 border hover:scale-105 hover:shadow-lg disabled:opacity-40 disabled:hover:scale-100 transition-all duration-300 ${isDarkMode ? 'bg-gray-700 border-[#4da6ff] hover:bg-[#4da6ff] hover:text-white disabled:hover:bg-gray-700 disabled:hover:text-gray-400' : 'bg-white border-[#4da6ff] hover:bg-[#4da6ff] hover:text-white disabled:hover:bg-white disabled:hover:text-gray-400'}`}
+                  onClick={() => setLatestListingsStart(s => Math.min(Math.max(0, rooms.length - 4), s + 1))}
+                  disabled={latestListingsStart >= Math.max(0, rooms.length - 4)}
+                  aria-label="Xem phòng tiếp"
+                >
+                  <div className="flex items-center gap-2">
+                    <span>Sau</span>
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                      <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div id="official-stores" ref={officialStoresRef} className="max-w-7xl mx-auto p-8">
+          <div className="text-center mb-12">
+            <h1 className="text-xl md:text-2xl font-bold mb-4 text-[#4da6ff]">
+              <ScrambleText text="Đặt Phòng Học Trực Tuyến" triggerKey={decodeOfficialStores} />
+            </h1>
+          </div>
+
+          <div className="flex flex-wrap gap-4 mb-6">
+            <div className="flex items-center text-blue-600">
+              <FaCheck className="w-4 h-4 mr-2" />
+              <span className="text-sm">Hủy đặt phòng miễn phí</span>
+            </div>
+            <div className="flex items-center text-blue-600">
+              <FaCheck className="w-4 h-4 mr-2" />
+              <span className="text-sm">Phòng học chất lượng cao</span>
+            </div>
+            <div className="flex items-center text-blue-600">
+              <FaCheck className="w-4 h-4 mr-2" />
+              <span className="text-sm">Hỗ trợ đặt phòng linh hoạt</span>
+            </div>
+          </div>
+
+          {/* Room Cards Section - Similar to Latest Listings */}
           {loading ? (
             <div className="mb-8 w-full px-4 lg:px-12">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -534,8 +715,8 @@ const LandingPage = () => {
             <div className="mb-8 w-full relative flex items-center">
               <button
                 className={`hidden lg:block absolute left-0 z-10 rounded-full shadow p-2 -ml-6 border hover:scale-110 hover:shadow-lg disabled:opacity-40 disabled:hover:scale-100 transition-all duration-300 ${isDarkMode ? 'bg-gray-700 border-[#4da6ff] hover:bg-[#4da6ff] hover:text-white disabled:hover:bg-gray-700 disabled:hover:text-gray-400' : 'bg-white border-[#4da6ff] hover:bg-[#4da6ff] hover:text-white disabled:hover:bg-white disabled:hover:text-gray-400'}`}
-                onClick={() => setLatestListingsStart(s => Math.max(0, s - 1))}
-                disabled={latestListingsStart === 0 || rooms.length === 0}
+                onClick={() => setOfficialStoresStart(s => Math.max(0, s - 1))}
+                disabled={officialStoresStart === 0 || rooms.length === 0}
                 aria-label="Xem phòng trước"
                 style={{ top: '50%', transform: 'translateY(-50%)' }}
               >
@@ -545,7 +726,7 @@ const LandingPage = () => {
               </button>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full px-0">
-                {rooms.slice(latestListingsStart, latestListingsStart + 4).map((room) => (
+                {rooms.slice(officialStoresStart, officialStoresStart + 4).map((room) => (
                   <RoomCard
                     key={room.id}
                     id={room.id}
@@ -562,8 +743,8 @@ const LandingPage = () => {
 
               <button
                 className={`hidden lg:block absolute right-0 z-10 rounded-full shadow p-2 -mr-6 border hover:scale-110 hover:shadow-lg disabled:opacity-40 disabled:hover:scale-100 transition-all duration-300 ${isDarkMode ? 'bg-gray-700 border-[#4da6ff] hover:bg-[#4da6ff] hover:text-white disabled:hover:bg-gray-700 disabled:hover:text-gray-400' : 'bg-white border-[#4da6ff] hover:bg-[#4da6ff] hover:text-white disabled:hover:bg-white disabled:hover:text-gray-400'}`}
-                onClick={() => setLatestListingsStart(s => Math.min(rooms.length - 4, s + 1))}
-                disabled={latestListingsStart >= rooms.length - 4}
+                onClick={() => setOfficialStoresStart(s => Math.min(rooms.length - 4, s + 1))}
+                disabled={officialStoresStart >= rooms.length - 4}
                 aria-label="Xem phòng tiếp"
                 style={{ top: '50%', transform: 'translateY(-50%)' }}
               >
@@ -574,36 +755,13 @@ const LandingPage = () => {
             </div>
           )}
 
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-center mt-4 mb-8">
             <Link
               to="/products"
               className={`border px-6 py-2 rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 font-medium ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-200 hover:bg-[#4da6ff] hover:text-white hover:border-[#4da6ff]' : 'border-gray-300 bg-white text-gray-700 hover:bg-[#4da6ff] hover:text-white hover:border-[#4da6ff]'}`}
             >
               Xem thêm {totalItems.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')} phòng học
             </Link>
-          </div>
-        </div>
-
-        <div id="official-stores" ref={officialStoresRef} className="max-w-7xl mx-auto p-8">
-          <div className="text-center mb-12">
-            <h1 className="text-xl md:text-2xl font-bold mb-4 text-[#4da6ff]">
-              <ScrambleText text="Đặt Phòng Học Trực Tuyến" triggerKey={decodeOfficialStores} />
-            </h1>
-          </div>
-
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex items-center text-blue-600">
-              <FaCheck className="w-4 h-4 mr-2" />
-              <span className="text-sm">Hủy đặt phòng miễn phí</span>
-            </div>
-            <div className="flex items-center text-blue-600">
-              <FaCheck className="w-4 h-4 mr-2" />
-              <span className="text-sm">Phòng học chất lượng cao</span>
-            </div>
-            <div className="flex items-center text-blue-600">
-              <FaCheck className="w-4 h-4 mr-2" />
-              <span className="text-sm">Hỗ trợ đặt phòng linh hoạt</span>
-            </div>
           </div>
 
           <div className={`text-sm mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
