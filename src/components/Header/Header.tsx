@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { FiMessageCircle, FiUser, FiMoon, FiSun } from "react-icons/fi";
-import { FaHeart } from "react-icons/fa";
+import { FaHeart, FaWallet } from "react-icons/fa";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import LoginPage from "../../pages/Customer/LoginPage/LoginPage";
@@ -238,6 +238,17 @@ const Header = () => {
               <Link to="/wishlist" className={`${ICON_BUTTON_CLASS} bg-red-50 hover:bg-red-100`} title="Yêu thích">
                 <FaHeart size={18} className="md:text-[20px] text-[#ff3b6b] m-auto" />
               </Link>
+              <button
+                onClick={() => {
+                  requireAuth(() => {
+                    navigate('/wallet');
+                  });
+                }}
+                className={`${ICON_BUTTON_CLASS} bg-yellow-50 hover:bg-yellow-100`}
+                title="Ví cá nhân"
+              >
+                <FaWallet size={18} className="md:text-[20px] text-yellow-600 m-auto" />
+              </button>
               <button
                 onClick={() => {
                   requireAuth(() => {

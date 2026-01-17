@@ -3,6 +3,9 @@ import RootLayout from "../layouts/RootLayout";
 import LandingPage from "../pages/Customer/LandingPage/LandingPage";
 import RoomDetailPage from "../pages/Customer/RoomDetailPage/RoomDetailPage";
 import ChatBoxHome from "../pages/Customer/ChatBox/ChatBoxHome";
+import WalletPage from "../pages/Customer/WalletPage/WalletPage";
+import WalletHistoryPage from "../pages/Customer/WalletPage/WalletHistoryPage";
+import WalletPromotion from "../pages/Customer/WalletPage/WalletPromotion";
 import NotFound from "../components/Error/NotFound";
 
 export const router = createBrowserRouter([
@@ -35,6 +38,21 @@ export const router = createBrowserRouter([
         path: "chat",
         element: <ChatBoxHome />,
         handle: { breadcrumb: "Chat" },
+      },
+      {
+        path: "wallet",
+        element: <WalletPage />,
+        handle: { breadcrumb: "Ví cá nhân" },
+      },
+      {
+        path: "wallet/history",
+        element: <WalletHistoryPage />,
+        handle: { breadcrumb: "Lịch sử giao dịch" },
+      },
+      {
+        path: "wallet/promotion",
+        element: <WalletPromotion />,
+        handle: { breadcrumb: "Khuyến mãi" },
       },
       {
         path: "*",
