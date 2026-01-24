@@ -22,11 +22,15 @@ public enum ErrorCode {
     USER_NOT_AUTHENTICATED(2003,"User not authenticated", HttpStatus.UNAUTHORIZED),
 
     // Page Errors
-    INVALID_PAGINATION(3001,"Invalid pagination parameters",HttpStatus.BAD_REQUEST);
+    INVALID_PAGINATION(3001,"Invalid pagination parameters",HttpStatus.BAD_REQUEST),
 
-    private int code;
-    private String message;
-    private HttpStatusCode httpStatusCode;
+    // Package Errors
+    PACKAGE_NOT_FOUND(4001, "Package not found", HttpStatus.NOT_FOUND),
+    INVALID_PACKAGE(4002, "Invalid package data", HttpStatus.BAD_REQUEST);
+
+    private final int code;
+    private final String message;
+    private final HttpStatusCode httpStatusCode;
 
     ErrorCode(int code, String message, HttpStatusCode httpStatusCode) {
         this.code = code;
