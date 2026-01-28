@@ -12,9 +12,9 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PackageResponse {
-    private UUID packageId;
-    private String packageName;
+public class RentPackageResponse {
+    private UUID rentPackageId;
+    private String rentPackageName;
     private double price;
     private int durationDays;
     private LocalDateTime createdAt;

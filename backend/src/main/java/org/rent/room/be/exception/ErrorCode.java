@@ -25,8 +25,8 @@ public enum ErrorCode {
     INVALID_PAGINATION(3001,"Invalid pagination parameters",HttpStatus.BAD_REQUEST),
 
     // Package Errors
-    PACKAGE_NOT_FOUND(4001, "Package not found", HttpStatus.NOT_FOUND),
-    INVALID_PACKAGE(4002, "Invalid package data", HttpStatus.BAD_REQUEST);
+    RENTPACKAGE_NOT_FOUND(4001, "Package not found", HttpStatus.NOT_FOUND),
+    INVALID_RENTPACKAGE(4002, "Invalid package data", HttpStatus.BAD_REQUEST);
 
     private final int code;
     private final String message;

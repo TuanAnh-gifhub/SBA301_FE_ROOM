@@ -29,7 +29,7 @@ public class Subscription {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "package_id")
-    private Package servicePackage;
+    private RentPackage servicePackage;
 
     @Column(name = "start_date")
     private LocalDateTime startDate;

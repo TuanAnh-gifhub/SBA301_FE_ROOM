@@ -12,10 +12,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreatePackageRequest {
+public class RentPackageRequest {
 
     @NotBlank(message = "packageName is required")
-    private String packageName;
+    private String rentPackageName;
 
     @NotNull(message = "price is required")
     @Min(value = 0, message = "price must be >= 0")

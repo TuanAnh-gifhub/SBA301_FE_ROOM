@@ -21,15 +21,15 @@ import java.util.UUID;
 @ToString(exclude = {"subscriptions","orders"})
 @Entity
 @Table(name = "packages")
-public class Package extends BaseEntity {
+public class RentPackage extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "package_id")
-    private UUID packageId;
+    private UUID rentPackageId;
 
     @Column(unique = true, name = "package_name", length = 50)
-    private String packageName;
+    private String rentPackageName;
 
     private double price;
 
