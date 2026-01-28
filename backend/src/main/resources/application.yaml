@@ -6,12 +6,12 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    driver-class-name: org.postgresql.Driver
 
   jpa:
-    database-platform: org.hibernate.dialect.SQLServerDialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -19,10 +19,10 @@ spring:
 
   mongodb:
     uri: ${SPRING_DATA_MONGODB_URI}
-
+    auto-index-creation: true
 
 server:
-  port: ${SERVER_PORT}
+  port: 8080
   servlet:
     context-path: ${SERVER_SERVLET_CONTEXT_PATH}
 
@@ -43,3 +43,8 @@ google:
     id: ${GOOGLE_ID}
     secret: ${GOOGLE_SECRET}
     uri: ${GOOGLE_URI}
+sepay:
+  base-url: https://pgapi-sandbox.sepay.vn
+  merchant-id: your_merchant_id
+  secret-key: your_secret_key
+  webhook-path: /api/sepay/webhook

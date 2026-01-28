@@ -18,7 +18,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@Table(name = "`order`") // Dùng dấu ` để tránh trùng keyword SQL ORDER
+@Table(name = "orders")
 @Entity
 public class Order extends BaseEntity {
 
@@ -27,7 +27,7 @@ public class Order extends BaseEntity {
     @Column(name = "order_id")
     private UUID orderId;
 
-    @Column(name = "total_amount")
+    @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalAmount;
 
     @Column(name = "order_status", length = 20)

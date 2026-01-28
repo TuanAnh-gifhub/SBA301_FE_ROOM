@@ -10,6 +10,7 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.rent.room.be.base.BaseEntity;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,7 +21,8 @@ import java.util.UUID;
 @SuperBuilder
 @ToString(exclude = {"subscriptions","orders"})
 @Entity
-@Table(name = "packages")
+@Table(name = "packages") // Tên bảng số nhiều
+
 public class RentPackage extends BaseEntity {
 
     @Id
@@ -31,16 +33,17 @@ public class RentPackage extends BaseEntity {
     @Column(unique = true, name = "package_name", length = 50)
     private String rentPackageName;
 
-    private double price;
 
-    @Column(name = "duration_days")
+    @Column(name = "price", precision = 19, scale = 2, nullable = false)
+    private BigDecimal price;
+
+    @Column(name = "duration_days", nullable = false)
     private int durationDays;
 
     @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Subscription> subscriptions;
 
-    //servicePackage ten bien
     @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Order> orders;
