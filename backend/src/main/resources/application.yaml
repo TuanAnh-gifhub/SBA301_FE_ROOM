@@ -22,7 +22,7 @@ spring:
     auto-index-creation: true
 
 server:
-  port: ${SERVER_PORT}
+  port: 8080
   servlet:
     context-path: ${SERVER_SERVLET_CONTEXT_PATH}
 
