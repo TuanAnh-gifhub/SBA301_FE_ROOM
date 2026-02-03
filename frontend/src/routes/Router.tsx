@@ -16,7 +16,6 @@ import ReportForm from "../pages/Customer/ReportPage/ReportForm";
 import ResetPassword from "../pages/Customer/LoginPage/ResetPassword";
 import UserManagement from "../pages/Admin/UserManagement";
 import ManagePage from "../pages/Customer/ManagePage/ManagePage";
-import AdminProfilePage from "../pages/Admin/ProfileAdmin/AdminProfilePage";
 
 export const router = createBrowserRouter([
   {
@@ -85,6 +84,11 @@ export const router = createBrowserRouter([
         handle: { breadcrumb: "Không tìm thấy" },
       },
       {
+        path: "register/confirm",
+        element: <ConfirmRegister />,
+        handle: { breadcrumb: "Xác nhận tài khoản" },
+      },
+      {
         path: "about-us",
         element: <AboutUs />,
         handle: { breadcrumb: "Về chúng tôi" },
@@ -108,24 +112,19 @@ export const router = createBrowserRouter([
   {
     path: "/admin",
     element: (
-      // <ProtectedAdminRoute>
+      <ProtectedAdminRoute>
       <AdminPage />
-      //  </ProtectedAdminRoute>
+       </ProtectedAdminRoute>
     ),
     children: [
       {
         index: true,
         element: (
           <div className="p-6">
-            <h1
-              className="text-2xl font-bold mb-4"
-              style={{ color: "inherit" }}
-            >
+            <h1 className="text-2xl font-bold mb-4" style={{ color: "inherit" }}>
               Dashboard
             </h1>
-            <p style={{ color: "inherit" }}>
-              Chào mừng đến với trang quản trị!
-            </p>
+            <p style={{ color: "inherit" }}>Chào mừng đến với trang quản trị!</p>
           </div>
         ),
       },
@@ -137,7 +136,6 @@ export const router = createBrowserRouter([
         path: "reports",
         element: <ReportPage />,
       },
-    
     ],
   },
 ]);

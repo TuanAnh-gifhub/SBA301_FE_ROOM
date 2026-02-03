@@ -1,27 +1,30 @@
 package org.rent.room.be.serviceImpl;
 
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.rent.room.be.base.PageResponse;
-import org.rent.room.be.constant.Role;
+import org.rent.room.be.constant.AuthProvider;
 import org.rent.room.be.dto.request.auth.ResetPasswordRequest;
 import org.rent.room.be.dto.request.user.CreateUsersRequest;
 import org.rent.room.be.dto.request.user.UpdateUserRequest;
 import org.rent.room.be.dto.response.UserResponse;
 import org.rent.room.be.entity.PasswordResetToken;
+import org.rent.room.be.entity.Role;
 import org.rent.room.be.entity.User;
 import org.rent.room.be.exception.AppException;
 import org.rent.room.be.exception.ErrorCode;
 import org.rent.room.be.mapper.UserMapper;
+import org.rent.room.be.repository.RoleRepository;
 import org.rent.room.be.repository.UserRepository;
 import org.rent.room.be.repository.mongo.PasswordResetTokenRepository;
 import org.rent.room.be.service.EmailService;
 import org.rent.room.be.service.UserService;
+import org.rent.room.be.specification.UserSpecification;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,24 +36,28 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class UserServiceImpl implements UserService {
+public
+class UserServiceImpl implements UserService {
 
-    UserRepository userRepository;
-    PasswordResetTokenRepository passwordResetTokenRepository;
-    EmailService emailService;
-    UserMapper userMapper;
-    PasswordEncoder passwordEncoder;
-// portperty
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    private static final long EXPIRATION_SEC = 900;
+    @Value("${token_reset_password_expire_seconds}")
+    private long EXPIRATION_SEC;
 
+    @Override
     @Transactional
     public UserResponse createUser(CreateUsersRequest createUser) {
-
         if (userRepository.existsByEmail(createUser.getEmail())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
+
+        Role role = roleRepository.findByRoleName(createUser.getRoleName())
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
 
         User user = User.builder()
                 .userName(createUser.getUserName())
@@ -59,8 +66,9 @@ public class UserServiceImpl implements UserService {
                 .passwordHash(passwordEncoder.encode(createUser.getPassword()))
                 .phone(createUser.getPhone())
                 .dateOfBirth(createUser.getDateOfBirth())
-                .role(Role.valueOf(createUser.getRole()))
+                .role(role)
                 .active(true)
+                .provider(AuthProvider.LOCAL)
                 .build();
 
         return userMapper.toUserResponse(userRepository.save(user));
@@ -69,6 +77,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse getProfileUser() {
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AppException(ErrorCode.USER_NOT_AUTHENTICATED);
@@ -81,10 +90,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public PageResponse<UserResponse> getAllUsers(int page, int size, String role, Boolean active, String keyword) {
+
         Sort sort = Sort.by("createdAt").descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<User> pageData = userRepository.searchUsers(keyword, role, active, pageable);
+        Specification<User> spec = UserSpecification.filterUsers(keyword, role, active);
+
+        Page<User> pageData = userRepository.findAll(spec, pageable);
 
         Page<UserResponse> responsePage = pageData.map(userMapper::toUserResponse);
 
@@ -111,7 +123,7 @@ public class UserServiceImpl implements UserService {
     public void processForgotPassword(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_FOUND));
-        String token = createToken(email);
+        String token = createTokenResetPassword(email);
         String resetLink = "http://localhost:5173/reset-password?token=" + token;
         emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
     }
@@ -120,7 +132,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void processResetPassword(ResetPasswordRequest request) {
         // 1. Validate token bên Mongo -> Lấy ra email
-        String email = validateToken(request.getToken());
+        String email = validateTokenResetPassword(request.getToken());
 
         // 2. Tìm user
         User user = userRepository.findByEmail(email)
@@ -131,7 +143,7 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         // 4. Xóa token để không dùng lại được nữa
-        deleteToken(request.getToken());
+        deleteTokenResetPassword(request.getToken());
     }
 
     @Override
@@ -173,13 +185,12 @@ public class UserServiceImpl implements UserService {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AppException(ErrorCode.USER_NOT_AUTHENTICATED);
         }
-
-        return userRepository.findByEmail(authentication.getName())
+       return userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 
 
-    private String createToken(String email) {
+    private String createTokenResetPassword(String email) {
         passwordResetTokenRepository.deleteByEmail(email);
 
         String tokenString = UUID.randomUUID().toString();
@@ -198,7 +209,7 @@ public class UserServiceImpl implements UserService {
         return tokenString;
     }
 
-    private String validateToken(String token) {
+    private String validateTokenResetPassword(String token) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Token không hợp lệ hoặc không tồn tại"));
 
@@ -211,7 +222,7 @@ public class UserServiceImpl implements UserService {
         return resetToken.getEmail();
     }
 
-    private void deleteToken(String token) {
+    private void deleteTokenResetPassword(String token) {
         passwordResetTokenRepository.findByToken(token)
                 .ifPresent(passwordResetTokenRepository::delete);
     }

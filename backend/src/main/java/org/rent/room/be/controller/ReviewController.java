@@ -1,6 +1,7 @@
 package org.rent.room.be.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.dto.request.review.ReviewRequest;
@@ -13,7 +14,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/reviews")
 @Tag(name = "4. Report")
 public class ReviewController {
 
@@ -21,7 +22,7 @@ public class ReviewController {
     private ReviewService reviewService;
 
     @PostMapping
-    public ApiResponse<ReviewResponse> create(ReviewRequest request) {
+    public ApiResponse<ReviewResponse> create(@Valid @RequestBody ReviewRequest request) {
         try {
             return ApiResponse.success(200,
                             "Create review successfully",
@@ -66,7 +67,7 @@ public class ReviewController {
     }
 
     @PutMapping
-    public ApiResponse<?> updateReview(@PathVariable UUID reviewId, ReviewRequest request) {
+    public ApiResponse<?> updateReview(@PathVariable UUID reviewId,@Valid @RequestBody ReviewRequest request) {
         try {
             reviewService.update(reviewId, request);
             return ApiResponse.success(200,

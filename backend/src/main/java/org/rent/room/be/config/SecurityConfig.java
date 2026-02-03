@@ -34,15 +34,9 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/auth/login",
-            "/auth/google",
-            "/auth/refresh",
-            "/auth/logout",
-            "/auth/forgot-password/**",
-            "/auth/reset-password/**",
-            "/auth/register/request/**",
-            "/auth/register/confirm/**",
+            "/auth/**",
             "/ws/**",
+            "/reports/**"
     };
 
     JwtAuthenticationFilter jwtAuthenticationFilter;
