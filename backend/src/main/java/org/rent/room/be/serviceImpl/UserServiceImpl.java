@@ -41,6 +41,7 @@ public class UserServiceImpl implements UserService {
     EmailService emailService;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
+// portperty
 
     private static final long EXPIRATION_SEC = 900;
 
@@ -68,7 +69,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse getProfileUser() {
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AppException(ErrorCode.USER_NOT_AUTHENTICATED);
@@ -165,6 +165,17 @@ public class UserServiceImpl implements UserService {
         User savedUser = userRepository.save(user);
 
         return userMapper.toUserResponse(savedUser);
+    }
+
+    @Override
+    public User getCurrentUserEntity() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AppException(ErrorCode.USER_NOT_AUTHENTICATED);
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 
 

@@ -1,5 +1,7 @@
 package org.rent.room.be.config;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -10,9 +12,19 @@ import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import java.util.List;
-import io.swagger.v3.oas.models.tags.Tag;
 
 // truy cập http://localhost:8080/api/v1/rent-room/swagger-ui/index.html để xem tài liệu API
+
+@OpenAPIDefinition(
+        tags = {
+                @Tag(name = "1. Authentication", description = "API quản lý xác thực"),
+                @Tag(name = "2. User", description = "API quản lý người dùng"),
+                @Tag(name = "3. Booking", description = "API quản lý đặt lịch"),
+                @Tag(name = "4. Review", description = "API quản lý đánh giá"),
+                @Tag(name = "5. Report", description = "API quản lý báo cáo vi phạm"),
+        }
+)
+
 @Configuration
 public class SwaggerConfig {
 
@@ -35,9 +47,6 @@ public class SwaggerConfig {
                                         .name(securitySchemeName)
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
-                                        .bearerFormat("JWT")))
-                .addTagsItem(new Tag().name("1. Authentication"))
-                .addTagsItem(new Tag().name("2. User"))
-                ;
+                                        .bearerFormat("JWT")));
     }
 }

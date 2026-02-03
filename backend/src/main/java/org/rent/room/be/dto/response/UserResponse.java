@@ -29,13 +29,5 @@ public class UserResponse {
     LocalDateTime updatedAt;
     boolean active;
 
-    public static  UserResponse fromEntityReport(User user) {
-       if(user == null){
-           return null;
-       }
-       return UserResponse.builder()
-               .email(user.getEmail())
-               .phone(user.getPhone())
-               .build();
-    }
+
 }

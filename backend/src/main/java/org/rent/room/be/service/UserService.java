@@ -30,4 +30,6 @@ public interface UserService {
     void updateStatus(UUID id, Boolean active);
 
     UserResponse updateUser(UUID id, UpdateUserRequest request);
+
+    User getCurrentUserEntity();
 }

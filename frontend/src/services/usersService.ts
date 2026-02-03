@@ -50,7 +50,7 @@ export interface UpdateUserStatusRequest {
 
 export const userService = {
   getMe: () => {
-    return api.get<any, ApiResponse<UserResponse>>("/users/profile");
+    return api.get<any, ApiResponse<UserResponse>>("/users/me");
   },
 
   forgotPassword: (email: string) => {
@@ -75,7 +75,7 @@ export const userService = {
     if (role) params.role = role;
     if (active !== undefined) params.active = active;
     if (keyword) params.keyword = keyword;
-    return api.get("/users/all", { params });
+    return api.get("/users", { params });
   },
 
   updateUser: (userId: string, data: UpdateUserRequest) => {

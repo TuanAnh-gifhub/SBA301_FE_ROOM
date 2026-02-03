@@ -58,4 +58,13 @@ public class Booking extends BaseEntity {
 
     @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY)
     List<ScheduleBooking> scheduleBookings;
+
+
+    @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY)
+    private List<BookingQR> bookingQRs;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rental_area_id", nullable = false)
+    private RentalArea rentalArea;
+
 }

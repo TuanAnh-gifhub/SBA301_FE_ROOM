@@ -38,13 +38,11 @@ public class SecurityConfig {
             "/auth/google",
             "/auth/refresh",
             "/auth/logout",
-            "/users/create",
-            "/users/forgot-password/**",
-            "/users/reset-password/**",
-            "/users/register/request/**",
-            "/users/register/confirm/**",
+            "/auth/forgot-password/**",
+            "/auth/reset-password/**",
+            "/auth/register/request/**",
+            "/auth/register/confirm/**",
             "/ws/**",
-            "/reports/**"
     };
 
     JwtAuthenticationFilter jwtAuthenticationFilter;

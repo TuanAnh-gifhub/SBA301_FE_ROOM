@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.*;
 import org.rent.room.be.base.BaseEntity;
+import org.rent.room.be.constant.ScheduleStatus;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,8 +30,9 @@ public class Schedule extends BaseEntity {
     @Column(name = "specific_date", nullable = false)
     LocalDate specificDate;
 
-    @Column(name = "availability_status", length = 20)
-    String availabilityStatus;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "availability_status")
+    ScheduleStatus availabilityStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)

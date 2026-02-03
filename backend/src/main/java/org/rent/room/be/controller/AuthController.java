@@ -10,11 +10,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.dto.request.auth.LoginGoogleRequest;
 import org.rent.room.be.dto.request.auth.LoginRequest;
+import org.rent.room.be.dto.request.auth.ResetPasswordRequest;
+import org.rent.room.be.dto.request.user.CreateUsersRequest;
 import org.rent.room.be.dto.response.auth.LoginGoogleResponse;
 import org.rent.room.be.dto.response.auth.LoginResponse;
 import org.rent.room.be.properties.CookieProperties;
 import org.rent.room.be.service.AuthGoogleService;
 import org.rent.room.be.service.AuthService;
+import org.rent.room.be.service.EmailService;
+import org.rent.room.be.service.UserService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -27,12 +31,14 @@ import java.time.Duration;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/auth")
-@Tag(name = "1. Authentication", description = "API quản lý xác thực")
+@Tag(name = "1. Authentication")
 public class AuthController {
 
     AuthService authService;
     AuthGoogleService authGoogleService;
     CookieProperties cookieProperties;
+    EmailService emailService;
+    UserService userService;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<?>> login(@RequestBody LoginRequest request, HttpServletResponse response) {
@@ -138,4 +144,62 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
+
+
+
+    @PostMapping("/register/request")
+    public ResponseEntity<ApiResponse<?>> sendOtp(
+            @RequestBody CreateUsersRequest user
+    ) {
+        emailService.sendOtpRegister(user);
+
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(200)
+                        .message("Mã xác thực đã được gửi tới email của bạn.")
+                        .build()
+        );
+    }
+
+    @PostMapping("/register/confirm")
+    public ResponseEntity<ApiResponse<?>> confirmRegister(
+            @RequestParam String email,
+            @RequestParam String otp) {
+
+        CreateUsersRequest userRequest = emailService.verifyAndGetPendingUser(email, otp);
+
+        userService.createUser(userRequest);
+
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(200)
+                        .message("Đăng ký tài khoản thành công!")
+                        .build()
+        );
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<?>> forgotPassword(@RequestParam String email) {
+        userService.processForgotPassword(email);
+        return ResponseEntity.ok(
+                ApiResponse.builder()
+                        .code(200)
+                        .message("Vui lòng kiểm tra email để lấy lại mật khẩu.")
+                        .build()
+        );
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<?>> resetPassword(@RequestBody ResetPasswordRequest request) {
+        userService.processResetPassword(request);
+        return ResponseEntity.ok(
+                ApiResponse.builder()
+                        .code(200)
+                        .message("Đổi mật khẩu thành công.")
+                        .build()
+        );
+    }
+
+
+
 }
