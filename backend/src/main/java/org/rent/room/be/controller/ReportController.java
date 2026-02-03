@@ -12,7 +12,6 @@ import org.rent.room.be.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -59,7 +58,6 @@ public class ReportController {
     }
 
     @PostMapping
-
     public ApiResponse<?> createReport(@Valid @RequestBody ReportRequest reportRequest) {
         try {
             reportService.createReport(reportRequest);
@@ -102,7 +100,6 @@ public class ReportController {
     }
 
     @GetMapping("/{reportId}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<?> getReportById(@PathVariable UUID reportId) {
 
         try{
@@ -123,7 +120,6 @@ public class ReportController {
     }
 
     @DeleteMapping("/{reportId}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<?> deleteReport(@PathVariable UUID reportId) {
       try{
           reportService.deleteReport(reportId);
