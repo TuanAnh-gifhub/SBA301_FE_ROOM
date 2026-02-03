@@ -34,20 +34,22 @@ public class ReviewController {
 
     @GetMapping
     public ApiResponse<PageResponse<ReviewResponse>> getAllReviews(
-            @RequestParam(required = false)String keyword,
+            @RequestParam(defaultValue = "1", required = false) int page,
+            @RequestParam(defaultValue = "10", required = false) int size,
+            @RequestParam(required = false)String comment,
+            @RequestParam(required = false)Integer rating,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
             LocalDate fromDate,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDate toDate,
-            @RequestParam(defaultValue = "1", required = false) int page,
-            @RequestParam(defaultValue = "10", required = false) int size
+            LocalDate toDate
+
     ) {
         try {
             return ApiResponse.success(200,
                     "Get all reviews successfully",
-                    reviewService.getReviews(page,size,keyword,fromDate,toDate)
+                    reviewService.getReviews(page,size,comment,rating,fromDate,toDate)
             );
         } catch (Exception e) {
             return ApiResponse.error(500, "Get all reviews failed");

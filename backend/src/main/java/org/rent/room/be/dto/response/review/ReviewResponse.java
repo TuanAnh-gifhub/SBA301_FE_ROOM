@@ -13,6 +13,7 @@ import java.util.UUID;
 @Builder
 @Getter
 public class ReviewResponse {
+    UUID reviewId;
     int rating;
     String comment;
     UUID bookingId;

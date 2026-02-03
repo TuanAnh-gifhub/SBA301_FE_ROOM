@@ -9,9 +9,10 @@ import java.util.UUID;
 
 public interface ReviewService {
     PageResponse<ReviewResponse> getReviews(int page, int size,
-                                            String keyword,
-                                            LocalDate from,
-                                            LocalDate to);
+                                            String comment,
+                                            Integer rating,
+                                            LocalDate startDate,
+                                            LocalDate endDate);
     ReviewResponse create(ReviewRequest request);
     void update(UUID reviewId,ReviewRequest request);
     ReviewResponse getReviewById(UUID reviewId);
