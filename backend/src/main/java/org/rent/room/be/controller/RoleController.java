@@ -1,6 +1,7 @@
 package org.rent.room.be.controller;
 
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.dto.request.role.CreateRoleRequest;
@@ -13,8 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/roles")
+@RequestMapping("/roles")
 @RequiredArgsConstructor
+@Tag(name = "3. Role")
 public class RoleController {
 
     private final RoleService roleService;
