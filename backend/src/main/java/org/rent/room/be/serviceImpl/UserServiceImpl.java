@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -60,7 +61,7 @@ public class UserServiceImpl implements UserService {
 
         User user = User.builder()
                 .userName(createUser.getUserName())
-                .email(createUser.getEmail())
+                .email(createUser.getEmail().toLowerCase())
                 .gender(createUser.getGender())
                 .passwordHash(passwordEncoder.encode(createUser.getPassword()))
                 .phone(createUser.getPhone())
@@ -120,11 +121,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void processForgotPassword(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_FOUND));
-        String token = createTokenResetPassword(email);
-        String resetLink = "http://localhost:5173/reset-password?token=" + token;
-        emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
+        Optional<User> userOpt = userRepository.findByEmail(email);
+
+        if (userOpt.isPresent()) {
+            String token = createTokenResetPassword(email);
+            String resetLink = "http://localhost:5173/reset-password?token=" + token;
+            emailService.sendResetPasswordEmail(email, resetLink);
+        }
     }
 
     @Transactional

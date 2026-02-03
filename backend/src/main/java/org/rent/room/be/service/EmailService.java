@@ -5,6 +5,7 @@ import org.springframework.scheduling.annotation.Async;
 
 public interface EmailService {
     void sendResetPasswordEmail(String toEmail, String resetUrl);
+
     void sendOtpRegister(CreateUsersRequest user);
 
     @Async

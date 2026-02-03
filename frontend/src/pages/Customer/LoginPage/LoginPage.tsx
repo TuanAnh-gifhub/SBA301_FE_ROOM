@@ -103,24 +103,11 @@ const LoginPage = ({ isOpen, onClose, onSwitchToRegister }: LoginPageProps) => {
       return;
     }
 
-    try {
-      // Gọi API forgotPassword từ userService
-      await authService.forgotPassword(email);
-
-      // Nếu thành công (API không throw lỗi)
-      setSuccessMessage(
-        "Link đặt lại mật khẩu đã được gửi vào email của bạn. Vui lòng kiểm tra hộp thư.",
-      );
-    } catch (error: any) {
-      console.error("Forgot password failed:", error);
-      const errorResponse = error.response?.data;
-      setErrorMessage(
-        errorResponse?.message ||
-          "Không thể gửi yêu cầu. Vui lòng kiểm tra lại email.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    await authService.forgotPassword(email);
+    setSuccessMessage(
+      "Link đặt lại mật khẩu đã được gửi vào email của bạn. Vui lòng kiểm tra hộp thư.",
+    );
+    setIsLoading(false);
   };
 
   // --- Xử lý Google Login ---

@@ -1,8 +1,11 @@
 package org.rent.room.be.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.rent.room.be.base.ApiResponse;
-import org.rent.room.be.entity.Role;
+import org.rent.room.be.dto.request.role.CreateRoleRequest;
+import org.rent.room.be.dto.request.role.UpdateRoleRequest;
+import org.rent.room.be.dto.response.RoleResponse;
 import org.rent.room.be.service.RoleService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,9 +20,9 @@ public class RoleController {
     private final RoleService roleService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Role>>> getAllRoles() {
+    public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles() {
         return ResponseEntity.ok(
-                ApiResponse.<List<Role>>builder()
+                ApiResponse.<List<RoleResponse>>builder()
                         .code(200)
                         .message("Get all active roles successfully")
                         .result(roleService.getAllActiveRoles())
@@ -27,21 +30,12 @@ public class RoleController {
         );
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Role>> getRoleById(@PathVariable Long id) {
-        return ResponseEntity.ok(
-                ApiResponse.<Role>builder()
-                        .code(200)
-                        .message("Get role detail successfully")
-                        .result(roleService.getRoleById(id))
-                        .build()
-        );
-    }
-
     @PostMapping
-    public ResponseEntity<ApiResponse<Role>> createRole(@RequestBody Role role) {
+    public ResponseEntity<ApiResponse<RoleResponse>> createRole(
+            @Valid @RequestBody CreateRoleRequest role
+    ) {
         return ResponseEntity.ok(
-                ApiResponse.<Role>builder()
+                ApiResponse.<RoleResponse>builder()
                         .code(201)
                         .message("Role created successfully")
                         .result(roleService.createRole(role))
@@ -50,9 +44,12 @@ public class RoleController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Role>> updateRole(@PathVariable Long id, @RequestBody Role role) {
+    public ResponseEntity<ApiResponse<RoleResponse>> updateRole(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateRoleRequest role
+    ) {
         return ResponseEntity.ok(
-                ApiResponse.<Role>builder()
+                ApiResponse.<RoleResponse>builder()
                         .code(200)
                         .message("Role updated successfully")
                         .result(roleService.updateRole(id, role))
@@ -61,7 +58,9 @@ public class RoleController {
     }
 
     @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<ApiResponse<Void>> softDelete(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> softDelete(
+            @PathVariable Long id
+    ) {
         roleService.softDeleteRole(id);
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()

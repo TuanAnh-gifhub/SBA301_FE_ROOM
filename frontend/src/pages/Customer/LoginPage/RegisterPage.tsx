@@ -70,10 +70,20 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
     } catch (error: any) {
       console.error("Register Error:", error);
       setLoading(false);
-
-      // Lấy message lỗi từ Server trả về
-      const errorMsg = error.response?.data?.message || "Lỗi kết nối máy chủ!";
-      message.error(errorMsg);
+      const serverData = error.response?.data;
+      if (serverData?.code === 2001) {
+        form.setFields([
+          {
+            name: "email",
+            errors: ["Email này đã tồn tại trên hệ thống!"], // Đã sửa tại đây
+          },
+        ]);
+        message.error("Email đã được sử dụng!");
+      }
+      // 3. Các lỗi khác
+      else {
+        message.error(serverData?.message || "Lỗi kết nối máy chủ!");
+      }
     }
   };
 
@@ -157,7 +167,14 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                         </span>
                       }
                       name="userName"
-                      rules={[{ required: true, message: "Nhập tên" }]}
+                      rules={[
+                        { required: true, message: "Nhập tên" },
+                        {
+                          pattern:
+                            /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểế-]+(?:\s[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểế-]+)*$/,
+                          message: "Tên không hợp lệ!",
+                        },
+                      ]}
                       className="mb-2"
                     >
                       <Input
@@ -182,6 +199,17 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                         className="w-full h-8 text-sm rounded-md"
                         placeholder="DD/MM/YYYY"
                         format="DD/MM/YYYY"
+                        inputReadOnly={false}
+                        onKeyDown={(e) => {
+                          const { value } = e.target;
+                          if (
+                            e.key !== "Backspace" &&
+                            (value.length === 2 || value.length === 5)
+                          ) {
+                            e.target.value = value + "/";
+                          }
+                        }}
+                        maxLength={10}
                       />
                     </Form.Item>
                   </Col>
@@ -195,9 +223,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                       name="gender"
                       className="mb-2"
                     >
-                      <Select className="h-8 text-sm w-full">
+                      <Select
+                        className="h-8 text-sm w-full"
+                        getPopupContainer={(trigger) => trigger.parentNode}
+                      >
                         <Select.Option value="MALE">Nam</Select.Option>
                         <Select.Option value="FEMALE">Nữ</Select.Option>
+                        <Select.Option value="OTHER">Khác</Select.Option>
                       </Select>
                     </Form.Item>
                   </Col>
@@ -207,7 +239,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                         <span className="text-[12px] font-medium">SĐT</span>
                       }
                       name="phone"
-                      rules={[{ pattern: /^0\d{9,10}$/, message: "Sai!" }]}
+                      rules={[
+                        { required: true, message: "Nhập SĐT!" },
+                        {
+                          pattern: /^(0[3|5|7|8|9])([0-9]{8,9})$/,
+                          message: "SĐT không đúng!",
+                        },
+                      ]}
                       className="mb-2"
                     >
                       <Input
@@ -227,7 +265,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                       }
                       name="email"
                       rules={[
-                        { required: true, type: "email", message: "Sai!" },
+                        { required: true, message: "Nhập Email!" },
+                        { type: "email", message: "Sai định dạng!" },
                       ]}
                       className="mb-3"
                     >
@@ -273,15 +312,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                       dependencies={["password"]}
                       className="mb-3"
                       rules={[
-                        { required: true, message: "Nhập lại mật khẩu!" },
+                        { required: true, message: "Bắt buộc!" },
                         ({ getFieldValue }) => ({
                           validator(_, value) {
                             if (!value || getFieldValue("password") === value) {
                               return Promise.resolve();
                             }
-                            return Promise.reject(
-                              new Error("Mật khẩu không khớp!"),
-                            );
+                            return Promise.reject(new Error("Không khớp!"));
                           },
                         }),
                       ]}

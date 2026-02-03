@@ -3,6 +3,7 @@ package org.rent.room.be.controller;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -35,7 +36,9 @@ public class AuthController {
     EmailService emailService;
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(
+            @Valid @RequestBody LoginRequest request
+    ) {
         LoginResponse loginResponse = authService.login(request);
         return ResponseEntity.ok(ApiResponse.<LoginResponse>builder()
                 .code(200)
@@ -46,7 +49,7 @@ public class AuthController {
 
     @PostMapping("/google")
     public ResponseEntity<ApiResponse<LoginResponse>> loginGoogle(
-            @RequestBody LoginGoogleRequest request
+            @Valid @RequestBody LoginGoogleRequest request
     ) {
         LoginGoogleResponse googleInfo = authGoogleService.authenticate(request.getCode());
 
@@ -65,8 +68,7 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<LoginResponse>> refresh(
-            HttpServletRequest request,
-            HttpServletResponse response) {
+            HttpServletRequest request) {
 
         LoginResponse newTokens = authService.refresh(request);
         return ResponseEntity.ok(ApiResponse.<LoginResponse>builder()
@@ -78,7 +80,7 @@ public class AuthController {
 
     @PostMapping("/register/request")
     public ResponseEntity<ApiResponse<?>> sendOtp(
-            @RequestBody CreateUsersRequest user
+            @Valid @RequestBody CreateUsersRequest user
     ) {
         emailService.sendOtpRegister(user);
 
@@ -108,7 +110,9 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponse<?>> forgotPassword(@RequestParam String email) {
+    public ResponseEntity<ApiResponse<?>> forgotPassword(
+            @RequestParam String email
+    ) {
         userService.processForgotPassword(email);
         return ResponseEntity.ok(
                 ApiResponse.builder()
@@ -119,7 +123,9 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponse<?>> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<ApiResponse<?>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request
+    ) {
         userService.processResetPassword(request);
         return ResponseEntity.ok(
                 ApiResponse.builder()
