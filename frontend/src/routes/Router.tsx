@@ -16,6 +16,8 @@ import ReportForm from "../pages/Customer/ReportPage/ReportForm";
 import ResetPassword from "../pages/Customer/LoginPage/ResetPassword";
 import UserManagement from "../pages/Admin/UserManagement";
 import ManagePage from "../pages/Customer/ManagePage/ManagePage";
+import ConfirmRegister from "../pages/Customer/LoginPage/ConfirmRegister";
+import AdminProfilePage from "../pages/Admin/ProfileAdmin/AdminProfilePage";
 
 export const router = createBrowserRouter([
   {
