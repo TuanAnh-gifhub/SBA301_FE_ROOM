@@ -287,20 +287,6 @@ public class NotificationScheduler {
     }
 }
 
-/**
- * ============================================
- * CRON EXPRESSION REFERENCE
- * ============================================
- *
- * Format: second minute hour day month weekday
- *
- * Examples:
- * - "0 0 * * * *"        → Mỗi giờ vào đầu giờ
- * - "0 */30 * * * *"     → Mỗi 30 phút
-        * - "0 0 9 * * *"        → 9:00 AM mỗi ngày
- * - "0 0 1 * * *"        → 1:00 AM mỗi ngày
- * - "0 0 3 * * SUN"      → 3:00 AM mỗi Chủ nhật
- * - "0 0 0 1 * *"        → Đầu tháng (00:00 ngày 1)
- * - "0 0 12 * * MON-FRI" → 12:00 PM các ngày trong tuần
-         * ============================================
-         */
+
+
+

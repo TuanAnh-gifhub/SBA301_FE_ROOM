@@ -1,13 +1,14 @@
 package org.rent.room.be.entity;
 
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.rent.room.be.base.BaseEntity;
 import org.rent.room.be.constant.NotificationType;
+
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -69,9 +70,9 @@ public class Notification extends BaseEntity {
      * Dữ liệu bổ sung dạng JSON (flexible)
      * VD: {"bookingId": 123, "roomName": "Phòng A101", "amount": 500000}
      */
-    @Type(JsonBinaryType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "notification_data", columnDefinition = "jsonb")
-    Map<String, Object> notificationData;
+    private Map<String, Object> notificationData;
 
     /**
      * Trạng thái đã đọc
