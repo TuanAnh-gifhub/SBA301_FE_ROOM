@@ -46,7 +46,9 @@ public class BookingServiceImpl implements BookingService {
             throw new RuntimeException("Room not found to booking");
         }
 
+        // tạo các ngày
 
+        // tạo các giờ đã book
         for (int i = 1; i <= bookingRequest.getSlotRequests().size(); i++) {
             SlotRequest slotRequest = bookingRequest.getSlotRequests().get(i);
             Slot slot = Slot.builder()
