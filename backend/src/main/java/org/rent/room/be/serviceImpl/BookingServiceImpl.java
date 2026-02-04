@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.awt.print.Book;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -47,7 +48,6 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // tạo các ngày
-
         // tạo các giờ đã book
         for (int i = 1; i <= bookingRequest.getSlotRequests().size(); i++) {
             SlotRequest slotRequest = bookingRequest.getSlotRequests().get(i);
@@ -58,15 +58,14 @@ public class BookingServiceImpl implements BookingService {
                     .build();
             slotService.createSlot(slot);
             scheduleService.createSchedule(slotRequest.getDate());
-
-
         }
 
-
         Booking booking = Booking.builder()
-
                 .bookingStatus(BookingStatus.PENDING)
                 .renter(user)
+                .createdAt(LocalDateTime.now())
+                .note(bookingRequest.getNote())
+                .totalPrice(bookingRequest.getPrice())
                 .build();
 
 

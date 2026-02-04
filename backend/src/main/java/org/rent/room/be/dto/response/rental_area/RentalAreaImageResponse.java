@@ -1,8 +1,8 @@
 package org.rent.room.be.dto.response.rental_area;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -11,12 +11,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class RentalAreaResponse {
-    UUID rentalAreaId;
-    String rentalAreaName;
-    String address;
-    String contactName;
-    String contactPhone;
-    String status;
-    List<RentalAreaImageResponse> images;
+public class RentalAreaImageResponse {
+    UUID rentalAreaImageId;
+    String imageUrl;
+    Boolean isCover;
+    Integer sortOrder;
 }

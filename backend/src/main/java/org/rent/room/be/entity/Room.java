@@ -29,14 +29,15 @@ public class Room extends BaseEntity {
     @Column(name = "room_name", length = 100, nullable = false)
     private String roomName;
 
-    @Column(name = "price", precision = 19, scale = 2, nullable = false)
-    private BigDecimal price;
-
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "room_status", length = 30)
     private RoomStatus roomStatus;
+
+    @Column(name="capacity")
+    private Integer capacity;
 
     @Column(name = "area")
     private Double area;
@@ -56,6 +57,9 @@ public class Room extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
+
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RoomImage> images;
 
 //    @OneToMany(mappedBy = "room", fetch = FetchType.LAZY)
 //    private List<Report> reports;

@@ -57,10 +57,8 @@ public class ReviewServiceImpl implements ReviewService {
                             RentalArea rentalArea = review.getRental();
                             RentalAreaResponse rentalAreaResponse = RentalAreaResponse.builder()
                                     .rentalAreaId(rentalArea.getRentalAreaId())
-                                    .addressDetail(rentalArea.getAddressDetail())
+                                    .address(rentalArea.getAddress())
                                     .rentalAreaName(rentalArea.getRentalAreaName())
-                                    .ward(rentalArea.getWard())
-                                    .district(rentalArea.getDistrict())
                                     .build();
                             return ReviewResponse.builder()
                                     .reviewId(review.getReviewId())
