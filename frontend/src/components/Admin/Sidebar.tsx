@@ -5,11 +5,11 @@ import {
   AppstoreOutlined,
   CalendarOutlined,
   TeamOutlined,
-  ShopOutlined, // Dùng cho Phòng/Cơ sở
+  ShopOutlined,
   DollarOutlined,
   SettingOutlined,
   LogoutOutlined,
-  ReconciliationOutlined, // Dùng cho đơn hàng/hóa đơn
+  SafetyCertificateOutlined,
   StarOutlined,
 } from "@ant-design/icons";
 import type { UserResponse } from "../../services/usersService";
@@ -43,7 +43,6 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   isDark,
-  adminUser,
   handleLogout,
 }) => {
   const location = useLocation();
@@ -93,11 +92,17 @@ const Sidebar: React.FC<SidebarProps> = ({
     ]),
 
     // 4. Khách hàng
-    getItem(
-      <Link to="/admin/customers">Khách hàng</Link>,
-      "/admin/customers",
-      <TeamOutlined />,
-    ),
+    getItem("Quản lý Người dùng", "sub_users", <TeamOutlined />, [
+      getItem(
+        <Link to="/admin/customers">Danh sách Khách hàng</Link>,
+        "/admin/customers",
+      ),
+      getItem(
+        <Link to="/admin/roles">Vai trò & Quyền (Roles)</Link>,
+        "/admin/roles",
+        <SafetyCertificateOutlined />,
+      ),
+    ]),
 
     // 5. Tài chính
     getItem("Tài chính & Hóa đơn", "sub_finance", <DollarOutlined />, [

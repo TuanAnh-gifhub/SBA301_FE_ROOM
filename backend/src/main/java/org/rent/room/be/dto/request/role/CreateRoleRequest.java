@@ -19,5 +19,6 @@ public class CreateRoleRequest {
     @Size(max = 255, message = "DESCRIPTION_TOO_LONG")
     String description;
 
+    @Builder.Default
     boolean active = true;
 }

@@ -1,5 +1,6 @@
 package org.rent.room.be.serviceImpl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.rent.room.be.dto.request.role.CreateRoleRequest;
 import org.rent.room.be.dto.request.role.UpdateRoleRequest;
@@ -22,20 +23,23 @@ public class RoleServiceImpl implements RoleService {
     private final RoleMapper roleMapper;
 
     @Override
-    public List<RoleResponse> getAllActiveRoles() {
-        return roleMapper.toRoleResponseList(roleRepository.findAllByActiveTrue());
+    @Transactional
+    public List<RoleResponse> getAllRoles() {
+        return roleMapper.toRoleResponseList(roleRepository.findAll());
     }
 
     @Override
+    @Transactional
     public RoleResponse createRole(CreateRoleRequest createRoleRequest) {
         Role role = Role.builder()
                 .roleName(createRoleRequest.getRoleName())
                 .description(createRoleRequest.getDescription())
-                .active(true).build();
+                .build();
         return roleMapper.toRoleResponse(roleRepository.save(role));
     }
 
     @Override
+    @Transactional
     public RoleResponse updateRole(Long id, UpdateRoleRequest roleDetails) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
@@ -45,10 +49,10 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public void softDeleteRole(Long id) {
+    public void updateRoleStatus(Long id, boolean active) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
-        role.setActive(false);
+        role.setActive(active);
         roleRepository.save(role);
     }
 }

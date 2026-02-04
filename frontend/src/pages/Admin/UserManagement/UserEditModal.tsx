@@ -1,88 +1,103 @@
-import React, { useEffect } from "react";
-import { Modal, Form, Input, Select, DatePicker } from "antd";
-import dayjs from "dayjs";
-import type { UserResponse } from "../../../services/usersService";
+import { Form, Input, Select, DatePicker, Row, Col, Divider } from "antd";
+import {
+  MailOutlined,
+  LockOutlined,
+  UserOutlined,
+  PhoneOutlined,
+} from "@ant-design/icons";
 
-const { Option } = Select;
-
-interface UserEditModalProps {
-  open: boolean;
-  user: UserResponse | null;
-  loading: boolean;
-  onCancel: () => void;
-  onSubmit: (values: any) => void;
-}
-
-const UserEditModal: React.FC<UserEditModalProps> = ({
-  open,
-  user,
-  loading,
-  onCancel,
-  onSubmit,
-}) => {
-  const [form] = Form.useForm();
-
-  useEffect(() => {
-    if (user && open) {
-      form.setFieldsValue({
-        userName: user.userName,
-        phone: user.phone,
-        gender: user.gender,
-        dateOfBirth: user.dateOfBirth ? dayjs(user.dateOfBirth) : null,
-      });
-    } else {
-      form.resetFields();
-    }
-  }, [user, open, form]);
-
+const CreateUserForm = () => {
   return (
-    <Modal
-      title="Chỉnh sửa thông tin người dùng"
-      open={open}
-      onCancel={onCancel}
-      onOk={form.submit}
-      okText="Lưu thay đổi"
-      cancelText="Hủy"
-      confirmLoading={loading}
-    >
-      <Form form={form} layout="vertical" onFinish={onSubmit}>
-        <Form.Item
-          name="userName"
-          label="Họ và tên"
-          rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}
-        >
-          <Input placeholder="Nhập họ và tên" />
-        </Form.Item>
+    <Form layout="vertical" className="mt-4">
+      <Row gutter={16}>
+        {/* Nhóm 1: Thông tin tài khoản */}
+        <Col span={12}>
+          <Form.Item
+            label="Email"
+            name="email"
+            rules={[{ required: true, type: "email" }]}
+          >
+            <Input
+              prefix={<MailOutlined className="text-gray-400" />}
+              placeholder="example@gmail.com"
+            />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
+            label="Mật khẩu"
+            name="password"
+            rules={[{ required: true }]}
+          >
+            <Input.Password
+              prefix={<LockOutlined className="text-gray-400" />}
+              placeholder="Nhập mật khẩu"
+            />
+          </Form.Item>
+        </Col>
 
-        <Form.Item
-          name="phone"
-          label="Số điện thoại"
-          rules={[
-            { required: true, message: "Vui lòng nhập SĐT" },
-            { pattern: /^[0-9]{10,11}$/, message: "SĐT không hợp lệ" },
-          ]}
-        >
-          <Input placeholder="Nhập số điện thoại" />
-        </Form.Item>
+        {/* Nhóm 2: Thông tin định danh */}
+        <Col span={12}>
+          <Form.Item
+            label="Họ và tên"
+            name="fullName"
+            rules={[{ required: true }]}
+          >
+            <Input
+              prefix={<UserOutlined className="text-gray-400" />}
+              placeholder="Nhập họ và tên"
+            />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
+            label="Số điện thoại"
+            name="phone"
+            rules={[{ required: true }]}
+          >
+            <Input
+              prefix={<PhoneOutlined className="text-gray-400" />}
+              placeholder="Nhập số điện thoại"
+            />
+          </Form.Item>
+        </Col>
 
-        <Form.Item name="gender" label="Giới tính">
-          <Select placeholder="Chọn giới tính">
-            <Option value="MALE">Nam</Option>
-            <Option value="FEMALE">Nữ</Option>
-            <Option value="OTHER">Khác</Option>
-          </Select>
-        </Form.Item>
+        {/* Nhóm 3: Phân quyền và Đặc điểm */}
+        <Col span={24}>
+          <Divider style={{ margin: "12px 0" }} />
+        </Col>
 
-        <Form.Item name="dateOfBirth" label="Ngày sinh">
-          <DatePicker
-            style={{ width: "100%" }}
-            format="DD/MM/YYYY"
-            placeholder="Chọn ngày sinh"
-          />
-        </Form.Item>
-      </Form>
-    </Modal>
+        <Col span={12}>
+          <Form.Item label="Vai trò" name="role" rules={[{ required: true }]}>
+            <Select placeholder="Chọn vai trò">
+              <Select.Option value="ADMIN">Quản trị viên</Select.Option>
+              <Select.Option value="OWNER">Chủ xe</Select.Option>
+              <Select.Option value="RENTER">Khách thuê</Select.Option>
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item label="Giới tính" name="gender">
+            <Select placeholder="Chọn giới tính">
+              <Select.Option value="MALE">Nam</Select.Option>
+              <Select.Option value="FEMALE">Nữ</Select.Option>
+              <Select.Option value="OTHER">Khác</Select.Option>
+            </Select>
+          </Form.Item>
+        </Col>
+
+        <Col span={24}>
+          <Form.Item label="Ngày sinh" name="dob">
+            <DatePicker
+              style={{ width: "100%" }}
+              placeholder="Chọn ngày sinh"
+              format="DD/MM/YYYY"
+            />
+          </Form.Item>
+        </Col>
+      </Row>
+    </Form>
   );
 };
 
-export default UserEditModal;
+export default CreateUserForm;

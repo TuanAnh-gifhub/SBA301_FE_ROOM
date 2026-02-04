@@ -1,5 +1,12 @@
 import React from "react";
-import { Table, Tag, Tooltip, Button, Dropdown, type MenuProps } from "antd";
+import {
+  Table,
+  Tag,
+  Tooltip,
+  Button,
+  Dropdown,
+  type MenuProps,
+} from "antd";
 import {
   MoreOutlined,
   EyeOutlined,
@@ -102,6 +109,7 @@ const UserTable: React.FC<UserTableProps> = ({
       width: 80,
       fixed: "right",
       render: (_, record) => {
+        const isAdmin = record.role === "ADMIN";
         const items: MenuProps["items"] = [
           {
             key: "detail",
@@ -120,6 +128,7 @@ const UserTable: React.FC<UserTableProps> = ({
             label: record.active ? "Khóa tài khoản" : "Mở khóa",
             icon: record.active ? <LockOutlined /> : <UnlockOutlined />,
             danger: record.active,
+            disabled: isAdmin,
             onClick: () => onToggleStatus(record),
           },
         ];
@@ -130,10 +139,25 @@ const UserTable: React.FC<UserTableProps> = ({
             trigger={["click"]}
             placement="bottomRight"
           >
-            <Button
-              type="text"
-              icon={<MoreOutlined style={{ fontSize: "20px" }} />}
-            />
+            <Tooltip
+              title={
+                isAdmin
+                  ? "Không thể thay đổi trạng thái tài khoản Quản trị viên"
+                  : ""
+              }
+            >
+              <Button
+                type="text"
+                icon={
+                  <MoreOutlined
+                    style={{
+                      fontSize: "20px",
+                      color: isAdmin ? "#d9d9d9" : "inherit",
+                    }}
+                  />
+                }
+              />
+            </Tooltip>
           </Dropdown>
         );
       },

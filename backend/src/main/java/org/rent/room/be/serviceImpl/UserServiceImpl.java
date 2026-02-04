@@ -150,7 +150,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateStatus(UUID id, Boolean active) {
-        User user = userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if ("ADMIN".equals(user.getRole().getRoleName())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
         user.setActive(active);
         userRepository.save(user);
     }

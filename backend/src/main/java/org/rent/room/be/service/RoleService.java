@@ -7,11 +7,11 @@ import org.rent.room.be.dto.response.RoleResponse;
 import java.util.List;
 
 public interface RoleService {
-    List<RoleResponse> getAllActiveRoles();
+    List<RoleResponse> getAllRoles();
 
     RoleResponse createRole(CreateRoleRequest role);
 
     RoleResponse updateRole(Long id, UpdateRoleRequest role);
 
-    void softDeleteRole(Long id);
+    void updateRoleStatus(Long id, boolean active);
 }

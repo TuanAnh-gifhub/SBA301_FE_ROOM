@@ -17,6 +17,7 @@ import ResetPassword from "../pages/Customer/LoginPage/ResetPassword";
 import UserManagement from "../pages/Admin/UserManagement";
 import ManagePage from "../pages/Customer/ManagePage/ManagePage";
 import ConfirmRegister from "../pages/Customer/LoginPage/ConfirmRegister";
+import RoleManagement from "../pages/Admin/RoleManagement/RoleManagement";
 
 export const router = createBrowserRouter([
   {
@@ -110,24 +111,33 @@ export const router = createBrowserRouter([
     path: "/admin",
     element: (
       <ProtectedAdminRoute>
-      <AdminPage />
-       </ProtectedAdminRoute>
+        <AdminPage />
+      </ProtectedAdminRoute>
     ),
     children: [
       {
         index: true,
         element: (
           <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4" style={{ color: "inherit" }}>
+            <h1
+              className="text-2xl font-bold mb-4"
+              style={{ color: "inherit" }}
+            >
               Dashboard
             </h1>
-            <p style={{ color: "inherit" }}>Chào mừng đến với trang quản trị!</p>
+            <p style={{ color: "inherit" }}>
+              Chào mừng đến với trang quản trị!
+            </p>
           </div>
         ),
       },
       {
         path: "customers",
         element: <UserManagement />,
+      },
+      {
+        path: "roles",
+        element: <RoleManagement />,
       },
       {
         path: "reports",

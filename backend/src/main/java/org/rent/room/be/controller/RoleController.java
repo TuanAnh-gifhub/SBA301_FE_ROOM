@@ -26,8 +26,8 @@ public class RoleController {
         return ResponseEntity.ok(
                 ApiResponse.<List<RoleResponse>>builder()
                         .code(200)
-                        .message("Get all active roles successfully")
-                        .result(roleService.getAllActiveRoles())
+                        .message("Get all roles successfully")
+                        .result(roleService.getAllRoles())
                         .build()
         );
     }
@@ -59,15 +59,16 @@ public class RoleController {
         );
     }
 
-    @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<ApiResponse<Void>> softDelete(
-            @PathVariable Long id
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<Void>> updateRoleStatus(
+            @PathVariable Long id,
+            @RequestParam boolean active
     ) {
-        roleService.softDeleteRole(id);
+        roleService.updateRoleStatus(id, active);
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()
                         .code(200)
-                        .message("Role has been deactivated successfully")
+                        .message(active ? "Role has been activated" : "Role has been deactivated")
                         .build()
         );
     }
