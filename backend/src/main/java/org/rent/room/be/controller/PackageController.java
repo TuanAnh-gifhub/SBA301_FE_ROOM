@@ -24,7 +24,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Validated
-@Tag(name = "4. Package")
+@Tag(name = "6. Package")
 public class PackageController {
 
     RentPackageService packageService;
