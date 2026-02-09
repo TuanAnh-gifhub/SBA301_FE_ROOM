@@ -26,7 +26,7 @@ public class ApiResponse<T>{
     }
 
     public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(-1, message, null);
+        return new ApiResponse<>(500, message, null);
     }
 
     public static <T> ApiResponse<T> error(int code, String message) {

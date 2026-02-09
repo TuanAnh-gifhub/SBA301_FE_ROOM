@@ -1,23 +1,21 @@
 package org.rent.room.be.dto.request.booking;
 
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 
 @Getter
 @Setter
 @AllArgsConstructor
 @Builder
+@NoArgsConstructor
 public class SlotRequest {
-    @NotNull(message = "Ngày không bỏ trống")
-    LocalDate date;
-    @NotNull(message = "Khung giờ không bỏ trống")
-    LocalTime startTime;
-    @NotNull(message = "Khung giờ không bỏ trống")
-    LocalTime endTime;
+//    @NotNull(message = "Room id không được bỏ trống")
+    private UUID roomId;
+    private int quantity;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
 }

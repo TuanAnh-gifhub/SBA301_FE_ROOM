@@ -4,16 +4,15 @@ import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.rent.room.be.constant.RoomStatus;
 
 import java.math.BigDecimal;
 
+@Data
 @Builder
-@Getter
-
+@NoArgsConstructor
+@AllArgsConstructor
 public class RoomRequest {
     private String roomName;
     private BigDecimal price;

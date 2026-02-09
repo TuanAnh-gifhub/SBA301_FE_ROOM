@@ -13,6 +13,6 @@ public interface BookingService {
   BookingResponse createBooking(BookingRequest bookingRequest);
   BookingResponse updateBooking(BookingRequest bookingRequest);
   BookingResponse getBookingById(UUID bookingId);
-  PageResponse<BookingResponse> getAllBookings(int page, int size, String keyword, LocalDate from, LocalDate to);
+  PageResponse<BookingResponse> getAllBookings(String bookingStatus, String keyword, LocalDate from, LocalDate to,int page, int size);
 
 }

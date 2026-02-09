@@ -1,10 +1,20 @@
 package org.rent.room.be.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.rent.room.be.base.ApiResponse;
+import org.rent.room.be.constant.BookingStatus;
+import org.rent.room.be.constant.ReportStatus;
+import org.rent.room.be.dto.request.booking.BookingRequest;
+import org.rent.room.be.dto.response.booking.BookingResponse;
 import org.rent.room.be.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/bookings")
@@ -14,9 +24,26 @@ public class BookingController {
     @Autowired
     private BookingService bookingService;
 
-    @PostMapping
-    public ApiResponse<?> booking() {
+
+
+    @PostMapping("/check-booking")
+    public  ApiResponse<?> checkIfUserBooked(){
         try {
+
+            return
+                    ApiResponse.success(200,"",null);
+        }catch (Exception e){
+            return ApiResponse.error(e.getMessage());
+        }
+
+    }
+
+
+    @PostMapping
+    public ApiResponse<?> booking( @Valid @RequestBody  BookingRequest request) {
+        try {
+
+            bookingService.createBooking(request);
             return ApiResponse.builder()
                     .code(200)
                     .message("Create booking successfully")
@@ -34,13 +61,23 @@ public class BookingController {
 
 
     @GetMapping
-    public ApiResponse<?>getAllBooking(){
+    public ApiResponse<?>getAllBooking(    @RequestParam(required = false) String bookingStatus,
+                                           @RequestParam(required = false)String keyword,
+                                           @RequestParam(required = false)
+                                               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                                               LocalDate from,
+                                           @RequestParam(required = false)
+                                               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                                               LocalDate to,
+                                           @RequestParam(defaultValue = "1", required = false) int page,
+                                           @RequestParam(defaultValue = "10", required = false) int size){
         try {
+
 
             return ApiResponse.builder()
                     .code(200)
                     .message("Get all bookings successfully")
-                    .result(null)
+                    .result( bookingService.getAllBookings(bookingStatus,keyword,from,to,page, size))
                     .build();
         } catch (Exception e) {
             e.getStackTrace();

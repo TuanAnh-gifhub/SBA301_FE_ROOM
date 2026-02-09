@@ -3,24 +3,19 @@ package org.rent.room.be.dataInitializer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.rent.room.be.entity.Amenity;
-import org.rent.room.be.entity.Category;
-import org.rent.room.be.entity.City;
+import org.rent.room.be.constant.Room_Copy_Status;
+import org.rent.room.be.entity.*;
 import org.jspecify.annotations.NonNull;
-import org.rent.room.be.entity.Role;
-import org.rent.room.be.entity.User;
-import org.rent.room.be.repository.AmenityRepository;
-import org.rent.room.be.repository.CategoryRepository;
-import org.rent.room.be.repository.CityRepository;
-import org.rent.room.be.repository.RoleRepository;
-import org.rent.room.be.repository.UserRepository;
+import org.rent.room.be.repository.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -33,15 +28,94 @@ public class DataInitializer implements CommandLineRunner {
     CityRepository cityRepository;
     CategoryRepository categoryRepository;
     AmenityRepository amenityRepository;
-
+    RoomCopyRepository roomCopyRepository;
+    RoomRepository roomRepository;
+    RentalAreaRepository rentalAreaRepository;
     @Override
     public void run(String... args) throws Exception {
         seedUsers();
         seedCities();
         seedCategories();
         seedAmenities();
+        seedRooms();
     }
 
+
+    private void seedRooms(){
+        List<City> cities = cityRepository.findAll();
+        List<Amenity> amenities = amenityRepository.findAll();
+        Set<Amenity> amenitySet = new HashSet<>(amenities);
+        List<Category> categories = categoryRepository.findAll();
+        RentalArea rentalArea =RentalArea.builder()
+                .address("90 Phạm Đăng Giảng, phường Bình Hưng Hòa")
+                .city(cities.getFirst() != null ? cities.getFirst() : City.builder()
+                        .cityName("Thành phố Huế")
+                        .build())
+                .build();
+        rentalAreaRepository.save(rentalArea);
+        RoomCopy roomCopy1 = RoomCopy.builder()
+                .roomCode("Phỏng 301")
+                .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                .build();
+        RoomCopy roomCopy2 = RoomCopy.builder()
+                .roomCode("Phỏng 302")
+                .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                .build();
+        RoomCopy roomCopy3 = RoomCopy.builder()
+                .roomCode("Phỏng 303")
+                .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                .build();
+
+        RoomCopy roomCopy4 = RoomCopy.builder()
+                .roomCode("Phỏng 401")
+                .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                .build();
+        RoomCopy roomCopy5 = RoomCopy.builder()
+                .roomCode("Phỏng 402")
+                .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                .build();
+
+
+        roomCopyRepository.save(roomCopy1);
+        roomCopyRepository.save(roomCopy2);
+        roomCopyRepository.save(roomCopy3);
+        roomCopyRepository.save(roomCopy4);
+        roomCopyRepository.save(roomCopy5);
+
+
+        Room room1 = Room.builder()
+                .roomName("Phòng học 30 người")
+                .description("Phòng học")
+                .category(categories.get(0))
+                .amenities(amenitySet)
+                .rentalArea(rentalArea)
+                .capacity(30)
+                .build();
+
+        roomCopy1.setRoom(room1);
+        roomCopy2.setRoom(room1);
+        roomCopy3.setRoom(room1);
+        roomRepository.save(room1);
+        roomCopyRepository.saveAll(List.of(roomCopy1, roomCopy2, roomCopy3));
+
+
+
+        Room room2 = Room.builder()
+                .roomName("Phòng học 40 người")
+                .description("Phòng học")
+                .category(categories.get(0))
+                .amenities(amenitySet)
+                .rentalArea(rentalArea)
+                .capacity(40)
+                .build();
+        roomRepository.save(room1);
+        roomRepository.save(room2);
+
+    }
+
+    private  void seedRoomCopies(){
+        List<RoomCopy> roomCopies ;
+    }
     private void seedUsers() {
         Role adminRole = createRoleIfNotExist("ADMIN", "Quản trị hệ thống");
         Role ownerRole = createRoleIfNotExist("OWNER", "Chủ nhà");
