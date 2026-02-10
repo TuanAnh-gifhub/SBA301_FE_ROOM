@@ -11,4 +11,6 @@ public interface BookingQRService {
     public void createBookingQR(Booking booking, QRType qrType);
     void updateBooingQR(UUID bookingQrId);
     void getBookingQrById(UUID bookingQrId);
+    byte[] generateBookingQr(UUID bookingId, QRType type);
+
 }

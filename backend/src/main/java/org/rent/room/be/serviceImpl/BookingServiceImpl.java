@@ -19,13 +19,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -40,14 +41,18 @@ public class BookingServiceImpl implements BookingService {
     private RoomCopyRepository roomCopyRepository;
     @Autowired
     private RoomRepository roomRepository;
+    @Autowired
+    private BookingQRService bookingQRService;
 
+    @Autowired
+    private BookingQRRepository bookingQRRepository;
     @Transactional
     public BookingResponse createBooking(BookingRequest request) {
         User user = userRepository.findById(request.getUserId()).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
         validateBookingTime(request);
 
         Booking booking = Booking.builder()
-                .bookingTitle("Đặt phòng theo " + (request.getBookingType().equals(BookingType.SHORT_TERM) ? "ngắn hạn" : "dài hạn"))
+                .bookingTitle("Đặt phòng theo " + request.getBookingType())
                 .bookingStatus(BookingStatus.PENDING)
                 .bookingType(request.getBookingType())
                 .renter(user)
@@ -102,6 +107,9 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setTotalPrice(totalPrice);
         System.err.println("Tạo thành công slot và booking");
+        bookingQRService.createBookingQR(booking,QRType.CHECK_IN);
+        bookingQRService.createBookingQR(booking,QRType.CHECK_OUT);
+
         bookingRepository.save(booking);
         return BookingResponse.builder().build();
     }
@@ -109,7 +117,7 @@ public class BookingServiceImpl implements BookingService {
     private void validateBookingTime(BookingRequest request) {
         LocalDateTime now = LocalDateTime.now();
 
-        if (request.getBookingType() == BookingType.SHORT_TERM) {
+        if (request.getBookingType() == BookingType.DAILY || request.getBookingType() == BookingType.HOURLY) {
 
             LocalDateTime start = request.getSlotRequests().getFirst().getStartTime();
             LocalDateTime end = request.getSlotRequests().getLast().getEndTime();
@@ -117,15 +125,15 @@ public class BookingServiceImpl implements BookingService {
             if (start.isBefore(now)) {
                 throw new RuntimeException("Không thể đặt phòng trong quá khứ");
             }
+            Duration duration = Duration.between(start, end);
+            long minutes = duration.toMinutes();
 
-            long hours = ChronoUnit.HOURS.between(start, end);
-
-            if (hours < 1) {
+            if (minutes < 60) {
                 throw new RuntimeException("Booking ngắn hạn tối thiểu 1 giờ");
             }
 
-            if (hours > 8) {
-                throw new RuntimeException("Booking ngắn hạn tối đa 8 giờ");
+            if (minutes > 24 * 60) {
+                throw new RuntimeException("Vui lòng đặt dài hạn cho booking trên 1 ngày");
             }
 
             if (start.isAfter(now.plusDays(30))) {
@@ -133,7 +141,7 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        if (request.getBookingType() == BookingType.LONG_TERM) {
+        if (request.getBookingType() == BookingType.MONTHLY) {
             if (request.getNumberOfMonths() <= 0) {
                 throw new RuntimeException("Số tháng thuê không hợp lệ");
             }
@@ -198,6 +206,36 @@ public class BookingServiceImpl implements BookingService {
                 .totalElements(bookingPage.getTotalElements())
                 .data(responses)
                 .build();
+    }
+
+    @Override
+    public boolean scan(String token) {
+        BookingQR qr = bookingQRRepository.findByQrToken(token)
+                .orElseThrow(() -> new RuntimeException("QR không hợp lệ"));
+
+        if (qr.getCheckInAt() != null)
+            return ResponseEntity.badRequest().body("QR đã dùng");
+
+        if (qr.getExpireAt().isBefore(LocalDateTime.now()))
+            return ResponseEntity.badRequest().body("QR hết hạn");
+
+        Booking booking = bookingRepository.findById(qr.getBooking().getBookingId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy mã booking ko scan dc"));
+
+        if (qr.getQrType() == QRType.CHECK_IN) {
+            booking.setCheckIn(LocalDateTime.now());
+            booking.setBookingStatus(BookingStatus.CHECKED_IN);
+        }
+        if(qr.getQrType() == QRType.CHECK_OUT){
+            booking.setCheckOut(LocalDateTime.now());
+            booking.setBookingStatus(BookingStatus.COMPLETED);
+        }
+
+//        qr.setUsedAt(LocalDateTime.now());
+
+        bookingRepository.save(booking);
+        bookingQRRepository.save(qr);
+        return false;
     }
 
 

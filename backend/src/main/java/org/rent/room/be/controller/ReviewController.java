@@ -1,5 +1,6 @@
 package org.rent.room.be.controller;
 
+import com.beust.ah.A;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.rent.room.be.base.ApiResponse;
@@ -92,4 +93,13 @@ public class ReviewController {
         }
     }
 
+    @GetMapping("/{rentalId}/reviews")
+    public ApiResponse<PageResponse<ReviewResponse>> getReviewsByRentalId(@PathVariable UUID rentalId) {
+        try{
+            reviewService.getReviewsByRentalAreaId(rentalId);
+            return ApiResponse.success(200,"Get all review from area",null);
+        }catch (Exception e){
+            return ApiResponse.error(500, "Get all review failed");
+        }
+    }
 }

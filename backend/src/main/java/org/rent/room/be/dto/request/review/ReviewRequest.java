@@ -8,8 +8,9 @@ import java.util.UUID;
 
 @Getter
 public class ReviewRequest {
-    @NotNull(message = "mã đặt không cho phép rỗng")
+//    @NotNull(message = "mã đặt không cho phép rỗng")
     private UUID bookingId;
+    private UUID reviewerId;
     @Min(value = 1, message = "Đánh giá tối thiểu 1 sao")
     @Max(value = 5, message = "Đánh giá tối đa 5 sao")
     private int rating;

@@ -5,6 +5,7 @@ import org.rent.room.be.dto.request.review.ReviewRequest;
 import org.rent.room.be.dto.response.review.ReviewResponse;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public interface ReviewService {
@@ -17,5 +18,5 @@ public interface ReviewService {
     void update(UUID reviewId,ReviewRequest request);
     ReviewResponse getReviewById(UUID reviewId);
     void delete(UUID id);
-
+    List<ReviewResponse> getReviewsByRentalAreaId(UUID rentalId);
 }

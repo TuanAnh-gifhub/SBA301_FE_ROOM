@@ -4,12 +4,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.constant.BookingStatus;
+import org.rent.room.be.constant.QRType;
 import org.rent.room.be.constant.ReportStatus;
 import org.rent.room.be.dto.request.booking.BookingRequest;
 import org.rent.room.be.dto.response.booking.BookingResponse;
+import org.rent.room.be.entity.BookingQR;
+import org.rent.room.be.service.BookingQRService;
 import org.rent.room.be.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -24,7 +28,22 @@ public class BookingController {
     @Autowired
     private BookingService bookingService;
 
+    @Autowired
+    private  BookingQRService bookingQRService;
 
+    @GetMapping("/{bookingId}/qr")
+    public ResponseEntity<byte[]> getQr(
+            @PathVariable UUID bookingId,
+            @RequestParam QRType type
+    ) {
+        byte[] image = bookingQRService.generateBookingQr(bookingId, type);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.IMAGE_PNG);
+        headers.setCacheControl(CacheControl.noCache());
+
+        return new ResponseEntity<>(image, headers, HttpStatus.OK);
+    }
 
     @PostMapping("/check-booking")
     public  ApiResponse<?> checkIfUserBooked(){

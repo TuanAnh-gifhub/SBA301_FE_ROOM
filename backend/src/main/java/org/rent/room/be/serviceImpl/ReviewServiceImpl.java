@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -135,5 +136,19 @@ public class ReviewServiceImpl implements ReviewService {
             reviewRepository.deleteById(id);
         }
 
+    }
+
+    @Override
+    public List<ReviewResponse> getReviewsByRentalAreaId(UUID rentalId) {
+        RentalArea rentalArea = rentalAreaRepository.findById(rentalId)
+                .orElseThrow(() -> new RuntimeException("rental area not found"));
+
+        List<Review> reviews = reviewRepository.findByRental_RentalAreaId(rentalArea.getRentalAreaId());
+        return reviews.stream().map(review -> ReviewResponse.builder()
+               .reviewId(review.getReviewId())
+               .userName(review.getUser().getUserName())
+               .comment(review.getComment())
+               .rating(review.getRating())
+               .build()).toList();
     }
 }
