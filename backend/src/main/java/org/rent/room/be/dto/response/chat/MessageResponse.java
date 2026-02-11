@@ -9,7 +9,9 @@ import java.util.UUID;
 @Builder
 public class MessageResponse {
     private UUID messageId;
+    private UUID conversationId;
     private String content;
     private String senderName;
+    private UUID senderId;
     private LocalDateTime createdAt;
 }

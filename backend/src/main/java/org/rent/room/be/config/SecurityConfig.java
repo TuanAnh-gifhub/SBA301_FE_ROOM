@@ -36,7 +36,7 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/auth/**",
             "/ws/**",
-            "/reports/**"
+            "/reports/**",
     };
 
     JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -47,8 +47,7 @@ public class SecurityConfig {
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {
-                })
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
 

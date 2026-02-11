@@ -26,8 +26,12 @@ public class Conversation extends BaseEntity {
     String conversationTitle;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "creator_id", referencedColumnName = "user_id")
-    User creator;
+    @JoinColumn(name = "sender_id", referencedColumnName = "user_id") // Đổi tên cột thành sender_id
+    User sender;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recipient_id", referencedColumnName = "user_id") // Đổi tên cột thành recipient_id
+    User recipient;
 
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     List<Message> messages;

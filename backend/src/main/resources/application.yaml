@@ -37,8 +37,6 @@ spring:
     uri: ${SPRING_DATA_MONGODB_URI}
     auto-index-creation: true
 
-
-
 server:
   port: ${SERVER_PORT}
   servlet:

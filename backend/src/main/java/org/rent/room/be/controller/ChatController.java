@@ -4,13 +4,16 @@ import lombok.RequiredArgsConstructor;
 import org.rent.room.be.dto.request.chat.MessageRequest;
 import org.rent.room.be.dto.response.chat.MessageResponse;
 import org.rent.room.be.service.ChatService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
-@Controller
+import java.util.UUID;
+
+@RestController
 @RequiredArgsConstructor
 @RequestMapping("/chat")
 public class ChatController {
@@ -30,5 +33,28 @@ public class ChatController {
                 "/queue/messages",
                 savedMessage
         );
+    }
+
+    @GetMapping("/conversations/{userId}")
+    public ResponseEntity<?> getConversations(@PathVariable UUID userId) {
+        return ResponseEntity.ok(chatService.getUserConversations(userId));
+    }
+
+    @GetMapping("/history/{conversationId}")
+    public ResponseEntity<?> getHistory(@PathVariable UUID conversationId) {
+        return ResponseEntity.ok(chatService.getMessagesByConversation(conversationId));
+    }
+
+    @GetMapping("/conversation/{conversationId}")
+    public ResponseEntity<?> getConversation(@PathVariable UUID conversationId) {
+        return ResponseEntity.ok(chatService.getConversationById(conversationId));
+    }
+
+    @PatchMapping("/conversations/{conversationId}/read")
+    public ResponseEntity<?> markConversationAsRead(
+            @PathVariable UUID conversationId,
+            @RequestParam UUID userId) {
+        chatService.markAllMessagesInConversationAsRead(conversationId, userId);
+        return ResponseEntity.ok().build();
     }
 }

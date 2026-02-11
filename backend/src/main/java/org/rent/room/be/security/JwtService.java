@@ -4,16 +4,17 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.properties.JwtProperties;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwsHeader;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +22,9 @@ import java.time.Instant;
 public class JwtService {
 
     JwtEncoder jwtEncoder;
+    JwtDecoder jwtDecoder;
     JwtProperties jwtProperties;
+    UserDetailsService userDetailsService;
 
     public String generateAccessToken(UserDetails user) {
         return generateToken(user, jwtProperties.getAccessExpiration(), "access");
@@ -31,7 +34,7 @@ public class JwtService {
         return generateToken(user, jwtProperties.getRefreshExpiration(), "refresh");
     }
 
-    String generateToken(
+    private String generateToken(
             UserDetails user,
             long expirationSeconds,
             String type
@@ -61,5 +64,31 @@ public class JwtService {
         return jwtEncoder.encode(
                 JwtEncoderParameters.from(jwsHeader, claims)
         ).getTokenValue();
+    }
+
+    // Thêm vào JwtService.java
+
+    public Authentication getAuthentication(String token) {
+        Jwt jwt = jwtDecoder.decode(token); // Tận dụng JwtDecoder đã cấu hình
+
+        String email = jwt.getSubject();
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+        return new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            Jwt jwt = jwtDecoder.decode(token);
+            // Kiểm tra loại token phải là "access"
+            return "access".equals(jwt.getClaim("type")) &&
+                    Objects.requireNonNull(jwt.getExpiresAt()).isAfter(Instant.now());
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

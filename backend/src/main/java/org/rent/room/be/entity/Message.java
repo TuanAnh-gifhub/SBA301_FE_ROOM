@@ -25,6 +25,10 @@ public class Message extends BaseEntity {
     @Column(name = "message_body", columnDefinition = "TEXT", nullable = false)
     String messageBody;
 
+    @Builder.Default
+    @Column(name = "is_read", nullable = false)
+    boolean isRead = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
     User sender;
