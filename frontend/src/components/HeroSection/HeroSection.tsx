@@ -6,6 +6,7 @@ import { FaChalkboardTeacher } from "react-icons/fa";
 import backgroundHeroSection from "../../assets/backgroundHeroSection.jpg";
 import introLandingVideo from "../../assets/intro_landing_page.mp4";
 
+
 const CITIES = ["Tp Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Cần Thơ"] as const;
 
 const ROOM_TYPES = [
@@ -591,6 +592,10 @@ const HeroSection = () => {
             className="w-full md:w-auto md:min-w-[130px] h-11 md:h-12 rounded-2xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-semibold text-sm md:text-base flex items-center justify-center shadow-md hover:shadow-lg transition-all"
           >
             Tìm phòng
+          </button>
+            <button onClick={() => navigate('/packages')}>
+             <svg>...</svg> {/* Copy icon từ file mẫu */}
+            Xem các gói đăng bài
           </button>
         </div>
       </motion.div>

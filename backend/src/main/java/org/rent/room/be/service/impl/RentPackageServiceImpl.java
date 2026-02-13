@@ -40,6 +40,7 @@ public class RentPackageServiceImpl implements RentPackageService {
             throw new AppException(ErrorCode.INVALID_RENTPACKAGE);
         }
         if (pkg.getDurationDays() < 0) throw new AppException(ErrorCode.INVALID_RENTPACKAGE);
+        if(pkg.getDescription() == null || pkg.getDescription().trim().isEmpty()) throw new AppException(ErrorCode.INVALID_RENTPACKAGE);
 
         RentPackage saved = RentPackageRepository.save(pkg);
         log.info("Created RentPackage with id={}", saved.getRentPackageId());
@@ -80,6 +81,10 @@ public class RentPackageServiceImpl implements RentPackageService {
 
         if (pkg.getDurationDays() >= 0) {
             existing.setDurationDays(pkg.getDurationDays());
+        }
+
+        if(pkg.getDescription() != null && !pkg.getDescription().trim().isEmpty()) {
+            existing.setDescription(pkg.getDescription());
         }
 
         RentPackage updated = RentPackageRepository.save(existing);
