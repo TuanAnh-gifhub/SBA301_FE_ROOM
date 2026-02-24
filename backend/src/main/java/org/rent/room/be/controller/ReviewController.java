@@ -102,4 +102,14 @@ public class ReviewController {
             return ApiResponse.error(500, "Get all review failed");
         }
     }
+
+    ///rentals/{id}/rating-summary
+    @GetMapping("/rentals/{id}/rating-summary")
+    public ApiResponse<?>getRatingSummary(@PathVariable UUID id) {
+        try {
+            return ApiResponse.success(200, "Get rating summary successfully", reviewService.getReviewsByRentalAreaId(id));
+        } catch (Exception e) {
+            return ApiResponse.error(500, "Get rating summary failed");
+        }
+    }
 }

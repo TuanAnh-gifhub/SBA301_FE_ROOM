@@ -3,7 +3,7 @@ package org.rent.room.be.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.rent.room.be.constant.Room_Copy_Status;
+import org.rent.room.be.constant.RoomCopyStatus;
 
 import java.util.List;
 import java.util.UUID;
@@ -26,7 +26,7 @@ public class RoomCopy {
 
     @Column(name = "room_copy_status")
     @Enumerated(EnumType.STRING)
-    private Room_Copy_Status roomCopyStatus;
+    private RoomCopyStatus roomCopyStatus;
 
     @ManyToOne
     private Room room;

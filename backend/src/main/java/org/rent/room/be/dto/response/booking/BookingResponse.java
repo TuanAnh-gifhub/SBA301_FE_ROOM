@@ -2,13 +2,11 @@ package org.rent.room.be.dto.response.booking;
 
 import lombok.*;
 import org.rent.room.be.constant.BookingStatus;
-import org.rent.room.be.constant.PaymentStatus;
-import org.rent.room.be.dto.request.booking.SlotRequest;
-import org.rent.room.be.dto.response.UserResponse;
+import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
+import org.rent.room.be.dto.response.slot.SlotResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,13 +17,15 @@ import java.util.UUID;
 @NoArgsConstructor
 public class BookingResponse {
     private UUID bookingId;
-    private UUID userId;
-    private UUID roomId;
-    private boolean isLongTerm;
-    private List<SlotRequest> slotRequests;
+    private String userName;
+    private List<SlotResponse> slots;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private int numberOfMonths;
-    private BigDecimal price;
+    private BigDecimal totalPrice;
     private String note;
-    private String status;
+    private BookingStatus status;
     private LocalDateTime createdAt;
+    private String statusPayment;
+
 }

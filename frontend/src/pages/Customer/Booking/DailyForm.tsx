@@ -1,5 +1,3 @@
-// components/DailyForm.tsx
-"use client";
 
 import { useState } from "react";
 import type { Room } from "../../../types/room";

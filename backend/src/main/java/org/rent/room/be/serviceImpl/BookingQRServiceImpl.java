@@ -22,7 +22,7 @@ public class BookingQRServiceImpl implements BookingQRService {
     @Override
     public byte[] generateBookingQr(UUID bookingId, QRType type) {
         BookingQR qr = bookingQRRepository
-                .findByBookingIdAndType(bookingId, type)
+                .findByBooking_BookingIdAndQrType(bookingId, type)
                 .orElseThrow(() ->
                         new RuntimeException("QR không tồn tại cho booking " + bookingId)
                 );

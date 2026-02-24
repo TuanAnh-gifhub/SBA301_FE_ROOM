@@ -2,9 +2,10 @@ package org.rent.room.be.constant;
 
 public enum BookingStatus {
     PENDING,
-    CONFIRMED,
+    BOOKED,
     CHECKED_IN,
     REJECTED,
     COMPLETED,
-    CANCELLED
+    CANCELLED,
+    NO_SHOW
 }

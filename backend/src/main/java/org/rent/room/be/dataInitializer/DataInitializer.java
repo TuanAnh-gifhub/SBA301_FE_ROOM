@@ -3,16 +3,15 @@ package org.rent.room.be.dataInitializer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.rent.room.be.constant.Room_Copy_Status;
+import org.rent.room.be.constant.RoomCopyStatus;
 import org.rent.room.be.entity.*;
-import org.jspecify.annotations.NonNull;
 import org.rent.room.be.repository.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -55,24 +54,24 @@ public class DataInitializer implements CommandLineRunner {
         rentalAreaRepository.save(rentalArea);
         RoomCopy roomCopy1 = RoomCopy.builder()
                 .roomCode("Phỏng 301")
-                .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
                 .build();
         RoomCopy roomCopy2 = RoomCopy.builder()
                 .roomCode("Phỏng 302")
-                .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
                 .build();
         RoomCopy roomCopy3 = RoomCopy.builder()
                 .roomCode("Phỏng 303")
-                .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
                 .build();
 
         RoomCopy roomCopy4 = RoomCopy.builder()
                 .roomCode("Phỏng 401")
-                .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
                 .build();
         RoomCopy roomCopy5 = RoomCopy.builder()
                 .roomCode("Phỏng 402")
-                .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
                 .build();
 
 
@@ -90,6 +89,7 @@ public class DataInitializer implements CommandLineRunner {
                 .amenities(amenitySet)
                 .rentalArea(rentalArea)
                 .capacity(30)
+                .price(BigDecimal.valueOf(50000))
                 .build();
 
         roomCopy1.setRoom(room1);
@@ -107,6 +107,7 @@ public class DataInitializer implements CommandLineRunner {
                 .amenities(amenitySet)
                 .rentalArea(rentalArea)
                 .capacity(40)
+                .price(BigDecimal.valueOf(60000))
                 .build();
         roomRepository.save(room1);
         roomRepository.save(room2);

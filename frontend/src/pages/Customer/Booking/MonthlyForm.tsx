@@ -1,5 +1,4 @@
-// components/MonthlyForm.tsx
-"use client";
+
 
 import { useState, useMemo } from "react";
 import type { Room } from "../../../types/room";

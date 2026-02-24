@@ -1,6 +1,6 @@
 package org.rent.room.be.constant;
 
-public enum ScheduleStatus {
+public enum SlotStatus {
     BOOKED,
     AVAILABLE,
     MAINTAIN,

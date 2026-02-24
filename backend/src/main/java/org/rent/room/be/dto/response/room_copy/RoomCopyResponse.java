@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import org.rent.room.be.constant.Room_Copy_Status;
+import org.rent.room.be.constant.RoomCopyStatus;
 import java.util.UUID;
 
 @Getter
@@ -15,5 +15,5 @@ import java.util.UUID;
 public class RoomCopyResponse {
   private UUID roomCopyId;
   private String roomCode;
-  private Room_Copy_Status room_Copy_Status;
+  private RoomCopyStatus roomCopyStatus;
 }

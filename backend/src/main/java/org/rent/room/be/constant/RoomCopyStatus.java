@@ -1,6 +1,6 @@
 package org.rent.room.be.constant;
 
-public enum Room_Copy_Status {
+public enum RoomCopyStatus {
     AVAILABLE,
     BOOKED,
     MAINTAIN,

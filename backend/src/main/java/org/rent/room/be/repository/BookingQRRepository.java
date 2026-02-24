@@ -11,5 +11,6 @@ import java.util.UUID;
 @Repository
 public interface BookingQRRepository extends JpaRepository<BookingQR, UUID> {
     Optional<BookingQR> findByQrToken(String token);
-    Optional<BookingQR> findByBookingIdAndType(UUID bookingId, QRType type);
+    Optional<BookingQR> findByBooking_BookingIdAndQrType(UUID bookingId, QRType type);
+
 }

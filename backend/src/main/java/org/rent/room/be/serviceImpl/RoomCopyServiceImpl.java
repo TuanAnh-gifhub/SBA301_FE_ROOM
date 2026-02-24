@@ -1,6 +1,6 @@
 package org.rent.room.be.serviceImpl;
 
-import org.rent.room.be.constant.Room_Copy_Status;
+import org.rent.room.be.constant.RoomCopyStatus;
 import org.rent.room.be.dto.request.room_copy.RoomCopyAllRequest;
 import org.rent.room.be.dto.request.room_copy.RoomCopyRequest;
 import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
@@ -29,7 +29,7 @@ public class RoomCopyServiceImpl implements RoomCopyService {
         for (RoomCopyRequest roomRequest : request.getRoomRequests()) {
             RoomCopy roomCopy = RoomCopy.builder()
                     .roomCode(roomRequest.getRoomCode())
-                    .roomCopyStatus(Room_Copy_Status.AVAILABLE)
+                    .roomCopyStatus(RoomCopyStatus.AVAILABLE)
                     .build();
             room.getRoomCopies().add(roomCopy);
             roomCopy.setRoom(room);
@@ -45,7 +45,7 @@ public class RoomCopyServiceImpl implements RoomCopyService {
         return RoomCopyResponse.builder()
                 .roomCopyId(roomCopy.getRoomCopyId())
                 .roomCode(roomCopy.getRoomCode())
-                .room_Copy_Status(roomCopy.getRoomCopyStatus())
+                .roomCopyStatus(roomCopy.getRoomCopyStatus())
                 .build();
     }
 

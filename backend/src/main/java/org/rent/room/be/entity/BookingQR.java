@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.rent.room.be.constant.QRType;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -31,10 +32,12 @@ public class BookingQR {
     @Column(name ="expire_at")
     private LocalDateTime expireAt;
 
-    @Column(name = "check_in_at")
-    private LocalDateTime checkInAt;
+    @Column(name = "used_at")
+    private LocalDateTime usedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id")
     private Booking booking;
+
+
 }

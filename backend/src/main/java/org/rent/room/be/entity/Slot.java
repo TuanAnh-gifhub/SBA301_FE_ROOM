@@ -4,12 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.*;
 import org.rent.room.be.base.BaseEntity;
-import org.rent.room.be.constant.ScheduleStatus;
+import org.rent.room.be.constant.SlotStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
+
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -36,15 +36,12 @@ public class Slot extends BaseEntity {
     @Column(name = "price", precision = 19, scale = 2)
     BigDecimal price;
 
-    @Column(name = "status", length = 20)
-    String status;
-
     @Column(name = "specific_date")
     LocalDate specificDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "availability_status")
-    ScheduleStatus availabilityStatus;
+    SlotStatus availabilityStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id")

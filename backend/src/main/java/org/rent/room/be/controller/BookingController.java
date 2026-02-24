@@ -59,14 +59,13 @@ public class BookingController {
 
 
     @PostMapping
-    public ApiResponse<?> booking( @Valid @RequestBody  BookingRequest request) {
+    public ApiResponse<?> booking(@Valid @RequestBody  BookingRequest request) {
         try {
 
-            bookingService.createBooking(request);
             return ApiResponse.builder()
                     .code(200)
                     .message("Create booking successfully")
-                    .result(null)
+                    .result(bookingService.createBooking(request))
                     .build();
 
         } catch (Exception e) {
