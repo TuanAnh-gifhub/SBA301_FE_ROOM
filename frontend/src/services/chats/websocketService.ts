@@ -20,41 +20,26 @@ class WebSocketService {
     };
     const headers = { Authorization: `Bearer ${token}` };
 
-    this.stompClient.connect(
-      headers,
-      (frame: any) => {
-        console.log("✅ Connected to STOMP");
-        if (this.connectedCallback) this.connectedCallback();
+    // Trong hàm connect của WebSocketService.ts
+    this.stompClient.connect(headers, (frame: any) => {
+      // Lấy userId thực tế mà Server vừa trả về trong frame (nếu có) hoặc dùng từ token
+      console.log(
+        "✅ Kết nối thành công! User Principal:",
+        frame.headers["user-name"],
+      );
 
-        // 1. Nhận tin nhắn mới - Duyệt mảng để chạy TẤT CẢ các bên đang nghe
-        this.stompClient.subscribe("/user/queue/messages", (message: any) => {
-          console.log("📩 Đã nhận tin nhắn tại Service:", message.body); // LOG NÀY QUAN TRỌNG NHẤT
-          if (message.body) {
-            const data = JSON.parse(message.body);
-            console.log(
-              "🔍 Số lượng listener đang nghe:",
-              this.newMessageListeners.length,
-            );
-            this.newMessageListeners.forEach((callback) => callback(data));
-          }
-        });
+      // THỬ NGHIỆM: Subscribe trực tiếp vào queue của User
+      // Thay vì "/user/queue/messages", hãy thử subscribe đường dẫn mà Spring thực sự gửi:
+      this.stompClient.subscribe("/user/queue/messages", (message: any) => {
+        console.log("📩 ĐÃ NHẬN ĐƯỢC TIN NHẮN!");
+        console.log("Nội dung:", message.body);
 
-        // 2. Nhận thông báo "Đã xem"
-        this.stompClient.subscribe(
-          "/user/queue/read-receipts",
-          (message: any) => {
-            if (message.body) {
-              this.readReceiptListeners.forEach((callback) =>
-                callback(message.body),
-              );
-            }
-          },
-        );
-      },
-      (error: any) => {
-        console.error("❌ STOMP error:", error);
-      },
-    );
+        if (message.body) {
+          const data = JSON.parse(message.body);
+          this.newMessageListeners.forEach((callback) => callback(data));
+        }
+      });
+    });
   }
 
   send(destination: string, payload: any): void {

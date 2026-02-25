@@ -41,6 +41,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.setUserDestinationPrefix("/user");
     }
 
+    @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(new ChannelInterceptor() {
             @Override
@@ -52,6 +53,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         token = token.substring(7);
                         if (jwtService.validateToken(token)) {
                             Authentication auth = jwtService.getAuthentication(token);
+                            System.out.println("WebSocket User Authenticated: " + auth.getName()); // LOG NÀY RẤT QUAN TRỌNG
                             accessor.setUser(auth); // Quan trọng: Để convertAndSendToUser hoạt động
                         }
                     }
