@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,19 +31,28 @@ public class ChatServiceImpl implements ChatService {
     @Transactional
     @Override
     public MessageResponse saveMessage(MessageRequest request) {
-        User sender = userRepository.findById(request.getSenderId()).orElseThrow();
-        User recipient = userRepository.findById(request.getRecipientId()).orElseThrow();
+        User sender = userRepository.findById(request.getSenderId()).orElseThrow(() -> new RuntimeException("Người gửi không tồn tại"));
+        User recipient = userRepository.findById(request.getRecipientId()).orElseThrow(() -> new RuntimeException("Người nhận không tồn tại"));
 
-        // Tìm hoặc tạo mới cuộc hội thoại
-        Conversation conversation = conversationRepository
-                .findBetweenUsers(sender.getUserId(), recipient.getUserId())
-                .orElseGet(() -> conversationRepository.save(
-                        Conversation.builder()
-                                .sender(sender)
-                                .recipient(recipient)
-                                .conversationTitle(sender.getUserName() + " & " + recipient.getUserName())
-                                .build()
-                ));
+        Conversation conversation;
+
+        // 1. ƯU TIÊN: Nếu có conversationId từ Frontend, hãy lấy trực tiếp từ DB
+        if (request.getConversationId() != null) {
+            conversation = conversationRepository.findById(request.getConversationId())
+                    .orElseThrow(() -> new RuntimeException("Cuộc hội thoại không tồn tại"));
+        }
+        // 2. FALLBACK: Nếu không có ID, mới tìm theo cặp người dùng (để tránh tạo trùng)
+        else {
+            conversation = conversationRepository
+                    .findBetweenUsers(sender.getUserId(), recipient.getUserId())
+                    .orElseGet(() -> conversationRepository.save(
+                            Conversation.builder()
+                                    .sender(sender)
+                                    .recipient(recipient)
+                                    .conversationTitle(sender.getUserName() + " & " + recipient.getUserName())
+                                    .build()
+                    ));
+        }
 
         Message newMessage = Message.builder()
                 .messageBody(request.getContent())
@@ -69,26 +77,11 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    @Transactional
     public List<ConversationResponse> getUserConversations(UUID userId) {
-        return conversationRepository.findAllBySenderUserIdOrRecipientUserIdOrderByUpdatedAtDesc(userId, userId)
+        return conversationRepository
+                .findAllBySenderUserIdOrRecipientUserIdOrderByUpdatedAtDesc(userId, userId)
                 .stream()
-                .map(conv -> {
-                    // Xác định người kia là ai để lấy tên/ảnh
-                    User otherUser = conv.getSender().getUserId().equals(userId) ? conv.getRecipient() : conv.getSender();
-
-                    // Lấy tin nhắn cuối cùng
-                    Message lastMsg = conv.getMessages().isEmpty() ? null :
-                            conv.getMessages().getLast();
-
-                    return ConversationResponse.builder()
-                            .conversationId(conv.getConversationId())
-                            .conversationTitle(otherUser.getUserName())
-                            .lastMessage(lastMsg != null ? lastMsg.getMessageBody() : "Bắt đầu cuộc trò chuyện")
-                            .lastSenderName(lastMsg != null ? lastMsg.getSender().getUserName() : "")
-                            .updatedAt(conv.getUpdatedAt())
-                            .build();
-                })
+                .map(chatMapper::toConversationResponse)
                 .toList();
     }
 
@@ -119,16 +112,6 @@ public class ChatServiceImpl implements ChatService {
                 .orElseThrow(() -> new RuntimeException("Phòng chat không tồn tại"));
 
         return chatMapper.toConversationResponse(conv);
-    }
-
-    @Override
-    public List<ConversationResponse> getAllConversations(UUID userId) {
-        // Tìm tất cả phòng mà user là sender HOẶC recipient
-        List<Conversation> convs = conversationRepository.findAllBySender_UserIdOrRecipient_UserId(userId, userId);
-
-        return convs.stream()
-                .map(chatMapper::toConversationResponse)
-                .collect(Collectors.toList());
     }
 
     @Override

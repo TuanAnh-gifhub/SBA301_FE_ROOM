@@ -6,6 +6,8 @@ import java.util.UUID;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class MessageRequest {
     private String content;
     private UUID senderId;

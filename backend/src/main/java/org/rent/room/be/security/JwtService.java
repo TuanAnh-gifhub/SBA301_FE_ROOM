@@ -69,13 +69,15 @@ public class JwtService {
     // Thêm vào JwtService.java
 
     public Authentication getAuthentication(String token) {
-        Jwt jwt = jwtDecoder.decode(token); // Tận dụng JwtDecoder đã cấu hình
+        Jwt jwt = jwtDecoder.decode(token);
+
+        String userId = jwt.getClaim("userId");
 
         String email = jwt.getSubject();
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
         return new UsernamePasswordAuthenticationToken(
-                userDetails,
+                userId,
                 null,
                 userDetails.getAuthorities()
         );

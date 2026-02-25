@@ -16,7 +16,5 @@ public interface ChatService {
 
     ConversationResponse getConversationById(UUID conversationId);
 
-    List<ConversationResponse> getAllConversations(UUID userId);
-
     void markAllMessagesInConversationAsRead(UUID conversationId, UUID recipientId);
 }

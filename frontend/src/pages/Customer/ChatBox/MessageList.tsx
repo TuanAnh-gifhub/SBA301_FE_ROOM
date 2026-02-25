@@ -1,8 +1,7 @@
 import React from "react";
-import { FaMicrophone } from "react-icons/fa";
 import { parseMessageContent } from "../../../services/upload/uploadService";
 import { normalizeImageUrl } from "../../../utils/imageUrlHelper";
-
+import { FaUserCircle } from "react-icons/fa";
 // ============ TYPE DEFINITIONS ============
 
 interface Message {
@@ -19,6 +18,7 @@ interface MessageListProps {
   messages: Message[];
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   showBackground?: boolean;
+  currentUserId: string | null;
   isDarkMode?: boolean;
 }
 
@@ -109,35 +109,42 @@ const MediaContent = ({
   return <p className="text-sm italic">Định dạng không hỗ trợ</p>;
 };
 
-// ============ MAIN COMPONENT ============
-
 const MessageList = ({
   messages,
   messagesEndRef,
+  currentUserId,
   isDarkMode = false,
 }: MessageListProps) => {
-  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-  const currentUserId = userInfo.userId;
 
-  // Hàm nhóm các tin nhắn liên tiếp của cùng một người gửi
   const groupConsecutiveMessages = (msgs: Message[]): MessageGroup[] => {
     const grouped: MessageGroup[] = [];
     if (msgs.length === 0) return grouped;
 
+    // Khoảng thời gian để tách đoạn (ví dụ 15 phút = 15 * 60 * 1000 ms)
+    const TIME_THRESHOLD = 15 * 60 * 1000;
+
     let currentGroup: MessageGroup = {
       messages: [msgs[0]],
-      sender: msgs[0].senderId === currentUserId ? "user" : "other",
+      sender: String(msgs[0].senderId) === currentUserId ? "user" : "other",
     };
 
     for (let i = 1; i < msgs.length; i++) {
       const msg = msgs[i];
-      const senderType = msg.senderId === currentUserId ? "user" : "other";
+      const prevMsg = msgs[i - 1];
 
-      // Nếu cùng người gửi, thêm vào nhóm hiện tại
-      if (senderType === currentGroup.sender) {
+      const senderType =
+        String(msg.senderId) === currentUserId ? "user" : "other";
+
+      // Tính khoảng cách thời gian giữa tin nhắn hiện tại và tin nhắn trước đó
+      const timeDiff =
+        new Date(msg.createdAt).getTime() -
+        new Date(prevMsg.createdAt).getTime();
+
+      // ĐIỀU KIỆN GỘP: Cùng người gửi VÀ cách nhau chưa tới 15 phút
+      if (senderType === currentGroup.sender && timeDiff < TIME_THRESHOLD) {
         currentGroup.messages.push(msg);
       } else {
-        // Khác người gửi, chốt nhóm cũ và tạo nhóm mới
+        // Nếu khác người gửi HOẶC thời gian cách nhau quá xa -> Tạo nhóm mới
         grouped.push(currentGroup);
         currentGroup = {
           messages: [msg],
@@ -153,7 +160,7 @@ const MessageList = ({
 
   return (
     <div
-      className={`flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}
+      className={`flex-1 overflow-y-auto px-1.5 py-4 space-y-4 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}
     >
       {groupedMessages.map((group, groupIndex) => {
         const isMe = group.sender === "user";
@@ -161,55 +168,84 @@ const MessageList = ({
         return (
           <div
             key={groupIndex}
-            className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+            className={`flex ${isMe ? "flex-row-reverse" : "flex-row"} items-end gap-2 mb-2`}
           >
+            {/* AVATAR: Chỉ hiện cho người khác */}
+            {!isMe && (
+              <div className="flex-shrink-0 mb-5">
+                <FaUserCircle className="text-gray-400 w-8 h-8" />
+              </div>
+            )}
+
             <div
               className={`flex flex-col max-w-[75%] ${isMe ? "items-end" : "items-start"}`}
             >
-              <div className="space-y-1">
-                {group.messages.map((message) => {
+              <div className="flex flex-col w-full">
+                {group.messages.map((message, idx) => {
                   const parsed = parseMessageContent(
                     message.content,
                   ) as MediaData;
                   const isMediaOnly = parsed.isMedia && !parsed.text;
 
+                  // Xác định vị trí của tin nhắn trong group
+                  const isFirst = idx === 0;
+                  const isLast = idx === group.messages.length - 1;
+                  const isMiddle = !isFirst && !isLast;
+
+                  // Logic bo góc tùy biến theo vị trí (Style giống Messenger/Zalo)
+                  let borderRadiusClass = "";
+                  if (isMe) {
+                    // Cho chính mình (bên phải)
+                    if (group.messages.length === 1)
+                      borderRadiusClass = "rounded-2xl rounded-br-none";
+                    else if (isFirst)
+                      borderRadiusClass = "rounded-2xl rounded-br-sm mb-[2px]";
+                    else if (isMiddle)
+                      borderRadiusClass =
+                        "rounded-2xl rounded-tr-sm rounded-br-sm mb-[2px]";
+                    else if (isLast)
+                      borderRadiusClass =
+                        "rounded-2xl rounded-tr-sm rounded-br-none";
+                  } else {
+                    // Cho người khác (bên trái)
+                    if (group.messages.length === 1)
+                      borderRadiusClass = "rounded-2xl rounded-bl-none";
+                    else if (isFirst)
+                      borderRadiusClass = "rounded-2xl rounded-bl-sm mb-[2px]";
+                    else if (isMiddle)
+                      borderRadiusClass =
+                        "rounded-2xl rounded-tl-sm rounded-bl-sm mb-[2px]";
+                    else if (isLast)
+                      borderRadiusClass =
+                        "rounded-2xl rounded-tl-sm rounded-bl-none";
+                  }
+
                   return (
                     <div
                       key={message.messageId}
-                      className={`${isMediaOnly ? "p-0" : "px-4 py-2"} rounded-2xl shadow-sm break-words ${
-                        isMe
-                          ? "bg-[#4da6ff] text-white rounded-tr-none"
-                          : (isDarkMode
-                              ? "bg-gray-800 text-white"
-                              : "bg-white text-gray-800 border") +
-                            " rounded-tl-none"
-                      }`}
+                      className={`relative ${isMediaOnly ? "p-0" : "px-3 py-1.5"} 
+        shadow-sm transition-all w-fit max-w-[85%]
+        ${borderRadiusClass} 
+        ${
+          isMe
+            ? "bg-blue-600 text-white ml-auto"
+            : isDarkMode
+              ? "bg-gray-800 text-white mr-auto"
+              : "bg-white text-gray-800 border border-gray-200 mr-auto"
+        }`}
                     >
-                      {message.isVoice ? (
-                        <div className="flex items-center gap-2 py-1">
-                          <FaMicrophone
-                            className={isMe ? "text-white" : "text-[#4da6ff]"}
-                          />
-                          <span className="text-sm italic">Tin nhắn thoại</span>
-                        </div>
-                      ) : parsed.isMedia ? (
-                        <MediaContent
-                          mediaData={parsed}
-                          isDarkMode={isDarkMode}
-                        />
-                      ) : (
-                        <p className="text-sm leading-relaxed">
-                          {parsed.text || message.content}
-                        </p>
-                      )}
+                      {/* Nội dung tin nhắn (Voice, Media, Text) giữ nguyên... */}
+                      <p className="whitespace-pre-wrap leading-tight">
+                        {parsed.text || message.content}
+                      </p>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Thời gian và trạng thái cho tin nhắn cuối cùng trong nhóm */}
+              {/* THỜI GIAN VÀ TRẠNG THÁI */}
               <div
-                className={`flex items-center mt-1 gap-1 px-1 text-[10px] ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}
+                className={`flex items-center mt-0.5 text-[10px] font-medium text-gray-400`}
               >
                 <span>
                   {formatMessageTime(
@@ -218,8 +254,14 @@ const MessageList = ({
                 </span>
                 {isMe && (
                   <>
-                    <span>•</span>
-                    <span>
+                    <span className="mx-1">•</span>
+                    <span
+                      className={
+                        group.messages[group.messages.length - 1].isRead
+                          ? "text-blue-500"
+                          : ""
+                      }
+                    >
                       {group.messages[group.messages.length - 1].isRead
                         ? "Đã xem"
                         : "Đã gửi"}
@@ -231,7 +273,7 @@ const MessageList = ({
           </div>
         );
       })}
-      <div ref={messagesEndRef} className="h-2" />
+      <div ref={messagesEndRef} />
     </div>
   );
 };

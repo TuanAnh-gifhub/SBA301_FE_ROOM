@@ -1,7 +1,4 @@
-import {
-  FaSearch,
-  FaSpinner,
-} from "react-icons/fa";
+import { FaSearch, FaSpinner } from "react-icons/fa";
 import { parseMessageContent } from "../../../services/upload/uploadService";
 
 // ============ TYPE DEFINITIONS ============
@@ -133,11 +130,14 @@ const ChatList = ({
     );
 
   const filteredChats = transformedConversations.filter((chat) => {
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      const messagePreview = getMessagePreview(chat.lastMessage).toLowerCase();
+    if (searchQuery && searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      const messagePreview = getMessagePreview(
+        chat.lastMessage || "",
+      ).toLowerCase();
+
       if (
-        !chat.name.toLowerCase().includes(query) &&
+        !chat.name?.toLowerCase().includes(query) &&
         !messagePreview.includes(query)
       )
         return false;

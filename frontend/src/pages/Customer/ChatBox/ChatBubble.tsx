@@ -1,311 +1,258 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaTimes, FaMinus, FaCommentDots } from "react-icons/fa";
+import { FaTimes, FaMinus, FaCommentDots, FaArrowLeft } from "react-icons/fa";
+
 import ChatList from "./ChatList";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
+
 import {
   getUserConversations,
   getMessages,
-  sendMessage,
-  getConversation,
-  markMessageAsRead,
 } from "../../../services/chats/chatService";
 
 import websocketService from "../../../services/chats/websocketService";
-import { tokenService } from "../../../services/auth/tokenService";
 import { useUnreadMessages } from "../../../hooks/useUnreadMessages";
+import { useAuth } from "../../../context/AuthContext";
 
-// ============ TYPE DEFINITIONS (Đã đồng bộ với component con) ============
+/* ================= TYPES ================= */
 
+// ChatBubble.tsx
 interface User {
   userId: string;
+  userName: string; // Bỏ dấu '?' để bắt buộc, khớp với UserResponse
   fullName?: string;
-  userName?: string;
   avatar?: string;
 }
 
-// Interface này phải khớp với ConversationResponse trong ChatList.tsx
+// Đảm bảo Interface Conversation có đủ các trường như ConversationResponse
 interface Conversation {
   conversationId: string;
-  conversationTitle: string; // Đã sửa: bắt buộc
+  conversationTitle: string;
   lastMessage: string;
-  lastSenderName: string; // Đã thêm: bắt buộc để khớp ChatList
+  lastSenderName: string;
   updatedAt: string;
   sender: User;
   recipient: User;
-  isRead?: boolean;
-
-  // Các trường UI bổ sung (Optional)
+  isRead: boolean; // Bỏ dấu '?'
   otherPerson?: User;
-  name?: string;
-  avatar?: string;
-  time?: string;
-  isOnline?: boolean;
-  lastActive?: string;
-  type?: string;
-  listing?: any;
 }
 
-// Interface này phải khớp với Message trong MessageList.tsx
 interface Message {
-  messageId: string; // Đã đổi từ id -> messageId
+  messageId: string;
   senderId: string;
-  conversationId: string; // Đã thêm: bắt buộc
+  conversationId: string;
   sender: "user" | "other";
   content: string;
   createdAt: string;
-  isRead: boolean; // Đã sửa: bắt buộc
-  time?: string;
+  isRead: boolean;
 }
 
-interface FileItem {
-  file: File;
-  dataURL?: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-}
+/* ================= COMPONENT ================= */
 
 const ChatBubble = () => {
   const navigate = useNavigate();
-  const [isDarkMode] = useState(
-    () => localStorage.getItem("landing_dark_mode") === "true",
-  );
-
-  const getCurrentUserId = (): string | null => {
-    try {
-      const userInfo = localStorage.getItem("userInfo");
-      return userInfo ? JSON.parse(userInfo).userId : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const [currentUserId] = useState<string | null>(getCurrentUserId());
   const { unreadCount } = useUnreadMessages(10000);
+  const { user } = useAuth();
+  const currentUserId = user?.userId || null;
 
-  // --- STATE QUẢN LÝ UI ---
+  /* ---------- UI STATE ---------- */
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showChatList, setShowChatList] = useState(true);
 
-  // --- STATE BỊ THIẾU TRƯỚC ĐÓ (Đã thêm để fix lỗi) ---
-  const [activeTab, setActiveTab] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  /* ---------- DATA STATE ---------- */
 
-  // --- STATE DỮ LIỆU ---
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedChat, setSelectedChat] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  // --- INPUT & FILE STATE ---
-  const [newMessage, setNewMessage] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [loading, setLoading] = useState(false);
+  /* ---------- INPUT STATE ---------- */
 
-  const [position, setPosition] = useState({
-    x: window.innerWidth - 80,
-    y: window.innerHeight - 80,
-  });
+  const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentConversationIdRef = useRef<string | null>(null);
 
-  // Đã sửa: Khởi tạo ref đúng kiểu để truyền vào ChatList
-  const settingsMenuRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
 
-  const isDragging = useRef(false);
-  const hasDragged = useRef(false);
+  /* ================= LOAD CONVERSATIONS ================= */
 
-  // Load conversations
   const loadConversations = async () => {
     if (!currentUserId) return;
+
     setLoading(true);
-    const res = (await getUserConversations(currentUserId)) as ApiResponse<
-      Conversation[]
-    >;
-    if (res.success) {
-      // Map dữ liệu nếu API trả về thiếu trường lastSenderName
-      const mappedData = (res.data || []).map((c) => ({
-        ...c,
-        lastSenderName: c.lastSenderName || "", // Fallback để tránh lỗi undefined
-        conversationTitle: c.conversationTitle || "",
-      }));
-      setConversations(mappedData);
+    const res = await getUserConversations(currentUserId);
+
+    if (res.success && Array.isArray(res.data)) {
+      const mapped = res.data.map((c: any) => {
+        const other =
+          c.sender?.userId === currentUserId ? c.recipient : c.sender;
+
+        return {
+          ...c,
+          conversationTitle: c.conversationTitle || "Người dùng",
+          lastMessage: c.lastMessage || "",
+          lastSenderName: c.lastSenderName || "",
+          otherPerson: other,
+        };
+      });
+
+      setConversations(mapped);
     }
+
     setLoading(false);
   };
 
-  // Load messages
+  /* ================= LOAD MESSAGES ================= */
+
   const loadMessages = async (id: string) => {
     currentConversationIdRef.current = id;
-    const res = (await getMessages(id)) as ApiResponse<any[]>;
-    if (res.success && res.data) {
-      const transformed = res.data.map((msg) => ({
+
+    const res = await getMessages(id);
+
+    if (res.success && Array.isArray(res.data)) {
+      const transformed = res.data.map((msg: any) => ({
         messageId: msg.messageId,
-        sender: msg.senderId === currentUserId ? "user" : "other",
+        senderId: msg.senderId,
+        conversationId: id,
+        sender: (msg.senderId === currentUserId ? "user" : "other") as
+          | "user"
+          | "other",
         content: msg.content,
         createdAt: msg.createdAt,
-        senderId: msg.senderId,
-        conversationId: id, // Đảm bảo có trường này
-        isRead: msg.isRead !== undefined ? msg.isRead : true,
-        time: new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        isRead: msg.isRead ?? true,
       }));
-      setMessages(transformed as Message[]);
 
-      const hasUnread = transformed.some(
-        (m) => m.sender === "other" && !m.isRead,
-      );
-      if (hasUnread) await markMessageAsRead(id, currentUserId!);
+      setMessages(transformed);
     }
   };
 
-  // WebSocket Connection
-  useEffect(() => {
-    if (currentUserId) {
-      loadConversations();
-      const wsUrl =
-        import.meta.env.VITE_WS_URL ||
-        "http://localhost:8080/api/v1/rent-room/ws";
-      const token = tokenService.getAccessToken();
+  /* ================= WEBSOCKET ================= */
 
-      if (!websocketService.isConnected()) {
-        websocketService.connect(wsUrl, token);
+  useEffect(() => {
+    if (!user?.userId || window.location.pathname === "/chat") return;
+    
+    loadConversations();
+
+    const unsubscribe = websocketService.onNewMessage((data: any) => {
+      console.log("Nhận tin nhắn mới:", data);
+      if (currentConversationIdRef.current === data.conversationId) {
+        const incoming: Message = {
+          messageId: data.messageId,
+          senderId: data.senderId,
+          conversationId: data.conversationId,
+          sender: data.senderId === currentUserId ? "user" : "other",
+          content: data.content,
+          createdAt: data.createdAt,
+          isRead: data.isRead ?? false,
+        };
+
+        setMessages((prev) => {
+          const filtered = prev.filter(
+            (m) =>
+              !(
+                m.messageId.startsWith("temp-") &&
+                m.content === incoming.content
+              ),
+          );
+
+          if (filtered.find((m) => m.messageId === incoming.messageId)) {
+            return filtered;
+          }
+
+          return [...filtered, incoming];
+        });
       }
 
-      websocketService.onNewMessage((data: any) => {
-        if (currentConversationIdRef.current === data.conversationId) {
-          const incoming: Message = {
-            messageId: data.messageId,
-            content: data.content,
-            sender: data.senderId === currentUserId ? "user" : "other",
-            senderId: data.senderId,
-            conversationId: data.conversationId, // Bắt buộc
-            createdAt: data.createdAt,
-            isRead: data.isRead !== undefined ? data.isRead : false,
-          };
-          setMessages((prev) =>
-            prev.find((m) => m.messageId === incoming.messageId)
-              ? prev
-              : [...prev, incoming],
-          );
-        }
+      loadConversations();
+    });
 
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.conversationId === data.conversationId
-              ? { ...c, lastMessage: data.content, updatedAt: data.createdAt }
-              : c,
-          ),
-        );
-      });
+    return () => {
+      unsubscribe();
+    };
+  }, [user?.userId]);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [currentUserId]);
+  }, [messages]); // Chạy mỗi khi mảng messages có thêm phần tử mới
 
   const handleSendMessage = async () => {
-    if (newMessage.trim() && selectedChat) {
-      const recipientId =
-        selectedChat.otherPerson?.userId ||
-        (selectedChat.sender.userId === currentUserId
-          ? selectedChat.recipient.userId
-          : selectedChat.sender.userId);
+    if (!newMessage.trim() || !currentUserId || !selectedChat) return;
 
-      if (!recipientId) return;
+    const recipientId =
+      selectedChat.sender.userId === currentUserId
+        ? selectedChat.recipient.userId
+        : selectedChat.sender.userId;
 
-      const payload = {
-        senderId: currentUserId,
-        recipientId: recipientId,
-        content: newMessage.trim(),
-        conversationId: selectedChat.conversationId,
-      };
+    if (!recipientId) {
+      console.error("Không tìm thấy ID người nhận");
+      return;
+    }
 
+    // 1. Tạo đối tượng tin nhắn tạm thời
+    const tempMessage: Message = {
+      messageId: `temp-${Date.now()}`, // ID tạm để React không trùng key
+      senderId: currentUserId,
+      conversationId: selectedChat.conversationId || "",
+      sender: "user",
+      content: newMessage.trim(),
+      createdAt: new Date().toISOString(),
+      isRead: true,
+    };
+
+    try {
       if (websocketService.isConnected()) {
-        websocketService.send("/app/chat", payload);
-        setNewMessage("");
+        const messagePayload = {
+          conversationId: selectedChat.conversationId || null,
+          senderId: currentUserId,
+          recipientId: recipientId,
+          content: newMessage.trim(),
+        };
+
+        // 2. Gửi qua socket
+        websocketService.send("/app/chat", messagePayload);
+
+        // 3. CẬP NHẬT UI NGAY LẬP TỨC
+        setMessages((prev) => [...prev, tempMessage]);
+        setNewMessage(""); // Xóa ô input
       } else {
-        const res = await sendMessage(
-          selectedChat.conversationId,
-          currentUserId!,
-          recipientId,
-          newMessage.trim(),
-        );
-        if (res.success) setNewMessage("");
+        console.error("Chưa kết nối WebSocket!");
       }
+    } catch (err) {
+      console.error("Lỗi gửi tin nhắn:", err);
     }
   };
 
-  const handleChatSelect = async (chat: any) => {
-    // ChatList trả về object kiểu Chat (đã extend Conversation), nên có đủ dữ liệu
-    const id = chat.conversationId;
+  /* ================= CHAT SELECT ================= */
 
-    // Tìm hoặc dùng luôn object chat được click
-    const targetChat =
-      conversations.find((c) => c.conversationId === id) || chat;
-
-    setSelectedChat(targetChat);
+  const handleChatSelect = async (chat: Conversation) => {
+    setSelectedChat(chat);
     setShowChatList(false);
-    await loadMessages(id);
-
-    // Nếu chưa có otherPerson (do load từ list API thuần), ta tự tính toán
-    if (!targetChat.otherPerson) {
-      // Logic xác định đối phương
-      const other =
-        targetChat.sender.userId === currentUserId
-          ? targetChat.recipient
-          : targetChat.sender;
-      setSelectedChat((prev) =>
-        prev ? { ...prev, otherPerson: other, name: other.userName } : null,
-      );
-    }
+    await loadMessages(chat.conversationId);
   };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    isDragging.current = true;
-    hasDragged.current = false;
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging.current) return;
-      hasDragged.current = true;
-      setPosition({ x: e.clientX - 28, y: e.clientY - 28 });
-    };
-    const handleMouseUp = () => (isDragging.current = false);
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, []);
 
   if (window.location.pathname === "/chat") return null;
 
+  /* ================= UI ================= */
+
   return (
     <>
-      {!isOpen && currentUserId && (
-        <div
-          className="fixed z-50 cursor-grab active:cursor-grabbing"
-          style={{ left: position.x, top: position.y }}
-          onMouseDown={handleMouseDown}
-        >
+      {!isOpen && (
+        <div className="fixed bottom-6 right-6 z-50">
           <button
-            onClick={() => !hasDragged.current && setIsOpen(true)}
-            className="w-14 h-14 bg-[#4da6ff] text-white rounded-full shadow-lg flex items-center justify-center relative hover:scale-110 transition-transform"
+            onClick={() => setIsOpen(true)}
+            className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center relative"
           >
-            <FaCommentDots size={24} />
+            <FaCommentDots size={22} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
-                {unreadCount}
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
           </button>
@@ -314,53 +261,33 @@ const ChatBubble = () => {
 
       {isOpen && (
         <div
-          className={`fixed bottom-4 right-4 z-50 rounded-lg shadow-2xl flex flex-col transition-all ${
-            isDarkMode
-              ? "bg-gray-900 border-gray-700"
-              : "bg-white border-gray-200"
-          } border ${isMinimized ? "w-72 h-14" : "w-96 h-[550px]"}`}
+          className={`fixed bottom-6 right-6 z-50 bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden border ${
+            isMinimized ? "w-72 h-14" : "w-[340px] h-[520px]"
+          }`}
         >
-          <div
-            className={`p-3 border-b flex items-center justify-between ${isDarkMode ? "bg-gray-800" : "bg-gray-50"}`}
-          >
+          <div className="px-4 py-3 bg-blue-600 text-white flex justify-between items-center">
             <div className="flex items-center gap-2">
+              {/* NÚT BACK CHỈ HIỆN KHI ĐANG MỞ CHAT CHI TIẾT */}
               {!showChatList && (
                 <button
-                  onClick={() => {
-                    setShowChatList(true);
-                    setSelectedChat(null);
-                  }}
-                  className="p-1 hover:bg-gray-200 rounded"
+                  onClick={() => setShowChatList(true)}
+                  className="hover:bg-blue-700 p-1 rounded-full transition-colors"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M15 19l-7-7 7-7" strokeWidth="2" />
-                  </svg>
+                  <FaArrowLeft size={14} />
                 </button>
               )}
-              <span className="font-bold text-sm">
+              <span className="font-semibold truncate max-w-[180px]">
                 {showChatList
                   ? "Đoạn chat"
-                  : selectedChat?.otherPerson?.userName ||
-                    selectedChat?.name ||
-                    "Chat"}
+                  : selectedChat?.otherPerson?.userName || "Người dùng"}
               </span>
             </div>
+
             <div className="flex gap-2">
-              <button
-                onClick={() => setIsMinimized(!isMinimized)}
-                className="p-1 hover:bg-gray-200 rounded"
-              >
+              <button onClick={() => setIsMinimized(!isMinimized)}>
                 <FaMinus size={12} />
               </button>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1 hover:bg-red-100 text-red-500 rounded"
-              >
+              <button onClick={() => setIsOpen(false)}>
                 <FaTimes size={14} />
               </button>
             </div>
@@ -369,57 +296,42 @@ const ChatBubble = () => {
           {!isMinimized && (
             <>
               {showChatList ? (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <ChatList
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    selectedChat={selectedChat}
-                    onChatSelect={handleChatSelect}
-                    showSettingsMenu={showSettingsMenu}
-                    setShowSettingsMenu={setShowSettingsMenu}
-                    settingsMenuRef={settingsMenuRef} // ĐÃ FIX: Truyền ref thật
-                    conversations={conversations}
-                    loading={loading}
-                    error={null}
-                    isFullWidth
-                    isDarkMode={isDarkMode}
-                  />
-                  <button
-                    onClick={() => {
-                      navigate("/chat");
-                      setIsOpen(false);
-                    }}
-                    className="p-3 text-center text-[#4da6ff] text-sm font-medium border-t hover:bg-gray-50"
-                  >
-                    Mở trong trang Chat toàn màn hình
-                  </button>
-                </div>
+                <ChatList
+                  conversations={conversations}
+                  selectedChat={selectedChat}
+                  onChatSelect={handleChatSelect}
+                  loading={loading}
+                  error={null}
+                  // Truyền thêm các props này để tránh lỗi undefined.trim()
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                />
               ) : (
-                <>
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                   <MessageList
                     messages={messages}
                     messagesEndRef={messagesEndRef}
-                    isDarkMode={isDarkMode}
+                    currentUserId={currentUserId}
                   />
+
                   <MessageInput
                     newMessage={newMessage}
                     setNewMessage={setNewMessage}
                     onSendMessage={handleSendMessage}
-                    selectedFiles={selectedFiles}
-                    setSelectedFiles={setSelectedFiles}
-                    imagePreview={imagePreview}
-                    setImagePreview={setImagePreview}
-                    isRecording={isRecording}
-                    onVoiceRecord={() => setIsRecording(!isRecording)}
+                    selectedFiles={[]}
+                    setSelectedFiles={() => {}}
+                    imagePreview={null}
+                    setImagePreview={() => {}}
+                    isRecording={false}
+                    onVoiceRecord={() => {}}
                     onFileSelect={() => {}}
                     onRemoveFile={() => {}}
                     onRemoveImagePreview={() => {}}
                     onClearAllFiles={() => {}}
-                    isDarkMode={isDarkMode}
                   />
-                </>
+                </div>
               )}
             </>
           )}
