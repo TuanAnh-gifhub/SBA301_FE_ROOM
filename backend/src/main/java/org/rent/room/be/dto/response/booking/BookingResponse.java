@@ -2,6 +2,7 @@ package org.rent.room.be.dto.response.booking;
 
 import lombok.*;
 import org.rent.room.be.constant.BookingStatus;
+import org.rent.room.be.constant.BookingType;
 import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.dto.response.slot.SlotResponse;
 
@@ -18,7 +19,9 @@ import java.util.UUID;
 public class BookingResponse {
     private UUID bookingId;
     private String userName;
+    private String phoneNumber;
     private List<SlotResponse> slots;
+    private BookingType bookingType;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private int numberOfMonths;
@@ -27,5 +30,7 @@ public class BookingResponse {
     private BookingStatus status;
     private LocalDateTime createdAt;
     private String statusPayment;
+    private LocalDateTime checkIn;
+    private LocalDateTime checkOut;
 
 }

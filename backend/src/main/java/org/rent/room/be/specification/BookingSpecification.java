@@ -1,6 +1,7 @@
 package org.rent.room.be.specification;
 
 import jakarta.persistence.criteria.Predicate;
+import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.entity.Booking;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -13,7 +14,7 @@ import java.util.List;
 public class BookingSpecification {
 
     public static Specification<Booking> filter(
-            String bookingStatus,
+            BookingStatus bookingStatus,
             String keyword,
             LocalDate from,
             LocalDate to
@@ -22,7 +23,7 @@ public class BookingSpecification {
             List<Predicate> predicates = new ArrayList<>();
 
             // bookingStatus
-            if (bookingStatus != null && !bookingStatus.isBlank()) {
+            if (bookingStatus != null) {
                 predicates.add(
                         cb.equal(
                                 root.get("bookingStatus"),

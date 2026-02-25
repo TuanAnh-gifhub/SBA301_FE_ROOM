@@ -1,5 +1,3 @@
-
-
 import { useState, useMemo } from "react";
 import type { Room } from "../../../types/room";
 import type { BookingRequest } from "../../../types/booking";
@@ -19,7 +17,7 @@ export default function MonthlyForm({ room, userId }: MonthlyFormProps) {
     end: "10:00",
   });
 
-  // ===== Tính số tháng =====
+ 
   const numberOfMonths = useMemo(() => {
     if (!startDate || !endDate) return 0;
 
@@ -33,6 +31,19 @@ export default function MonthlyForm({ room, userId }: MonthlyFormProps) {
     return Math.ceil(days / 30);
   }, [startDate, endDate]);
 
+
+    const onSubmit = async () => {
+    const payload: BookingRequest = {
+      userId,
+      bookingType: "MONTHLY",
+      numberOfMonths,
+      slotRequests: bookingRequest.slotRequests,
+    };
+
+    console.log("Payload gửi BE:", payload);
+    alert("Đã gửi dữ liệu! Kiểm tra Console log.");
+    // await fetch('/api/bookings', { method: 'POST', body: JSON.stringify(payload) });
+  };
   const bookingRequest: BookingRequest = {
     userId,
     bookingType: "MONTHLY",
@@ -54,7 +65,6 @@ export default function MonthlyForm({ room, userId }: MonthlyFormProps) {
     <div className="space-y-6">
       <h3 className="font-bold text-lg">Thuê theo tháng</h3>
 
-    
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium">Ngày bắt đầu</label>
@@ -78,7 +88,6 @@ export default function MonthlyForm({ room, userId }: MonthlyFormProps) {
         </div>
       </div>
 
-     
       <div className="grid grid-cols-2 gap-3">
         <input
           type="time"
@@ -94,7 +103,6 @@ export default function MonthlyForm({ room, userId }: MonthlyFormProps) {
         />
       </div>
 
-     
       <Space>
         <span className="text-sm font-medium">Số lượng phòng</span>
         <InputNumber
@@ -107,16 +115,21 @@ export default function MonthlyForm({ room, userId }: MonthlyFormProps) {
         <span className="text-xs text-gray-400">/ {room.quantity}</span>
       </Space>
 
-      
       {numberOfMonths > 0 && (
         <div className="p-3 rounded-lg bg-blue-50 text-sm">
           ⏱ Thời gian thuê: <b>{numberOfMonths}</b> tháng
         </div>
       )}
 
-      <pre className="bg-gray-100 p-3 rounded text-xs">
+      {/* <pre className="bg-gray-100 p-3 rounded text-xs">
         {JSON.stringify(bookingRequest, null, 2)}
-      </pre>
+      </pre> */}
+      <button
+        onClick={onSubmit}
+        className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition"
+      >
+        XÁC NHẬN ĐẶT LỊCH
+      </button>
     </div>
   );
 }

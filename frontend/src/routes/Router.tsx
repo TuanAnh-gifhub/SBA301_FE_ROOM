@@ -17,7 +17,10 @@ import ResetPassword from "../pages/Customer/LoginPage/ResetPassword";
 import UserManagement from "../pages/Admin/UserManagement";
 import ManagePage from "../pages/Customer/ManagePage/ManagePage";
 import ConfirmRegister from "../pages/Customer/LoginPage/ConfirmRegister";
-import AdminProfilePage from "../pages/Admin/ProfileAdmin/AdminProfilePage";
+import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManagementPage";
+import CategoryManagementPage from "../pages/Admin/CategoryManagement/CategoryManagementPage";
+import PostManagePage from "../pages/Admin/PostManagement/PostManagePage";
+import RentalDetailPage from "../pages/Customer/LandingPage/RentalDetailPage";
 
 export const router = createBrowserRouter([
   {
@@ -30,6 +33,7 @@ export const router = createBrowserRouter([
         element: <LandingPage />,
         handle: { breadcrumb: "Trang chủ" },
       },
+
       {
         path: "home",
         element: <LandingPage />,
@@ -39,6 +43,11 @@ export const router = createBrowserRouter([
         path: "landing",
         element: <LandingPage />,
         handle: { breadcrumb: "Trang chủ" },
+      },
+      {
+        //  <Route path="/rentals/:id" element={<RentalDetailPage />} />
+        path: "rentals/:id",
+        element: <RentalDetailPage />,
       },
       {
         path: "product/:id",
@@ -100,10 +109,6 @@ export const router = createBrowserRouter([
         element: <ReportForm />,
         handle: { breadcrumb: "Báo cáo vi phạm" },
       },
-        {
-        path: "/profile",
-        element: <AdminProfilePage />,
-      },
     ],
   },
   // Admin routes
@@ -115,18 +120,23 @@ export const router = createBrowserRouter([
     path: "/admin",
     element: (
       <ProtectedAdminRoute>
-      <AdminPage />
-       </ProtectedAdminRoute>
+        <AdminPage />
+      </ProtectedAdminRoute>
     ),
     children: [
       {
         index: true,
         element: (
           <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4" style={{ color: "inherit" }}>
+            <h1
+              className="text-2xl font-bold mb-4"
+              style={{ color: "inherit" }}
+            >
               Dashboard
             </h1>
-            <p style={{ color: "inherit" }}>Chào mừng đến với trang quản trị!</p>
+            <p style={{ color: "inherit" }}>
+              Chào mừng đến với trang quản trị!
+            </p>
           </div>
         ),
       },
@@ -135,8 +145,21 @@ export const router = createBrowserRouter([
         element: <UserManagement />,
       },
       {
+        path: "posts",
+        element: <PostManagePage />,
+      },
+
+      {
         path: "reports",
         element: <ReportPage />,
+      },
+      {
+        path: "amenities",
+        element: <AmenityManagementPage />,
+      },
+      {
+        path: "room-types",
+        element: <CategoryManagementPage />,
       },
     ],
   },

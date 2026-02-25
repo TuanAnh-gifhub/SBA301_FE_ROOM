@@ -8,6 +8,7 @@ import org.rent.room.be.base.BaseEntity;
 import org.rent.room.be.constant.RentalAreaStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -51,4 +52,10 @@ public class RentalArea extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     User owner;
+
+    @OneToMany(mappedBy = "rentalArea",fetch = FetchType.LAZY)
+    List<Room> room;
+
+    @OneToMany(mappedBy = "rentalArea")
+    private List<Post> posts;
 }

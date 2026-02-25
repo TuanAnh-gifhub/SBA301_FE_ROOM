@@ -4,6 +4,8 @@ import { FileTextOutlined, HomeOutlined } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import ManagePostPage from "../ManagePostPage/ManagePostPage";
 import ManageRoomPage from "../ManageRoomPage/ManageRoomPage";
+import ManageBookingPage from "../../Owner/ManageBookingPage/ManageBookingPage";
+import ManageSchedulePage from "../../Owner/ManageSchedule/ManageSchedulePage";
 
 const ManagePage: React.FC = () => {
     const navigate = useNavigate();
@@ -59,6 +61,26 @@ const ManagePage: React.FC = () => {
                             ),
                             children: <ManageRoomPage />,
                         },
+                        {
+                            key: "bookings",
+                            label: (
+                                <span className="flex items-center gap-2">
+                                    <HomeOutlined />
+                                    Quản lý đặt lịch
+                                </span>
+                            ),
+                            children: <ManageBookingPage />,
+                        },
+                        {
+                            key: "schedules",
+                            label: (
+                                <span className="flex items-center gap-2">
+                                    <HomeOutlined />
+                                    Lịch hẹn 
+                                </span>
+                            ),
+                            children: <ManageSchedulePage />,
+                        }
                     ]}
                 />
             </div>

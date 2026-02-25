@@ -3,11 +3,17 @@ package org.rent.room.be.serviceImpl;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.constant.RentalAreaStatus;
 import org.rent.room.be.dto.internal.CloudinaryUploadResult;
 import org.rent.room.be.dto.request.rental_area.CreateRentalAreaRequest;
+import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaRequest;
+import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaStatusRequest;
 import org.rent.room.be.dto.response.rental_area.RentalAreaImageResponse;
 import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
+import org.rent.room.be.dto.response.report.ReportResponse;
+import org.rent.room.be.dto.response.room.RoomImageResponse;
+import org.rent.room.be.dto.response.room.RoomResponse;
 import org.rent.room.be.entity.City;
 import org.rent.room.be.entity.RentalArea;
 import org.rent.room.be.entity.RentalAreaImage;
@@ -20,10 +26,17 @@ import org.rent.room.be.repository.RentalAreaRepository;
 import org.rent.room.be.repository.UserRepository;
 import org.rent.room.be.service.CloudinaryService;
 import org.rent.room.be.service.RentalAreaService;
+import org.rent.room.be.specification.RentalAreaSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -109,11 +122,54 @@ public class RentalAreaServiceImpl implements RentalAreaService {
     }
 
     @Override
-    public List<RentalAreaResponse> getAllRentalAreas() {
-        List<RentalArea> rentalAreas = rentalAreaRepository.findAllActive();
-        return rentalAreas.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<RentalAreaResponse> getAllRentalAreas(int page, int size,
+                                                              String address,
+                                                              String renterAreaName,
+                                                              LocalDate from,
+                                                              LocalDate to) {
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.Direction.DESC, "createdAt");
+
+        Specification<RentalArea> spec = RentalAreaSpecification.filter(address, renterAreaName, from, to);
+        Page<RentalArea> rentalAreas = rentalAreaRepository.findAll(spec, pageable);
+
+        List<RentalAreaResponse> data = rentalAreas.stream().map(rentalArea -> {
+
+
+            List<RoomResponse> roomResponses = rentalArea.getRoom().stream().map(room -> {
+
+                List<RoomImageResponse> images = room.getImages().stream().map(img ->
+                                RoomImageResponse.builder()
+                                        .roomImageId(img.getRoomImageId())
+                                        .imageUrl(img.getImageUrl())
+                                        .isCover(img.getIsCover())
+                                        .sortOrder(img.getSortOrder())
+                                        .build())
+                        .toList();
+
+                return RoomResponse.builder()
+                        .roomId(room.getRoomId())
+                        .roomName(room.getRoomName())
+                        .price(room.getPrice())
+                        .images(images)
+
+                        .build();
+            }).toList();
+
+            return RentalAreaResponse.builder()
+                    .rentalAreaId(rentalArea.getRentalAreaId())
+                    .address(rentalArea.getAddress())
+                    .cityName(rentalArea.getCity().getCityName())
+                    .contactPhone(rentalArea.getContactPhone())
+                    .rooms(roomResponses)
+                    .build();
+        }).toList();
+        return PageResponse.<RentalAreaResponse>builder()
+                .currentPage(rentalAreas.getNumber() + 1)
+                .totalPages(rentalAreas.getTotalPages())
+                .pageSize(rentalAreas.getSize())
+                .totalElements(rentalAreas.getTotalElements())
+                .data(data)
+                .build();
     }
 
     @Override
@@ -144,7 +200,25 @@ public class RentalAreaServiceImpl implements RentalAreaService {
                         .sortOrder(img.getSortOrder())
                         .build())
                 .collect(Collectors.toList());
+        List<RoomResponse> roomResponses = rentalArea.getRoom().stream().map(room -> {
 
+            List<RoomImageResponse> images = room.getImages().stream().map(img ->
+                            RoomImageResponse.builder()
+                                    .roomImageId(img.getRoomImageId())
+                                    .imageUrl(img.getImageUrl())
+                                    .isCover(img.getIsCover())
+                                    .sortOrder(img.getSortOrder())
+                                    .build())
+                    .toList();
+
+            return RoomResponse.builder()
+                    .roomId(room.getRoomId())
+                    .roomName(room.getRoomName())
+                    .price(room.getPrice())
+                    .images(images)
+
+                    .build();
+        }).toList();
         return RentalAreaResponse.builder()
                 .rentalAreaId(rentalArea.getRentalAreaId())
                 .rentalAreaName(rentalArea.getRentalAreaName())
@@ -152,7 +226,10 @@ public class RentalAreaServiceImpl implements RentalAreaService {
                 .contactName(rentalArea.getContactName())
                 .contactPhone(rentalArea.getContactPhone())
                 .status(rentalArea.getStatus().name())
+                .cityId(rentalArea.getCity().getCityId())
+                .cityName(rentalArea.getCity().getCityName())
                 .images(imageResponses)
+                .rooms(roomResponses)
                 .build();
     }
 
@@ -170,5 +247,59 @@ public class RentalAreaServiceImpl implements RentalAreaService {
 
         rentalArea.setDeletedAt(LocalDateTime.now());
         rentalAreaRepository.save(rentalArea);
+    }
+
+    @Override
+    @Transactional
+    public RentalAreaResponse updateRentalArea(UUID rentalAreaId, UpdateRentalAreaRequest req,
+                                               UUID currentUserId, String currentUserRole) {
+
+        RentalArea rentalArea = rentalAreaRepository.findByIdActive(rentalAreaId)
+                .orElseThrow(() -> new AppException(ErrorCode.RENTAL_AREA_NOT_FOUND));
+
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(currentUserRole);
+        if (!isAdmin && !rentalArea.getOwner().getUserId().equals(currentUserId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        City city = cityRepository.findById(req.getCityId())
+                .orElseThrow(() -> new NoSuchElementException("City not found"));
+
+        rentalArea.setRentalAreaName(req.getRentalAreaName());
+        rentalArea.setAddress(req.getAddress());
+        rentalArea.setContactName(req.getContactName());
+        rentalArea.setContactPhone(req.getContactPhone());
+        rentalArea.setCity(city);
+
+        rentalAreaRepository.save(rentalArea);
+        return mapToResponse(rentalArea);
+    }
+
+    @Override
+    @Transactional
+    public RentalAreaResponse updateRentalAreaStatus(UUID rentalAreaId, UpdateRentalAreaStatusRequest req,
+                                                     UUID currentUserId, String currentUserRole) {
+
+        RentalArea rentalArea = rentalAreaRepository.findByIdActive(rentalAreaId)
+                .orElseThrow(() -> new AppException(ErrorCode.RENTAL_AREA_NOT_FOUND));
+
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(currentUserRole);
+        if (!isAdmin && !rentalArea.getOwner().getUserId().equals(currentUserId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        RentalAreaStatus newStatus = req.getStatus();
+        if (!isAdmin && newStatus == RentalAreaStatus.SUSPENDED) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        if (newStatus != RentalAreaStatus.ACTIVE && newStatus != RentalAreaStatus.INACTIVE) {
+            throw new IllegalArgumentException("Status must be ACTIVE or INACTIVE");
+        }
+
+        rentalArea.setStatus(newStatus);
+        rentalAreaRepository.save(rentalArea);
+
+        return mapToResponse(rentalArea);
     }
 }

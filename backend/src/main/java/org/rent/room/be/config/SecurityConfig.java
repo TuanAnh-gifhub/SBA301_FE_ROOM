@@ -37,7 +37,9 @@ public class SecurityConfig {
             "/auth/**",
             "/ws/**",
             "/reports/**"
-            ,"/bookings/**"
+            ,"/bookings/**",
+             "/posts/**",
+
     };
 
     JwtAuthenticationFilter jwtAuthenticationFilter;

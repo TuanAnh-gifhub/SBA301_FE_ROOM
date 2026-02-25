@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Room } from "../../../types/room";
 import type { BookingRequest } from "../../../types/booking";
 import { InputNumber, Space } from "antd";
+import axios from "axios";
 export default function HourlyForm({
   room,
   userId,
@@ -21,7 +22,7 @@ export default function HourlyForm({
     slotRequests: date
       ? [
           {
-            roomId: room.id,
+            roomId: "9e34c154-1421-4321-8287-256ad1ebea3d",
             quantity,
             startTime: `${date}T${start}:00`,
             endTime: `${date}T${end}:00`,
@@ -31,7 +32,7 @@ export default function HourlyForm({
   };
   const onSubmit = async () => {
     const payload: BookingRequest = {
-      userId,
+      userId: "d7b69e64-8186-4310-aa53-41843396b8bf",
       bookingType: "HOURLY",
       numberOfMonths: 0,
       slotRequests: bookingRequest.slotRequests,
@@ -39,7 +40,10 @@ export default function HourlyForm({
 
     console.log("Payload gửi BE:", payload);
     alert("Đã gửi dữ liệu! Kiểm tra Console log.");
-    // await fetch('/api/bookings', { method: 'POST', body: JSON.stringify(payload) });
+    await axios.post(
+      "http://localhost:8080/api/v1/rent-room/bookings",
+      payload,
+    );
   };
   return (
     <div className="space-y-4">
@@ -73,9 +77,9 @@ export default function HourlyForm({
         />
         <span className="text-xs text-gray-400">/ {room.quantity}</span>
       </Space>
-      <pre className="bg-gray-100 p-3 rounded text-xs">
+      {/* <pre className="bg-gray-100 p-3 rounded text-xs">
         {JSON.stringify(bookingRequest, null, 2)}
-      </pre>
+      </pre> */}
 
       <button
         onClick={onSubmit}

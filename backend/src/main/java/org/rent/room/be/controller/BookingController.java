@@ -79,7 +79,7 @@ public class BookingController {
 
 
     @GetMapping
-    public ApiResponse<?>getAllBooking(    @RequestParam(required = false) String bookingStatus,
+    public ApiResponse<?>getAllBooking(    @RequestParam(required = false) BookingStatus bookingStatus,
                                            @RequestParam(required = false)String keyword,
                                            @RequestParam(required = false)
                                                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
@@ -107,13 +107,13 @@ public class BookingController {
     }
 
     @GetMapping("/{bookId}")
-    public ApiResponse<?> getBooking(@PathVariable("bookId") String bookId){
+    public ApiResponse<?> getBooking(@PathVariable("bookId") UUID bookId){
         try {
 
             return ApiResponse.builder()
                     .code(200)
                     .message("Get all bookings successfully")
-                    .result(null)
+                    .result(bookingService.getBookingById(bookId))
                     .build();
         } catch (Exception e) {
             e.getStackTrace();

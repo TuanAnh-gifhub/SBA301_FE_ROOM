@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import type { Room } from "../../../types/room";
 import type { BookingRequest, SlotDraft } from "../../../types/booking";
 import { toSlotRequest } from "../../../utils/bookingMapper";
 import { InputNumber, Space } from "antd";
+import axios from "axios";
 
 interface DailyFormProps {
   room: Room;
@@ -18,10 +18,8 @@ export default function DailyForm({ room, userId }: DailyFormProps) {
     end: "10:00",
   });
 
-  // quantity dùng làm template cho slot mới
   const [draftQuantity, setDraftQuantity] = useState(1);
 
-  // ===== Add slot =====
   const addSlot = () => {
     if (!date) {
       alert("Vui lòng chọn ngày!");
@@ -43,12 +41,11 @@ export default function DailyForm({ room, userId }: DailyFormProps) {
         date,
         startTime: time.start,
         endTime: time.end,
-        quantity: draftQuantity, // ✅ copy quantity vào slot
+        quantity: draftQuantity,
       },
     ]);
   };
 
-  // ===== Update slot =====
   const updateSlot = (index: number, data: Partial<SlotDraft>) => {
     const next = [...slots];
     next[index] = { ...next[index], ...data };
@@ -59,27 +56,30 @@ export default function DailyForm({ room, userId }: DailyFormProps) {
     setSlots(slots.filter((_, i) => i !== index));
   };
 
-  // ===== Submit =====
   const onSubmit = async () => {
     if (slots.length === 0) {
       alert("Vui lòng thêm ít nhất 1 ngày!");
       return;
     }
-
+    if (userId === null || userId === undefined) {
+      userId = "d7b69e64-8186-4310-aa53-41843396b8bf";
+    }
     const payload: BookingRequest = {
-      userId,
+      userId: "d7b69e64-8186-4310-aa53-41843396b8bf",
       bookingType: "DAILY",
       numberOfMonths: 0,
-      slotRequests: slots.map((s) => toSlotRequest(s, room.id)),
+      slotRequests: slots.map((s) =>
+        toSlotRequest(s, `9e34c154-1421-4321-8287-256ad1ebea3d`),
+      ),
     };
 
     console.log("Payload gửi BE:", payload);
     alert("Đã tạo booking! Kiểm tra console log.");
+    await axios.post("/api/v1/rent-room/bookings", payload);
   };
 
   return (
     <div className="space-y-6">
-      {/* ===== Form add slot ===== */}
       <div className="p-4 border rounded-xl bg-blue-50 space-y-4">
         <h3 className="font-bold text-blue-700">Chọn ngày & khung giờ</h3>
 
@@ -128,7 +128,6 @@ export default function DailyForm({ room, userId }: DailyFormProps) {
         </button>
       </div>
 
-      {/* ===== Slot list ===== */}
       <div className="space-y-3">
         <h3 className="font-semibold">Danh sách đã chọn ({slots.length})</h3>
 
@@ -166,7 +165,6 @@ export default function DailyForm({ room, userId }: DailyFormProps) {
               />
             </Space>
 
-            {/* Quick action */}
             <button
               className="text-xs text-blue-600"
               onClick={() => setDraftQuantity(s.quantity)}
@@ -184,7 +182,6 @@ export default function DailyForm({ room, userId }: DailyFormProps) {
         ))}
       </div>
 
-      {/* ===== Submit ===== */}
       <button
         onClick={onSubmit}
         className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition"

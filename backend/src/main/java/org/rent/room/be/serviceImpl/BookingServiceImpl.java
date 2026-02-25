@@ -1,11 +1,8 @@
 package org.rent.room.be.serviceImpl;
 
 import org.rent.room.be.base.PageResponse;
-import org.rent.room.be.constant.BookingStatus;
-import org.rent.room.be.constant.BookingType;
-import org.rent.room.be.constant.QRType;
+import org.rent.room.be.constant.*;
 
-import org.rent.room.be.constant.SlotStatus;
 import org.rent.room.be.dto.request.booking.BookingRequest;
 import org.rent.room.be.dto.request.booking.SlotRequest;
 import org.rent.room.be.dto.response.UserResponse;
@@ -48,6 +45,8 @@ public class BookingServiceImpl implements BookingService {
     private BookingQRService bookingQRService;
 
     @Autowired
+    private SlotRepository slotRepository;
+    @Autowired
     private BookingQRRepository bookingQRRepository;
 
     @Transactional
@@ -57,7 +56,7 @@ public class BookingServiceImpl implements BookingService {
 
         Booking booking = Booking.builder()
                 .bookingTitle("Đặt phòng theo " + request.getBookingType())
-                .bookingStatus(BookingStatus.PENDING)
+                .bookingStatus(BookingStatus.BOOKED)
                 .bookingType(request.getBookingType())
                 .renter(user)
                 .startTime(request.getSlotRequests().getFirst().getStartTime())
@@ -79,7 +78,6 @@ public class BookingServiceImpl implements BookingService {
                     );
 
 
-
             if (availableRooms.size() < slotReq.getQuantity()) {
                 throw new RuntimeException("Phòng " + room.getRoomName() + " không đủ phòng trống cho thuê ,còn " + availableRooms.size() + "phòng");
 
@@ -98,6 +96,10 @@ public class BookingServiceImpl implements BookingService {
                         .endTime(slotReq.getEndTime())
                         .availabilityStatus(SlotStatus.BOOKED)
                         .build();
+                slotRepository.save(slot);
+
+                rc.setRoomCopyStatus(RoomCopyStatus.BOOKED);
+                roomCopyRepository.save(rc);
 
                 if (booking.getSlots() == null) {
                     booking.setSlots(new ArrayList<>());
@@ -115,6 +117,7 @@ public class BookingServiceImpl implements BookingService {
                         .startTime(slotReq.getStartTime())
                         .endTime(slotReq.getEndTime())
                         .roomCopy(roomCopyResponse)
+                        .status(slot.getAvailabilityStatus())
                         .address(room.getRentalArea().getAddress())
                         .build();
 
@@ -144,6 +147,8 @@ public class BookingServiceImpl implements BookingService {
         return BookingResponse.builder()
                 .bookingId(booking.getBookingId())
                 .userName(user.getUserName())
+                .phoneNumber(user.getPhone() != null ? user.getPhone() : "")
+                .bookingType(booking.getBookingType())
                 .startTime(request.getSlotRequests().getFirst().getStartTime())
                 .endTime(request.getSlotRequests().getLast().getEndTime())
                 .status(BookingStatus.BOOKED)
@@ -197,25 +202,48 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse getBookingById(UUID bookingId) {
-        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
+                new RuntimeException("Không tìm thấy booking với id " + bookingId));
 
-        UserResponse userResponse = UserResponse.builder()
-                .userId(booking.getRenter().getUserId())
-                .userName(booking.getRenter().getUserName())
-                .email(booking.getRenter().getEmail())
-                .build();
 
-        return BookingResponse.builder()
+
+       List<SlotResponse> slotResponses = booking.getSlots().stream().map(slot ->{
+
+           RoomCopy rc = slot.getRoomCopy();
+           RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
+                   .roomCopyId(rc.getRoomCopyId())
+                   .roomCode(rc.getRoomCode())
+                   .roomCopyStatus(rc.getRoomCopyStatus())
+                   .build();
+
+
+           return SlotResponse.builder()
+                   .slotId(slot.getSlotId())
+                   .startTime(slot.getStartTime())
+                   .endTime(slot.getEndTime())
+                   .address(slot.getRoomCopy().getRoom().getRentalArea().getAddress())
+                   .roomCopy(roomCopyResponse)
+                   .build();
+       }).toList();
+
+        return  BookingResponse.builder()
                 .bookingId(bookingId)
-//                .user(userResponse)
-//                .checkIn(booking.getCheckIn())
-//                .checkOut(booking.getCheckOut())
+                .userName(booking.getRenter().getUserName())
+                .phoneNumber(booking.getRenter().getPhone() != null ? booking.getRenter().getPhone() : "")
+                .slots(slotResponses)
+                .startTime(booking.getStartTime())
+                .endTime(booking.getEndTime())
+                .totalPrice(booking.getTotalPrice())
+                .bookingType(booking.getBookingType())
+                .createdAt(booking.getCreatedAt())
+                .checkIn(booking.getCheckIn())
+                .checkOut(booking.getCheckOut())
                 .build();
     }
 
     @Override
     public PageResponse<BookingResponse> getAllBookings(
-            String bookingStatus,
+            BookingStatus bookingStatus,
             String keyword,
             LocalDate from,
             LocalDate to,
@@ -232,13 +260,47 @@ public class BookingServiceImpl implements BookingService {
         Page<Booking> bookingPage =
                 bookingRepository.findAll(spec, pageable);
 
+
         List<BookingResponse> responses =
                 bookingPage.getContent().stream()
-                        .map(booking -> BookingResponse.builder()
-                                .bookingId(booking.getBookingId())
-                                .status(booking.getBookingStatus())
-                                .build()
-                        )
+                        .map(booking -> {
+
+                            List<SlotResponse> slotResponses = booking.getSlots().stream()
+                                    .map(slot -> {
+                                        RoomCopy roomCopy = slot.getRoomCopy();
+                                        Room room = roomCopy.getRoom();
+                                        RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
+                                                .roomCopyId(roomCopy.getRoomCopyId())
+                                                .roomCode(roomCopy.getRoomCode())
+                                                .build();
+
+                                        return SlotResponse.builder()
+                                                .slotId(slot.getSlotId())
+                                                .startTime(slot.getStartTime())
+                                                .endTime(slot.getEndTime())
+                                                .roomCopy(roomCopyResponse)
+                                                .status(slot.getAvailabilityStatus())
+                                                .address(room.getRentalArea().getAddress())
+                                                .build();
+                                    })
+                                    .toList();
+
+
+                            return BookingResponse.builder()
+                                    .bookingId(booking.getBookingId())
+                                    .userName(booking.getRenter().getUserName())
+                                    .phoneNumber(booking.getRenter().getPhone())
+                                    .startTime(booking.getStartTime())
+                                    .endTime(booking.getEndTime())
+                                    .totalPrice(booking.getTotalPrice())
+                                    .note(booking.getNote())
+                                    .createdAt(booking.getCreatedAt())
+                                    .status(booking.getBookingStatus())
+                                    .bookingType(booking.getBookingType())
+                                    .statusPayment("")
+                                    .slots(slotResponses)
+                                    .build();
+                        })
                         .toList();
 
         return PageResponse.<BookingResponse>builder()
@@ -255,14 +317,13 @@ public class BookingServiceImpl implements BookingService {
         BookingQR qr = bookingQRRepository.findByQrToken(token)
                 .orElseThrow(() -> new RuntimeException("QR không hợp lệ"));
 
-        if (qr.getUsedAt() != null){
+        if (qr.getUsedAt() != null) {
             return ScanQRResponse.builder()
                     .success(false)
                     .message("QR đã được sử dụng ")
                     .usedAt(qr.getUsedAt())
                     .build();
         }
-
 
 
         Booking booking = bookingRepository.findById(qr.getBooking().getBookingId())
@@ -274,7 +335,7 @@ public class BookingServiceImpl implements BookingService {
             booking.setBookingStatus(BookingStatus.CHECKED_IN);
 
         }
-        if(qr.getQrType() == QRType.CHECK_OUT){
+        if (qr.getQrType() == QRType.CHECK_OUT) {
             booking.setCheckOut(LocalDateTime.now());
             booking.setBookingStatus(BookingStatus.COMPLETED);
 
@@ -285,7 +346,7 @@ public class BookingServiceImpl implements BookingService {
         bookingQRRepository.save(qr);
         return ScanQRResponse.builder()
                 .success(true)
-                .message("Quét mã "+ qr.getQrType()+" thành công")
+                .message("Quét mã " + qr.getQrType() + " thành công")
                 .status(booking.getBookingStatus())
                 .build();
     }
