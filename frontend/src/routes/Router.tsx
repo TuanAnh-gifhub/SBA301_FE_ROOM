@@ -17,7 +17,8 @@ import ResetPassword from "../pages/Customer/LoginPage/ResetPassword";
 import UserManagement from "../pages/Admin/UserManagement";
 import ManagePage from "../pages/Customer/ManagePage/ManagePage";
 import ConfirmRegister from "../pages/Customer/LoginPage/ConfirmRegister";
-import RoleManagement from "../pages/Admin/RoleManagement/RoleManagement";
+import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManagementPage";
+import CategoryManagementPage from "../pages/Admin/CategoryManagement/CategoryManagementPage";
 
 export const router = createBrowserRouter([
   {
@@ -136,12 +137,16 @@ export const router = createBrowserRouter([
         element: <UserManagement />,
       },
       {
-        path: "roles",
-        element: <RoleManagement />,
-      },
-      {
         path: "reports",
         element: <ReportPage />,
+      },
+      {
+        path: "amenities",
+        element: <AmenityManagementPage />,
+      },
+      {
+        path: "room-types",
+        element: <CategoryManagementPage />,
       },
     ],
   },
