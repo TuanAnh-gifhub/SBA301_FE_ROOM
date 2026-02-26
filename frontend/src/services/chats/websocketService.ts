@@ -7,7 +7,10 @@ class WebSocketService {
 
   // Sửa thành Mảng để lưu nhiều callback
   private newMessageListeners: ((data: any) => void)[] = [];
-  private readReceiptListeners: ((messageId: string) => void)[] = [];
+  private readReceiptListeners: ((data: {
+    conversationId: string;
+    readerId: string;
+  }) => void)[] = [];
   private connectedCallback: (() => void) | null = null;
 
   connect(url: string, token: string | null = null): void {
@@ -15,28 +18,27 @@ class WebSocketService {
 
     this.socket = new SockJS(url);
     this.stompClient = Stomp.over(this.socket);
-    this.stompClient.debug = (str: string) => {
-      console.log("📡 STOMP Thô:", str); // Nó sẽ log mọi gói tin gửi/nhận lên Console
-    };
+
     const headers = { Authorization: `Bearer ${token}` };
 
-    // Trong hàm connect của WebSocketService.ts
     this.stompClient.connect(headers, (frame: any) => {
-      // Lấy userId thực tế mà Server vừa trả về trong frame (nếu có) hoặc dùng từ token
       console.log(
         "✅ Kết nối thành công! User Principal:",
         frame.headers["user-name"],
       );
 
-      // THỬ NGHIỆM: Subscribe trực tiếp vào queue của User
-      // Thay vì "/user/queue/messages", hãy thử subscribe đường dẫn mà Spring thực sự gửi:
       this.stompClient.subscribe("/user/queue/messages", (message: any) => {
-        console.log("📩 ĐÃ NHẬN ĐƯỢC TIN NHẮN!");
-        console.log("Nội dung:", message.body);
-
         if (message.body) {
           const data = JSON.parse(message.body);
           this.newMessageListeners.forEach((callback) => callback(data));
+        }
+      });
+
+      this.stompClient.subscribe("/user/queue/read-receipt", (message: any) => {
+        console.log("👁️ ĐỐI PHƯƠNG ĐÃ ĐỌC TIN NHẮN!");
+        if (message.body) {
+          const data = JSON.parse(message.body);
+          this.readReceiptListeners.forEach((callback) => callback(data));
         }
       });
     });
@@ -58,7 +60,9 @@ class WebSocketService {
     };
   }
 
-  onReadReceipt(callback: (messageId: string) => void) {
+  onReadReceipt(
+    callback: (data: { conversationId: string; readerId: string }) => void,
+  ) {
     this.readReceiptListeners.push(callback);
     return () => {
       this.readReceiptListeners = this.readReceiptListeners.filter(

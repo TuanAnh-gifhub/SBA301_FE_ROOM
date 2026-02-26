@@ -8,7 +8,7 @@ interface UseUnreadMessagesReturn {
 }
 
 // @ts-ignore - Will be implemented later
-import { getUserConversations } from '../services/chats/chatService';
+import chatService from '../services/chats/chatService';
 
 export const useUnreadMessages = (pollInterval: number = 10000): UseUnreadMessagesReturn => {
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -38,17 +38,17 @@ export const useUnreadMessages = (pollInterval: number = 10000): UseUnreadMessag
 
       try {
         // TEMPLATE MODE: Calculate unread count from mock data
-        const response = await getUserConversations(currentUserId);
-        if (response.success && response.data) {
+        const response = await chatService.getUserConversations(currentUserId);
+        if (response.result) {
           let count = 0;
           const unread: any[] = [];
           
           // Count unread messages from conversations
           // In template mode, we check if lastMessage is from other user and not read
-          for (const conv of response.data) {
+          for (const conv of response.result) {
             // Simple check: if conversation has unread indicator
             // In real app, this would come from API
-            if (conv.lastMessage && conv.seller?.userId !== currentUserId && conv.buyer?.userId !== currentUserId) {
+            if (conv.lastMessage && conv.user1?.userId !== currentUserId && conv.user2?.userId !== currentUserId) {
               // This is a simplified check - in real app, API would provide unread count
               count += 1;
             }

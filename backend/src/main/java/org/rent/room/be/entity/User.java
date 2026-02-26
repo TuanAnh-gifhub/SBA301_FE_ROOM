@@ -61,10 +61,10 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "recipient", fetch = FetchType.LAZY)
     List<Notification> notifications;
 
-    @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user1", cascade = CascadeType.ALL, orphanRemoval = true)
     List<Conversation> sentConversations;
 
-    @OneToMany(mappedBy = "recipient", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user2", cascade = CascadeType.ALL, orphanRemoval = true)
     List<Conversation> receivedConversations;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)

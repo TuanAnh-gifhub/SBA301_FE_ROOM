@@ -15,12 +15,10 @@ public interface ChatMapper {
     @Mapping(target = "role", source = "role.roleName")
     UserResponse toUserResponse(User user);
 
-    // Map Conversation sang ConversationResponse
-    @Mapping(target = "sender", source = "sender")
-    @Mapping(target = "recipient", source = "recipient")
+    @Mapping(target = "user1", source = "user1")
+    @Mapping(target = "user2", source = "user2")
     ConversationResponse toConversationResponse(Conversation conversation);
 
-    // Map Message sang MessageResponse (Dùng cho hàm getMessages)
     @Mapping(target = "messageId", source = "messageId")
     @Mapping(target = "senderId", source = "sender.userId")
     @Mapping(target = "content", source = "messageBody")

@@ -5,14 +5,8 @@ import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import ChatHeader from "./ChatHeader";
 
-import {
-  getUserConversations,
-  getMessages,
-  markMessageAsRead,
-} from "../../../services/chats/chatService";
-
+import chatService from "../../../services/chats/chatService";
 import websocketService from "../../../services/chats/websocketService";
-import { tokenService } from "../../../services/auth/tokenService";
 import { useAuth } from "../../../context/AuthContext";
 
 const ChatBoxHome = () => {
@@ -31,113 +25,105 @@ const ChatBoxHome = () => {
   const [activeTab, setActiveTab] = useState("all");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // FIX 1: Luôn đảm bảo Ref này đồng bộ với selectedChat
   const currentConversationIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  /* ================= LOAD CONVERSATIONS ================= */
   const loadConversations = async () => {
     if (!currentUserId) return;
     setLoading(true);
-    const res = await getUserConversations(currentUserId);
-    if (res.success && Array.isArray(res.data)) {
-      const mapped = res.data.map((c: any) => ({
-        ...c,
-        name: c.conversationTitle || "Người dùng",
-        otherPerson:
-          c.sender?.userId === currentUserId ? c.recipient : c.sender,
-      }));
+    const res = await chatService.getUserConversations(currentUserId);
+
+    if (res.result && Array.isArray(res.result)) {
+      const mapped = res.result.map((c: any) => {
+        // ĐỒNG BỘ: Xác định otherPerson dựa trên user1/user2 từ backend
+        const other = c.user1?.id === currentUserId ? c.user2 : c.user1;
+        return {
+          ...c,
+          name:
+            other?.username ||
+            "Người dùng",
+          otherPerson: other,
+        };
+      });
       setConversations(mapped);
     }
     setLoading(false);
   };
 
+  /* ================= LOAD MESSAGES ================= */
   const loadMessages = async (id: string) => {
-    // FIX 2: Gán Ref ngay khi bắt đầu load tin nhắn của hội thoại mới
     currentConversationIdRef.current = id;
-    const res = await getMessages(id);
-    if (res.success && Array.isArray(res.data)) {
-      const transformed = res.data.map((msg: any) => ({
+    const res = await chatService.getMessages(id);
+
+    if (res.result && Array.isArray(res.result)) {
+      const transformed = res.result.map((msg: any) => ({
         ...msg,
+        // ĐỒNG BỘ: Xác định phe gửi (user/other)
         sender: msg.senderId === currentUserId ? "user" : "other",
+        isRead: msg.isRead ?? true, // Tránh lỗi gạch đỏ ở MessageList
       }));
       setMessages(transformed);
     }
   };
 
+  /* ================= WEBSOCKET ================= */
   useEffect(() => {
-    if (!user?.userId) return;
+    if (!currentUserId) return;
 
     loadConversations();
 
     const unsubscribe = websocketService.onNewMessage((data: any) => {
-      console.log("Nhận tin nhắn mới:", data);
+      // Chỉ cập nhật nếu tin nhắn thuộc hội thoại đang mở
       if (
         String(currentConversationIdRef.current) === String(data.conversationId)
       ) {
         setMessages((prev) => {
-          // 1. Lọc bỏ các tin nhắn tạm (temp) và cả tin nhắn thật bị trùng ID
+          // Lọc trùng ID và tin nhắn tạm
           const filtered = prev.filter(
             (m) =>
               m.messageId !== data.messageId &&
               !(m.messageId.startsWith("temp-") && m.content === data.content),
           );
 
-          // 2. Ép kiểu sender nếu senderId bị null (nếu là mình gửi thì content sẽ khớp)
-          // Lưu ý: Đây là cách fix tạm cho lỗi Backend gửi null
-          const isMe =
-            data.senderId === currentUserId ||
-            (data.senderId === null && data.senderName === user?.userName);
+          const isMe = data.senderId === currentUserId;
 
           return [
             ...filtered,
             {
               ...data,
               sender: isMe ? "user" : "other",
-              senderId: data.senderId || (isMe ? currentUserId : "other-id"), // bù đắp senderId bị null
+              isRead: data.isRead ?? false,
             },
           ];
         });
       }
+      // Làm mới danh sách hội thoại để cập nhật tin nhắn cuối (lastMessage)
       loadConversations();
     });
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [currentUserId, isAuthenticated]);
 
+  /* ================= SEND MESSAGE ================= */
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedChat || !currentUserId) return;
-
-    let recipientId = selectedChat.otherPerson?.userId;
-
-    if (!recipientId || recipientId === currentUserId) {
-      if (
-        selectedChat.sender?.userId &&
-        selectedChat.sender?.userId !== currentUserId
-      ) {
-        recipientId = selectedChat.sender.userId;
-      } else if (
-        selectedChat.recipient?.userId &&
-        selectedChat.recipient?.userId !== currentUserId
-      ) {
-        recipientId = selectedChat.recipient.userId;
-      }
-    }
+    console.log("selectedChat id la: ", selectedChat.user1)
+    const recipientId =
+      selectedChat.user1?.userId === currentUserId
+        ? selectedChat.user2?.userId
+        : selectedChat.user1?.userId;
 
     if (!recipientId) {
-      console.error("Không tìm thấy recipientId hợp lệ!");
+      console.log(recipientId)
+      console.error("Không tìm thấy recipientId!");
       return;
     }
 
     const content = newMessage.trim();
-
     const tempMessage = {
       messageId: `temp-${Date.now()}`,
       senderId: currentUserId,
@@ -148,6 +134,7 @@ const ChatBoxHome = () => {
       isRead: false,
     };
 
+    // Update UI ngay lập tức
     setMessages((prev) => [...prev, tempMessage]);
     setNewMessage("");
 
@@ -161,13 +148,16 @@ const ChatBoxHome = () => {
     }
   };
 
+  /* ================= CHAT SELECT ================= */
   const handleChatSelect = async (chat: any) => {
     setSelectedChat(chat);
     currentConversationIdRef.current = chat.conversationId;
 
     await loadMessages(chat.conversationId);
+
+    // ĐỒNG BỘ: Logic mark as read
     if (chat.isRead === false) {
-      await markMessageAsRead(chat.conversationId, currentUserId!);
+      await chatService.markMessageAsRead(chat.conversationId, currentUserId!);
       loadConversations();
     }
   };

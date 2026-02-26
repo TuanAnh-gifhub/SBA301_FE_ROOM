@@ -1,26 +1,26 @@
 import { FaSearch, FaSpinner } from "react-icons/fa";
 import { parseMessageContent } from "../../../services/upload/uploadService";
+import { useAuth } from "../../../context/AuthContext";
 
 // ============ TYPE DEFINITIONS ============
 
-interface UserResponse {
-  userId: string;
-  userName: string;
-  avatar?: string;
+export interface UserResponse {
+  id: string;
+  username: string;
 }
 
-interface ConversationResponse {
+export interface ConversationResponse {
   conversationId: string;
   conversationTitle: string;
   lastMessage: string;
   lastSenderName: string;
-  sender: UserResponse;
-  recipient: UserResponse;
+  user1: UserResponse;
+  user2: UserResponse;
   updatedAt: string;
   isRead?: boolean;
 }
 
-interface Chat extends ConversationResponse {
+export interface Chat extends ConversationResponse {
   id: string;
   name: string;
   time: string;
@@ -34,11 +34,11 @@ interface ChatListProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   selectedChat: any; // Dùng any hoặc Union type để linh hoạt khi click
-  onChatSelect: (chat: Chat) => void;
+  onChatSelect: (chat: any) => void;
   showSettingsMenu: boolean;
   setShowSettingsMenu: (show: boolean) => void;
   settingsMenuRef: React.RefObject<HTMLDivElement | null>;
-  conversations: ConversationResponse[];
+  conversations: any[];
   loading: boolean;
   error: string | null;
   isFullWidth?: boolean;
@@ -90,22 +90,13 @@ const ChatList = ({
   showBorder = false,
   isDarkMode = false,
 }: ChatListProps) => {
-  const getCurrentUserId = (): string => {
-    try {
-      const userInfo = localStorage.getItem("userInfo");
-      if (userInfo) return (JSON.parse(userInfo) as { userId: string }).userId;
-    } catch (error) {
-      console.error("❌ Error parsing userInfo:", error);
-    }
-    return "currentUser";
-  };
-
-  const currentUserId = getCurrentUserId();
+  const { user } = useAuth();
+  const currentUserId = user?.userId;
 
   const transformedConversations: Chat[] = conversations
     .map((conv) => {
-      const isMeSender = conv.sender?.userId === currentUserId;
-      const otherPerson = isMeSender ? conv.recipient : conv.sender;
+      const otherPerson =
+        conv.user1?.userId === currentUserId ? conv.user2 : conv.user1;
       const displayUserName = otherPerson?.userName || "Người dùng hệ thống";
 
       return {

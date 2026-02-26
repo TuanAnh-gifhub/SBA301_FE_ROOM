@@ -1,74 +1,74 @@
-import axios from "axios";
+import api from "../../config/axios";
+import type { UserResponse } from "../usersService";
 
-const API_BASE_URL = "http://localhost:8080/api/v1/rent-room/chat";
+export interface ApiResponse<T> {
+  code: number;
+  message: string;
+  result: T;
+}
 
-const getAuthConfig = () => ({
-  headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
-});
+export interface MessageResponse {
+  messageId: string;
+  conversationId: string;
+  content: string;
+  senderName: string;
+  senderId: string;
+  createdAt: string;
+  status: "SENT" | "DELIVERED" | "READ";
+  readAt?: string;
+}
 
-const handleResponse = (response: any) => {
-  return {
-    success: response.data.code === 1000,
-    data: response.data.result,
-  };
-};
+export interface ConversationResponse {
+  conversationId: string;
+  conversationTitle: string;
+  lastMessage: string;
+  lastSenderName: string;
+  user1: UserResponse;
+  user2: UserResponse;
+  updatedAt: string;
+}
 
-export const getUserConversations = async (userId: string) => {
-  const response = await axios.get(
-    `${API_BASE_URL}/conversations/${userId}`,
-    getAuthConfig(),
-  );
-  return handleResponse(response);
-};
-
-export const getMessages = async (conversationId: string) => {
-  const response = await axios.get(
-    `${API_BASE_URL}/history/${conversationId}`,
-    getAuthConfig(),
-  );
-  return handleResponse(response);
-};
-
-export const getConversation = async (conversationId: string) => {
-  const response = await axios.get(
-    `${API_BASE_URL}/conversation/${conversationId}`,
-    getAuthConfig(),
-  );
-  return handleResponse(response);
-};
-
-export const markMessageAsRead = async (
-  conversationId: string,
-  userId: string,
-) => {
-  try {
-    const response = await axios.patch(
-      `${API_BASE_URL}/conversations/${conversationId}/read?userId=${userId}`,
-      {},
-      getAuthConfig(),
+const chatService = {
+  getUserConversations: async (
+    userId: string,
+  ): Promise<ApiResponse<ConversationResponse[]>> => {
+    const response = await api.get<ApiResponse<ConversationResponse[]>>(
+      `/chat/conversations/${userId}`,
     );
-    return handleResponse(response);
-  } catch (error) {
-    return { success: false };
-  }
+    return response.data;
+  },
+
+  getMessages: async (
+    conversationId: string,
+  ): Promise<ApiResponse<MessageResponse[]>> => {
+    const response = await api.get<ApiResponse<MessageResponse[]>>(
+      `/chat/history/${conversationId}`,
+    );
+    return response.data;
+  },
+
+  getConversation: async (
+    conversationId: string,
+  ): Promise<ApiResponse<ConversationResponse>> => {
+    const response = await api.get<ApiResponse<ConversationResponse>>(
+      `/chat/conversation/${conversationId}`,
+    );
+    return response.data;
+  },
+
+  markMessageAsRead: async (
+    conversationId: string,
+    userId: string,
+  ): Promise<ApiResponse<void>> => {
+    const response = await api.patch<ApiResponse<void>>(
+      `/chat/conversations/${conversationId}/read`,
+      null,
+      {
+        params: { userId },
+      },
+    );
+    return response.data;
+  },
 };
 
-// export const sendMessage = async (
-//   senderId: string,
-//   recipientId: string,
-//   content: string,
-//   conversationId?: string,
-// ) => {
-//   try {
-//     const payload = { senderId, recipientId, content, conversationId };
-//     const response = await axios.post(
-//       `${API_BASE_URL}/send-test`,
-//       payload,
-//       getAuthConfig(),
-//     );
-//     return handleResponse(response);
-//   } catch (error) {
-//     console.error("Send message error:", error);
-//     return { success: false };
-//   }
-// };
+export default chatService;

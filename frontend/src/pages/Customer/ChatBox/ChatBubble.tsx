@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { FaTimes, FaMinus, FaCommentDots, FaArrowLeft } from "react-icons/fa";
 
 import ChatList from "./ChatList";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 
-import {
-  getUserConversations,
-  getMessages,
+import chatService, {
+  type ConversationResponse,
+  type MessageResponse,
 } from "../../../services/chats/chatService";
 
 import websocketService from "../../../services/chats/websocketService";
@@ -20,38 +19,21 @@ import { useAuth } from "../../../context/AuthContext";
 // ChatBubble.tsx
 interface User {
   userId: string;
-  userName: string; // Bỏ dấu '?' để bắt buộc, khớp với UserResponse
-  fullName?: string;
-  avatar?: string;
+  userName: string;
 }
 
-// Đảm bảo Interface Conversation có đủ các trường như ConversationResponse
-interface Conversation {
-  conversationId: string;
-  conversationTitle: string;
-  lastMessage: string;
-  lastSenderName: string;
-  updatedAt: string;
-  sender: User;
-  recipient: User;
-  isRead: boolean; // Bỏ dấu '?'
+interface Conversation extends ConversationResponse {
   otherPerson?: User;
 }
 
-interface Message {
-  messageId: string;
-  senderId: string;
-  conversationId: string;
+interface Message extends MessageResponse {
   sender: "user" | "other";
-  content: string;
-  createdAt: string;
   isRead: boolean;
 }
 
 /* ================= COMPONENT ================= */
 
 const ChatBubble = () => {
-  const navigate = useNavigate();
   const { unreadCount } = useUnreadMessages(10000);
   const { user } = useAuth();
   const currentUserId = user?.userId || null;
@@ -85,25 +67,23 @@ const ChatBubble = () => {
     if (!currentUserId) return;
 
     setLoading(true);
-    const res = await getUserConversations(currentUserId);
+    const res = await chatService.getUserConversations(currentUserId);
 
-    if (res.success && Array.isArray(res.data)) {
-      const mapped = res.data.map((c: any) => {
-        const other =
-          c.sender?.userId === currentUserId ? c.recipient : c.sender;
-
+    if (res.result && Array.isArray(res.result)) {
+      const mapped: Conversation[] = res.result.map((c) => {
+        // logic xác định người đối diện dựa trên user1 và user2 từ backend
+        const other = c.user1.userId === currentUserId ? c.user2 : c.user1;
         return {
           ...c,
-          conversationTitle: c.conversationTitle || "Người dùng",
-          lastMessage: c.lastMessage || "",
-          lastSenderName: c.lastSenderName || "",
-          otherPerson: other,
+          // Chuyển đổi id sang userId để tương thích với các component cũ nếu cần
+          otherPerson: {
+            userId: other.userId,
+            userName: other.userName,
+          },
         };
       });
-
       setConversations(mapped);
     }
-
     setLoading(false);
   };
 
@@ -111,22 +91,14 @@ const ChatBubble = () => {
 
   const loadMessages = async (id: string) => {
     currentConversationIdRef.current = id;
+    const res = await chatService.getMessages(id);
 
-    const res = await getMessages(id);
-
-    if (res.success && Array.isArray(res.data)) {
-      const transformed = res.data.map((msg: any) => ({
-        messageId: msg.messageId,
-        senderId: msg.senderId,
-        conversationId: id,
-        sender: (msg.senderId === currentUserId ? "user" : "other") as
-          | "user"
-          | "other",
-        content: msg.content,
-        createdAt: msg.createdAt,
-        isRead: msg.isRead ?? true,
+    if (res.result) {
+      const transformed: Message[] = res.result.map((msg) => ({
+        ...msg,
+        sender: msg.senderId === currentUserId ? "user" : "other",
+        isRead: msg.status === "READ",
       }));
-
       setMessages(transformed);
     }
   };
@@ -134,12 +106,11 @@ const ChatBubble = () => {
   /* ================= WEBSOCKET ================= */
 
   useEffect(() => {
-    if (!user?.userId || window.location.pathname === "/chat") return;
-    
+    if (!currentUserId || window.location.pathname === "/chat") return;
+
     loadConversations();
 
-    const unsubscribe = websocketService.onNewMessage((data: any) => {
-      console.log("Nhận tin nhắn mới:", data);
+    const unsubscribeNewMsg = websocketService.onNewMessage((data: any) => {
       if (currentConversationIdRef.current === data.conversationId) {
         const incoming: Message = {
           messageId: data.messageId,
@@ -148,47 +119,68 @@ const ChatBubble = () => {
           sender: data.senderId === currentUserId ? "user" : "other",
           content: data.content,
           createdAt: data.createdAt,
-          isRead: data.isRead ?? false,
+          isRead: data.senderId === currentUserId ? false : true,
+          senderName: "",
+          status: data.senderId === currentUserId ? "SENT" : "READ",
         };
 
         setMessages((prev) => {
+          const isExisting = prev.some(
+            (m) => m.messageId === incoming.messageId,
+          );
+          if (isExisting) return prev;
+
           const filtered = prev.filter(
             (m) =>
-              !(
-                m.messageId.startsWith("temp-") &&
-                m.content === incoming.content
-              ),
+              !m.messageId.startsWith("temp-") ||
+              m.content !== incoming.content,
           );
-
-          if (filtered.find((m) => m.messageId === incoming.messageId)) {
-            return filtered;
-          }
-
           return [...filtered, incoming];
         });
-      }
 
+        chatService.markMessageAsRead(data.conversationId, currentUserId!);
+      }
       loadConversations();
     });
 
+    const unsubscribeReadReceipt = websocketService.onReadReceipt(
+      (data: any) => {
+        if (
+          String(currentConversationIdRef.current) ===
+          String(data.conversationId)
+        ) {
+          setMessages((prev) => {
+            // Duyệt và cập nhật, đảm bảo trả về Message[]
+            const updatedMessages: Message[] = prev.map((m) => {
+              if (m.sender === "user") {
+                return { ...m, isRead: true, status: "READ" };
+              }
+              return m;
+            });
+            return updatedMessages;
+          });
+        }
+        loadConversations();
+      },
+    );
+
     return () => {
-      unsubscribe();
+      unsubscribeNewMsg();
+      unsubscribeReadReceipt();
     };
   }, [user?.userId]);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]); // Chạy mỗi khi mảng messages có thêm phần tử mới
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !currentUserId || !selectedChat) return;
 
     const recipientId =
-      selectedChat.sender.userId === currentUserId
-        ? selectedChat.recipient.userId
-        : selectedChat.sender.userId;
+      selectedChat.user1.userId === currentUserId
+        ? selectedChat.user2.userId
+        : selectedChat.user1.userId;
 
     if (!recipientId) {
       console.error("Không tìm thấy ID người nhận");
@@ -197,13 +189,15 @@ const ChatBubble = () => {
 
     // 1. Tạo đối tượng tin nhắn tạm thời
     const tempMessage: Message = {
-      messageId: `temp-${Date.now()}`, // ID tạm để React không trùng key
+      messageId: `temp-${Date.now()}`,
       senderId: currentUserId,
       conversationId: selectedChat.conversationId || "",
       sender: "user",
       content: newMessage.trim(),
       createdAt: new Date().toISOString(),
-      isRead: true,
+      isRead: false,
+      senderName: user?.userName || "",
+      status: "SENT",
     };
 
     try {
@@ -232,9 +226,13 @@ const ChatBubble = () => {
   /* ================= CHAT SELECT ================= */
 
   const handleChatSelect = async (chat: Conversation) => {
+    currentConversationIdRef.current = chat.conversationId;
+
     setSelectedChat(chat);
     setShowChatList(false);
     await loadMessages(chat.conversationId);
+    await chatService.markMessageAsRead(chat.conversationId, currentUserId!);
+    loadConversations();
   };
 
   if (window.location.pathname === "/chat") return null;
@@ -276,10 +274,10 @@ const ChatBubble = () => {
                   <FaArrowLeft size={14} />
                 </button>
               )}
-              <span className="font-semibold truncate max-w-[180px]">
+              <span className="font-semibold truncate max-w-[18s0px]">
                 {showChatList
                   ? "Đoạn chat"
-                  : selectedChat?.otherPerson?.userName || "Người dùng"}
+                  : selectedChat?.otherPerson?.userName || "Người dùng1"}
               </span>
             </div>
 

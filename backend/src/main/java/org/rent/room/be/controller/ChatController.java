@@ -3,6 +3,7 @@ package org.rent.room.be.controller;
 import lombok.RequiredArgsConstructor;
 import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.dto.request.chat.MessageRequest;
+import org.rent.room.be.dto.response.chat.ConversationResponse;
 import org.rent.room.be.dto.response.chat.MessageResponse;
 import org.rent.room.be.service.ChatService;
 import org.springframework.http.ResponseEntity;
@@ -25,11 +26,6 @@ public class ChatController {
     @MessageMapping("/chat")
     public void processMessage(@Payload MessageRequest messageRequest) {
 
-        System.out.println("===== MESSAGE RECEIVED =====");
-        System.out.println("Sender: " + messageRequest.getSenderId());
-        System.out.println("Recipient: " + messageRequest.getRecipientId());
-        System.out.println("Content: " + messageRequest.getContent());
-
         MessageResponse savedMessage = chatService.saveMessage(messageRequest);
 
         messagingTemplate.convertAndSendToUser(
@@ -37,14 +33,11 @@ public class ChatController {
                 "/queue/messages",
                 savedMessage
         );
-
-        System.out.println("===== MESSAGE SENT TO USER =====");
-
     }
 
     @GetMapping("/conversations/{userId}")
-    public ResponseEntity<ApiResponse<List<?>>> getConversations(@PathVariable UUID userId) {
-        ApiResponse<List<?>> response = ApiResponse.<List<?>>builder()
+    public ResponseEntity<ApiResponse<List<ConversationResponse>>> getConversations(@PathVariable UUID userId) {
+        ApiResponse<List<ConversationResponse>> response = ApiResponse.<List<ConversationResponse>>builder()
                 .result(chatService.getUserConversations(userId))
                 .build();
 
@@ -64,10 +57,10 @@ public class ChatController {
     }
 
     @GetMapping("/conversation/{conversationId}")
-    public ResponseEntity<ApiResponse<?>> getConversation(
+    public ResponseEntity<ApiResponse<ConversationResponse>> getConversation(
             @PathVariable UUID conversationId) {
 
-        ApiResponse<?> response = ApiResponse.builder()
+        ApiResponse<ConversationResponse> response = ApiResponse.<ConversationResponse>builder()
                 .result(chatService.getConversationById(conversationId))
                 .build();
 
@@ -88,24 +81,24 @@ public class ChatController {
         return ResponseEntity.ok(response);
     }
 
-//    @PostMapping("/send-test")
-//    public ResponseEntity<ApiResponse<MessageResponse>> sendTest(
-//            @RequestBody MessageRequest messageRequest) {
-//
-//        MessageResponse savedMessage = chatService.saveMessage(messageRequest);
-//
-//        messagingTemplate.convertAndSendToUser(
-//                messageRequest.getRecipientId().toString(),
-//                "/queue/messages",
-//                savedMessage
-//        );
-//
-//        ApiResponse<MessageResponse> response =
-//                ApiResponse.<MessageResponse>builder()
-//                        .message("Message sent and room created successfully")
-//                        .result(savedMessage)
-//                        .build();
-//
-//        return ResponseEntity.status(201).body(response);
-//    }
+    @PostMapping("/send-test")
+    public ResponseEntity<ApiResponse<MessageResponse>> sendTest(
+            @RequestBody MessageRequest messageRequest) {
+
+        MessageResponse savedMessage = chatService.saveMessage(messageRequest);
+
+        messagingTemplate.convertAndSendToUser(
+                messageRequest.getRecipientId().toString(),
+                "/queue/messages",
+                savedMessage
+        );
+
+        ApiResponse<MessageResponse> response =
+                ApiResponse.<MessageResponse>builder()
+                        .message("Message sent and room created successfully")
+                        .result(savedMessage)
+                        .build();
+
+        return ResponseEntity.status(201).body(response);
+    }
 }

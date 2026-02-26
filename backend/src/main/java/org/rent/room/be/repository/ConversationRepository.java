@@ -13,11 +13,10 @@ import java.util.UUID;
 public interface ConversationRepository extends JpaRepository<Conversation, UUID> {
 
     @Query("SELECT c FROM Conversation c WHERE " +
-            "(c.sender.userId = :u1 AND c.recipient.userId = :u2) OR " +
-            "(c.sender.userId = :u2 AND c.recipient.userId = :u1)")
+            "(c.user1.userId = :u1 AND c.user2.userId = :u2) OR " +
+            "(c.user1.userId = :u2 AND c.user2.userId = :u1)")
     Optional<Conversation> findBetweenUsers(UUID u1, UUID u2);
 
-    List<Conversation> findAllBySenderUserIdOrRecipientUserIdOrderByUpdatedAtDesc(UUID u1, UUID u2);
+    List<Conversation> findAllByUser1UserIdOrUser2UserIdOrderByUpdatedAtDesc(UUID u1, UUID u2);
 
-    List<Conversation> findAllBySender_UserIdOrRecipient_UserId(UUID userId, UUID userId1);
 }

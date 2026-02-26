@@ -2,9 +2,11 @@ package org.rent.room.be.serviceImpl;
 
 import jakarta.transaction.Transactional;
 import lombok.*;
+import org.rent.room.be.constant.MessageStatus;
 import org.rent.room.be.dto.request.chat.MessageRequest;
 import org.rent.room.be.dto.response.chat.ConversationResponse;
 import org.rent.room.be.dto.response.chat.MessageResponse;
+import org.rent.room.be.dto.response.chat.ReadReceiptResponse;
 import org.rent.room.be.entity.Conversation;
 import org.rent.room.be.entity.Message;
 import org.rent.room.be.entity.User;
@@ -13,6 +15,7 @@ import org.rent.room.be.repository.ConversationRepository;
 import org.rent.room.be.repository.MessageRepository;
 import org.rent.room.be.repository.UserRepository;
 import org.rent.room.be.service.ChatService;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,6 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
+    private final SimpMessagingTemplate messagingTemplate;
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
@@ -36,19 +40,17 @@ public class ChatServiceImpl implements ChatService {
 
         Conversation conversation;
 
-        // 1. ƯU TIÊN: Nếu có conversationId từ Frontend, hãy lấy trực tiếp từ DB
         if (request.getConversationId() != null) {
             conversation = conversationRepository.findById(request.getConversationId())
                     .orElseThrow(() -> new RuntimeException("Cuộc hội thoại không tồn tại"));
         }
-        // 2. FALLBACK: Nếu không có ID, mới tìm theo cặp người dùng (để tránh tạo trùng)
         else {
             conversation = conversationRepository
                     .findBetweenUsers(sender.getUserId(), recipient.getUserId())
                     .orElseGet(() -> conversationRepository.save(
                             Conversation.builder()
-                                    .sender(sender)
-                                    .recipient(recipient)
+                                    .user1(sender)
+                                    .user2(recipient)
                                     .conversationTitle(sender.getUserName() + " & " + recipient.getUserName())
                                     .build()
                     ));
@@ -59,6 +61,8 @@ public class ChatServiceImpl implements ChatService {
                 .sender(sender)
                 .recipient(recipient)
                 .conversation(conversation)
+                .status(MessageStatus.SENT)
+                .createdAt(LocalDateTime.now())
                 .build();
 
         Message saved = messageRepository.save(newMessage);
@@ -79,7 +83,7 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public List<ConversationResponse> getUserConversations(UUID userId) {
         return conversationRepository
-                .findAllBySenderUserIdOrRecipientUserIdOrderByUpdatedAtDesc(userId, userId)
+                .findAllByUser1UserIdOrUser2UserIdOrderByUpdatedAtDesc(userId, userId)
                 .stream()
                 .map(chatMapper::toConversationResponse)
                 .toList();
@@ -101,7 +105,8 @@ public class ChatServiceImpl implements ChatService {
                         .content(msg.getMessageBody())
                         .senderName(msg.getSender().getUserName())
                         .senderId(msg.getSender().getUserId())
-                        .createdAt(msg.getCreatedAt()) // Lấy từ BaseEntity
+                        .createdAt(msg.getCreatedAt())
+                        .status(msg.getStatus())
                         .build())
                 .toList();
     }
@@ -114,22 +119,34 @@ public class ChatServiceImpl implements ChatService {
         return chatMapper.toConversationResponse(conv);
     }
 
-    @Override
     @Transactional
-    public void markAllMessagesInConversationAsRead(UUID conversationId, UUID readerId) {
-        // 1. Tìm tất cả tin nhắn chưa đọc trong cuộc hội thoại mà readerId là người nhận
+    public void markAllMessagesInConversationAsRead(UUID conversationId, UUID userId) {
+        System.out.println("DEBUG: Bat dau danh dau da doc cho conversation: " + conversationId);
+
         List<Message> unreadMessages = messageRepository
-                .findAllByConversationConversationIdAndRecipientUserIdAndIsReadFalse(conversationId, readerId);
+                .findByConversation_ConversationIdAndRecipient_UserIdAndStatusNot(conversationId, userId, MessageStatus.READ);
 
-        if (!unreadMessages.isEmpty()) {
-            // 2. Cập nhật trạng thái
-            unreadMessages.forEach(msg -> msg.setRead(true));
+        System.out.println("DEBUG: So luong tin nhan chua doc tim thay: " + unreadMessages.size());
 
-            // 3. Lưu hàng loạt vào DB
-            messageRepository.saveAll(unreadMessages);
+        if (unreadMessages.isEmpty()) return;
 
-            // 4. (Tùy chọn) Gửi thông báo WebSocket cho người gửi biết tin nhắn đã được đọc
-            // unreadMessages.forEach(msg -> messagingTemplate.convertAndSendToUser(...));
-        }
+        unreadMessages.forEach(msg -> {
+            msg.setStatus(MessageStatus.READ);
+            msg.setReadAt(LocalDateTime.now());
+        });
+        messageRepository.saveAll(unreadMessages);
+
+        // FIX: Lay senderId tu tin nhan dau tien de thong bao cho ho
+        UUID senderId = unreadMessages.get(0).getSender().getUserId();
+
+        System.out.println("DEBUG: Dang gui ReadReceipt toi User (Sender): " + senderId);
+
+        messagingTemplate.convertAndSendToUser(
+                senderId.toString(),
+                "/queue/read-receipt",
+                new ReadReceiptResponse(conversationId, userId)
+        );
+
+        System.out.println("DEBUG: Da gui tin hieu WebSocket thanh cong");
     }
 }
