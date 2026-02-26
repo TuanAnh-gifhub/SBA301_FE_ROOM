@@ -32,10 +32,6 @@ public class Room extends BaseEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-
-    @Column(name = "price", precision = 19, scale = 2, nullable = false)
-    private BigDecimal price;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "room_status", length = 30)
     private RoomStatus roomStatus;
@@ -71,6 +67,9 @@ public class Room extends BaseEntity {
 //    @OneToMany(mappedBy = "room", fetch = FetchType.LAZY)
 //    private List<Report> reports;
 
-//    @OneToMany(mappedBy = "room", fetch = FetchType.LAZY)
-//    private List<Slot> slots;
+    @Column(name = "price", precision = 19, scale = 2, nullable = false)
+    private BigDecimal price;
+
+    @OneToMany(mappedBy = "room",fetch = FetchType.LAZY)
+    private List<RoomCopy> roomCopies;
 }

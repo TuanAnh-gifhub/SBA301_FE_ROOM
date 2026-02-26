@@ -62,9 +62,9 @@ jwt:
   access-expiration: ${JWT_ACCESS_EXPIRATION}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION}
 
-app:
-  cookie:
-    secure: false
+#app:
+#  cookie:
+#    secure: false
 
 google:
   client:

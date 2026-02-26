@@ -14,12 +14,10 @@ import java.util.UUID;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PostDetailResponse {
-
     UUID postId;
     String title;
     String content;
     String postStatus;
-
     RoomResponse room;
     RentalAreaResponse rentalArea;
 }

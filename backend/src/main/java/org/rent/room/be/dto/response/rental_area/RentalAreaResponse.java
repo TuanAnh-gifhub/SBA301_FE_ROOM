@@ -1,6 +1,7 @@
 package org.rent.room.be.dto.response.rental_area;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.rent.room.be.dto.response.room.RoomResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,4 +22,5 @@ public class RentalAreaResponse {
     Long cityId;
     String cityName;
     List<RentalAreaImageResponse> images;
+    List<RoomResponse> rooms;
 }

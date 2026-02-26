@@ -2,8 +2,10 @@ package org.rent.room.be.dto.response.room;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -17,9 +19,8 @@ public class RoomCardResponse {
     UUID rentalAreaId;
     String roomName;
     String roomStatus;
-
     String coverImageUrl;
-
     BigDecimal price;
     Integer capacity;
+    List<RoomCopyResponse> roomCopyResponseList;
 }

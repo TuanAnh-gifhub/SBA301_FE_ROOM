@@ -4,6 +4,7 @@ import org.rent.room.be.dto.request.room.CreateRoomRequest;
 import org.rent.room.be.dto.request.room.UpdateRoomRequest;
 import org.rent.room.be.dto.response.room.RoomCardResponse;
 import org.rent.room.be.dto.response.room.RoomResponse;
+import org.rent.room.be.entity.Room;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -25,4 +26,5 @@ public interface RoomService {
     RoomResponse updateRoomStatus(UUID roomId, String status, UUID currentUserId);
 
     void deleteRoom(UUID roomId, UUID currentUserId);
+    Room findById(UUID uuid);
 }
