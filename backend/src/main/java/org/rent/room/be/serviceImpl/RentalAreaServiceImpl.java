@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.constant.RentalAreaStatus;
+import org.rent.room.be.constant.RoomCopyStatus;
 import org.rent.room.be.dto.internal.CloudinaryUploadResult;
 import org.rent.room.be.dto.request.rental_area.CreateRentalAreaRequest;
 import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaRequest;
@@ -14,6 +15,7 @@ import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.dto.response.report.ReportResponse;
 import org.rent.room.be.dto.response.room.RoomImageResponse;
 import org.rent.room.be.dto.response.room.RoomResponse;
+import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
 import org.rent.room.be.entity.City;
 import org.rent.room.be.entity.RentalArea;
 import org.rent.room.be.entity.RentalAreaImage;
@@ -211,12 +213,33 @@ public class RentalAreaServiceImpl implements RentalAreaService {
                                     .build())
                     .toList();
 
+
+           Set<RoomResponse.AmenityItem> amenities = room.getAmenities().stream()
+                    .map(a -> RoomResponse.AmenityItem.builder()
+                            .amenityId(a.getAmenityId())
+                            .amenityName(a.getAmenityName())
+                            .build())
+                    .collect(Collectors.toSet());
+
+           List<RoomCopyResponse> roomCopyResponses = room.getRoomCopies().stream()
+                   .filter(rc -> rc.getRoomCopyStatus() == RoomCopyStatus.AVAILABLE)
+                    .map(rc -> RoomCopyResponse.builder()
+                            .roomCopyId(rc.getRoomCopyId())
+                            .roomCode(rc.getRoomCode())
+                            .roomCopyStatus(rc.getRoomCopyStatus())
+                            .build())
+                    .toList();
+
             return RoomResponse.builder()
                     .roomId(room.getRoomId())
                     .roomName(room.getRoomName())
                     .price(room.getPrice())
                     .images(images)
-
+                    .capacity(room.getCapacity())
+                    .amenities(amenities)
+                    .categoryId(room.getCategory().getCategoryId())
+                    .categoryName(room.getCategory().getCategoryName())
+                    .roomCopies(roomCopyResponses)
                     .build();
         }).toList();
         return RentalAreaResponse.builder()

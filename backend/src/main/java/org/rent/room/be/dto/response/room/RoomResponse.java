@@ -3,6 +3,7 @@ package org.rent.room.be.dto.response.room;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.constant.RoomStatus;
+import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,6 +29,8 @@ public class RoomResponse {
     String categoryName;
     Set<AmenityItem> amenities;
     List<RoomImageResponse> images;
+
+    List<RoomCopyResponse> roomCopies;
     @Getter
     @Setter
     @NoArgsConstructor

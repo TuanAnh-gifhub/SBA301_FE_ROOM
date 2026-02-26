@@ -5,15 +5,17 @@ import { InputNumber, Space } from "antd";
 import axios from "axios";
 export default function HourlyForm({
   room,
+  quantity,
   userId,
 }: {
   room: Room;
+  quantity: number;
   userId: string;
 }) {
   const [date, setDate] = useState("");
   const [start, setStart] = useState("08:00");
   const [end, setEnd] = useState("10:00");
-  const [quantity, setQuantity] = useState(1);
+  const [quantityState, setQuantityState] = useState(quantity);
 
   const bookingRequest: BookingRequest = {
     userId,
@@ -22,8 +24,8 @@ export default function HourlyForm({
     slotRequests: date
       ? [
           {
-            roomId: "9e34c154-1421-4321-8287-256ad1ebea3d",
-            quantity,
+            roomId: room.id,
+            quantity: quantityState,
             startTime: `${date}T${start}:00`,
             endTime: `${date}T${end}:00`,
           },
@@ -32,7 +34,7 @@ export default function HourlyForm({
   };
   const onSubmit = async () => {
     const payload: BookingRequest = {
-      userId: "d7b69e64-8186-4310-aa53-41843396b8bf",
+      userId: userId,
       bookingType: "HOURLY",
       numberOfMonths: 0,
       slotRequests: bookingRequest.slotRequests,
@@ -70,22 +72,19 @@ export default function HourlyForm({
         <span className="text-sm font-medium">Số lượng</span>
         <InputNumber
           min={1}
-          max={room.quantity}
-          value={quantity}
-          onChange={(v) => setQuantity(v || 1)}
+          max={quantityState}
+          value={quantityState}
+          onChange={(v) => setQuantityState(v || 1)}
           className="w-24"
         />
         <span className="text-xs text-gray-400">/ {room.quantity}</span>
       </Space>
-      {/* <pre className="bg-gray-100 p-3 rounded text-xs">
-        {JSON.stringify(bookingRequest, null, 2)}
-      </pre> */}
 
       <button
         onClick={onSubmit}
         className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition"
       >
-        XÁC NHẬN ĐẶT LỊCH
+         ĐẶT LỊCH
       </button>
     </div>
   );

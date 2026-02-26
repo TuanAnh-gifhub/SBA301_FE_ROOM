@@ -6,7 +6,7 @@ export default function RentalHeader({ rental }: any) {
   return (
     <div>
       {cover && (
-        <img src={cover} className="h-80 w-full object-cover rounded-xl" />
+        <img src={cover} className="h-80 w-full object-contain rounded-xl" />
       )}
 
       <h1 className="text-2xl font-bold mt-4">{rental.rentalAreaName}</h1>

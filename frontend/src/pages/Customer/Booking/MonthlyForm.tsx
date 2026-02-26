@@ -121,14 +121,12 @@ export default function MonthlyForm({ room, userId }: MonthlyFormProps) {
         </div>
       )}
 
-      {/* <pre className="bg-gray-100 p-3 rounded text-xs">
-        {JSON.stringify(bookingRequest, null, 2)}
-      </pre> */}
+ 
       <button
         onClick={onSubmit}
         className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition"
       >
-        XÁC NHẬN ĐẶT LỊCH
+       ĐẶT LỊCH
       </button>
     </div>
   );

@@ -1,4 +1,4 @@
-// import BookingPanel from "./BookingPanel";
+ import BookingPanel from "./BookingPanel";
 
 export default function RoomCard({ room }: any) {
   return (
@@ -15,7 +15,7 @@ export default function RoomCard({ room }: any) {
         </p>
       </div>
 
-      {/* <BookingPanel room={room} /> */}
+      <BookingPanel room={room} />
     </div>
   );
 }

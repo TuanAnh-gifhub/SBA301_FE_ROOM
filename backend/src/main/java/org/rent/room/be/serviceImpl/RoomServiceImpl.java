@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.rent.room.be.constant.RoomCopyStatus;
 import org.rent.room.be.constant.RoomStatus;
 import org.rent.room.be.dto.internal.CloudinaryUploadResult;
 import org.rent.room.be.dto.request.room.CreateRoomRequest;
@@ -11,6 +12,7 @@ import org.rent.room.be.dto.request.room.UpdateRoomRequest;
 import org.rent.room.be.dto.response.room.RoomCardResponse;
 import org.rent.room.be.dto.response.room.RoomImageResponse;
 import org.rent.room.be.dto.response.room.RoomResponse;
+import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.repository.*;
 import org.rent.room.be.service.CloudinaryService;
@@ -32,6 +34,7 @@ public class RoomServiceImpl implements RoomService {
     CategoryRepository categoryRepository;
     AmenityRepository amenityRepository;
     CloudinaryService cloudinaryService;
+    RoomCopyRepository roomCopyRepository;
 
     @Override
     @Transactional
@@ -76,6 +79,20 @@ public class RoomServiceImpl implements RoomService {
                 .category(category)
                 .amenities(amenities)
                 .build();
+
+
+       for(String roomCode: req.getRoomCodes() ){
+           RoomCopy roomCopy = RoomCopy.builder()
+                   .roomCode(roomCode)
+                   .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                   .room(room)
+                   .build();
+          if(room.getRoomCopies() == null) {
+              room.setRoomCopies(new ArrayList<>());
+          }
+           room.getRoomCopies().add(roomCopy);
+           roomCopyRepository.save(roomCopy);
+       }
 
         room = roomRepository.save(room);
 
@@ -127,6 +144,15 @@ public class RoomServiceImpl implements RoomService {
                 .sorted(Comparator.comparing(Room::getRoomName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .map(r -> {
                     String coverUrl = pickCoverUrl(imagesByRoomId.get(r.getRoomId()));
+
+                    List<RoomCopyResponse> roomCopyResponses = r.getRoomCopies().stream()
+
+                            .map(rc -> RoomCopyResponse.builder()
+                                    .roomCopyId(rc.getRoomCopyId())
+                                    .roomCode(rc.getRoomCode())
+                                    .roomCopyStatus(rc.getRoomCopyStatus() != null ? rc.getRoomCopyStatus() : null)
+                                    .build()).toList();
+
                     return RoomCardResponse.builder()
                             .roomId(r.getRoomId())
                             .rentalAreaId(r.getRentalArea().getRentalAreaId())
@@ -135,6 +161,7 @@ public class RoomServiceImpl implements RoomService {
                             .coverImageUrl(coverUrl)
                             .price(r.getPrice())
                             .capacity(r.getCapacity())
+                            .roomCopyResponseList(roomCopyResponses)
                             .build();
                 })
                 .toList();
@@ -301,6 +328,12 @@ public class RoomServiceImpl implements RoomService {
 
         Category category = room.getCategory();
 
+        List<RoomCopyResponse> roomCopyResponses = room.getRoomCopies().stream().map(rc -> RoomCopyResponse.builder()
+                .roomCopyId(rc.getRoomCopyId())
+                .roomCode(rc.getRoomCode())
+                .roomCopyStatus(rc.getRoomCopyStatus() != null ? rc.getRoomCopyStatus() : null)
+                .build()).toList();
+
         return RoomResponse.builder()
                 .roomId(room.getRoomId())
                 .rentalAreaId(room.getRentalArea() != null ? room.getRentalArea().getRentalAreaId() : null)
@@ -314,6 +347,7 @@ public class RoomServiceImpl implements RoomService {
                 .categoryName(category != null ? category.getCategoryName() : null)
                 .amenities(amenityItems)
                 .images(imageResponses)
+                .roomCopies(roomCopyResponses)
                 .build();
     }
 

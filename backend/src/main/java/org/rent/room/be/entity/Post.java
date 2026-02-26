@@ -43,8 +43,10 @@ public class Post extends BaseEntity {
     @JoinColumn(name = "room_id", nullable = false)
     Room room;
 
-    @ManyToOne
-    @JoinColumn(name = "area_id")
+//    @ManyToOne
+//    @JoinColumn(name = "area_id")
+//    private RentalArea rentalArea;
+   @OneToOne
+    @JoinColumn(name = "area_id", nullable = false)
     private RentalArea rentalArea;
-
 }

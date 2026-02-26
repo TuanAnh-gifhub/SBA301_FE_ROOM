@@ -61,15 +61,13 @@ export default function DailyForm({ room, userId }: DailyFormProps) {
       alert("Vui lòng thêm ít nhất 1 ngày!");
       return;
     }
-    if (userId === null || userId === undefined) {
-      userId = "d7b69e64-8186-4310-aa53-41843396b8bf";
-    }
+   
     const payload: BookingRequest = {
-      userId: "d7b69e64-8186-4310-aa53-41843396b8bf",
+      userId: userId,
       bookingType: "DAILY",
       numberOfMonths: 0,
       slotRequests: slots.map((s) =>
-        toSlotRequest(s, `9e34c154-1421-4321-8287-256ad1ebea3d`),
+        toSlotRequest(s, room.id),
       ),
     };
 
@@ -186,7 +184,7 @@ export default function DailyForm({ room, userId }: DailyFormProps) {
         onClick={onSubmit}
         className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition"
       >
-        XÁC NHẬN ĐẶT LỊCH
+         ĐẶT LỊCH
       </button>
     </div>
   );
