@@ -7,7 +7,6 @@ import { motion } from "framer-motion";
 // Import components
 import LoginPage from "../../pages/Customer/LoginPage/LoginPage";
 import ScrambleText from "./ScrambleText";
-import AnimatedNavText from "./AnimatedNavText";
 import UserMenu from "./UserMenu";
 
 // --- QUAN TRỌNG: Import Hook từ AuthContext ---
@@ -93,10 +92,18 @@ const Header = () => {
   // Make header transparent when user is at the very top (hero/video area on landing page)
   useEffect(() => {
     const isHome = location.pathname === "/";
+    
+    // Compute desired transparency state
+    const shouldBeTransparent = isHome && window.scrollY < 40;
+    
+    // Update state in next tick to avoid cascading renders
+    const timeoutId = setTimeout(() => {
+      setIsHeaderTransparent(shouldBeTransparent);
+    }, 0);
+
+    // Only add scroll listener if on home page
     if (!isHome) {
-      // Khi KHÔNG ở trang chủ thì luôn đảm bảo header là dạng bình thường (không trong suốt)
-      setIsHeaderTransparent(false);
-      return;
+      return () => clearTimeout(timeoutId);
     }
 
     const onScroll = () => {
@@ -104,9 +111,11 @@ const Header = () => {
       setIsHeaderTransparent(window.scrollY < 40);
     };
 
-    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, [location.pathname]);
 
   // Chuẩn bị dữ liệu hiển thị cho UserMenu
