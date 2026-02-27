@@ -1,4 +1,4 @@
-package org.rent.room.be.serviceImpl;
+package org.rent.room.be.service.impl;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
