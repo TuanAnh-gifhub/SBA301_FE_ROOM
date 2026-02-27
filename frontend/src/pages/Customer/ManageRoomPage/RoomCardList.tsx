@@ -188,9 +188,16 @@ const RoomCardList: React.FC<Props> = ({ rentalAreaId, onChanged }) => {
                   color: "#666",
                 }}
               >
-                <span>SL: {r.capacity ?? "--"}</span>
+                <span>Sức chứa: {r.capacity ?? "--"} người</span>
+
                 <span>
                   {r.price ? `${Number(r.price).toLocaleString()} đ` : "--"}
+                </span>
+              </div>
+              <div>
+                <span>
+                  {" "}
+                  Số lượng phòng : {r.roomCopyResponseList?.length ?? 0}
                 </span>
               </div>
 

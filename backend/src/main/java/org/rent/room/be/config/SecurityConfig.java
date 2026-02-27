@@ -38,6 +38,9 @@ public class SecurityConfig {
             "/ws/**",
             "/reports/**",
             "/chat/send-test",
+            "/bookings/**",
+            "/posts/**",
+
     };
 
     JwtAuthenticationFilter jwtAuthenticationFilter;

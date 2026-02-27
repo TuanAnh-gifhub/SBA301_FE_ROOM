@@ -10,7 +10,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class MessageRequest {
     private String content;
-    private UUID senderId;
     private UUID recipientId;
     private UUID conversationId;
 }

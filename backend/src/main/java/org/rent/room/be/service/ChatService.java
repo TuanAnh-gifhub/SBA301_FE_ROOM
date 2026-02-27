@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ChatService {
-    MessageResponse saveMessage(MessageRequest request);
+    void saveMessage(MessageRequest request, String currentUserEmail);
 
     List<ConversationResponse> getUserConversations(UUID userId);
 

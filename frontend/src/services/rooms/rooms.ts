@@ -15,6 +15,7 @@ export interface CreateRoomRequest {
   categoryId?: number;
   amenityIds?: number[];
   images: File[]; 
+  roomCodes: string[];
 }
 
 export type RoomStatus = "ACTIVE" | "HIDDEN" | "INACTIVE" | string;
@@ -83,6 +84,8 @@ const roomsService = {
   if (payload.amenityIds?.length) {
   formData.append("amenityIds", payload.amenityIds.join(","));
 }
+
+  payload.roomCodes.forEach((code) => formData.append("roomCodes", code));
 
   payload.images.forEach((file) => formData.append("images", file));
 

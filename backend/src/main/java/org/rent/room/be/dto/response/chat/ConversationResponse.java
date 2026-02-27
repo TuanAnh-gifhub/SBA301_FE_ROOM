@@ -15,7 +15,7 @@ public class ConversationResponse {
     private String conversationTitle;
     private String lastMessage;
     private String lastSenderName;
-    private UserResponse user1;
-    private UserResponse user2;
+    private UserChatResponse user1;
+    private UserChatResponse user2;
     private LocalDateTime updatedAt;
 }

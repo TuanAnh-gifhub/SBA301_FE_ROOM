@@ -40,7 +40,7 @@ const UserTable: React.FC<UserTableProps> = ({
     {
       title: "STT",
       key: "index",
-      width: 60,
+      width: 45,
       align: "center",
       render: (_, __, index) => {
         const currentPage = pagination.current || 1;
@@ -166,6 +166,7 @@ const UserTable: React.FC<UserTableProps> = ({
 
   return (
     <Table
+      size="middle"
       columns={columns}
       dataSource={data}
       rowKey={(record) => record.userId || record.email}

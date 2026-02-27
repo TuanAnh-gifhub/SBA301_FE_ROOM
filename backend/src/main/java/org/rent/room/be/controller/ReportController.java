@@ -3,7 +3,6 @@ package org.rent.room.be.controller;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.rent.room.be.base.ApiResponse;
-import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.constant.ReportStatus;
 import org.rent.room.be.dto.request.report.ReportRequest;
 import org.rent.room.be.dto.request.report.ReportStatusRequest;
@@ -11,6 +10,8 @@ import org.rent.room.be.dto.response.report.ReportResponse;
 import org.rent.room.be.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -23,7 +24,8 @@ public class ReportController {
     @Autowired
     private ReportService reportService;
 
-    @GetMapping()
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<?>getAllReports(
             @RequestParam(required = false)ReportStatus reportStatus,
             @RequestParam(required = false)String keyword,
@@ -74,6 +76,7 @@ public class ReportController {
 
 
     @PutMapping("/{reportId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<?> updateReport(@PathVariable UUID reportId,@Valid @RequestBody ReportStatusRequest reportRequest) {
         try {
             reportService.updateReport(reportId, reportRequest);
@@ -134,6 +137,7 @@ public class ReportController {
     }
 
     @GetMapping("/statistics")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<?> getReportStatistics() {
 
         try{

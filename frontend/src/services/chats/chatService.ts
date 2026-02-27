@@ -1,5 +1,4 @@
 import api from "../../config/axios";
-import type { UserResponse } from "../usersService";
 
 export interface ApiResponse<T> {
   code: number;
@@ -18,13 +17,18 @@ export interface MessageResponse {
   readAt?: string;
 }
 
+export interface UserChatResponse {
+  userId: string;
+  userName: string;
+  avatar?: string;
+}
+
 export interface ConversationResponse {
-  conversationId: string;
-  conversationTitle: string;
+  conversationId: string | null;
   lastMessage: string;
   lastSenderName: string;
-  user1: UserResponse;
-  user2: UserResponse;
+  user1: UserChatResponse;
+  user2: UserChatResponse;
   updatedAt: string;
 }
 

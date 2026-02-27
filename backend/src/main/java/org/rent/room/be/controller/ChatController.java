@@ -9,9 +9,9 @@ import org.rent.room.be.service.ChatService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,51 +20,35 @@ import java.util.UUID;
 @RequestMapping("/chat")
 public class ChatController {
 
-    private final SimpMessagingTemplate messagingTemplate;
     private final ChatService chatService;
 
     @MessageMapping("/chat")
-    public void processMessage(@Payload MessageRequest messageRequest) {
-
-        MessageResponse savedMessage = chatService.saveMessage(messageRequest);
-
-        messagingTemplate.convertAndSendToUser(
-                messageRequest.getRecipientId().toString(),
-                "/queue/messages",
-                savedMessage
-        );
+    public void processMessage(@Payload MessageRequest messageRequest, Principal principal) {
+        if (principal == null) {
+            throw new RuntimeException("User not authenticated in WebSocket");
+        }
+        chatService.saveMessage(messageRequest, principal.getName());
     }
 
     @GetMapping("/conversations/{userId}")
     public ResponseEntity<ApiResponse<List<ConversationResponse>>> getConversations(@PathVariable UUID userId) {
-        ApiResponse<List<ConversationResponse>> response = ApiResponse.<List<ConversationResponse>>builder()
+        return ResponseEntity.ok(ApiResponse.<List<ConversationResponse>>builder()
                 .result(chatService.getUserConversations(userId))
-                .build();
-
-        return ResponseEntity.ok(response);
+                .build());
     }
 
     @GetMapping("/history/{conversationId}")
-    public ResponseEntity<ApiResponse<List<MessageResponse>>> getHistory(
-            @PathVariable UUID conversationId) {
-
-        ApiResponse<List<MessageResponse>> response =
-                ApiResponse.<List<MessageResponse>>builder()
-                        .result(chatService.getMessagesByConversation(conversationId))
-                        .build();
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<List<MessageResponse>>> getHistory(@PathVariable UUID conversationId) {
+        return ResponseEntity.ok(ApiResponse.<List<MessageResponse>>builder()
+                .result(chatService.getMessagesByConversation(conversationId))
+                .build());
     }
 
     @GetMapping("/conversation/{conversationId}")
-    public ResponseEntity<ApiResponse<ConversationResponse>> getConversation(
-            @PathVariable UUID conversationId) {
-
-        ApiResponse<ConversationResponse> response = ApiResponse.<ConversationResponse>builder()
+    public ResponseEntity<ApiResponse<ConversationResponse>> getConversation(@PathVariable UUID conversationId) {
+        return ResponseEntity.ok(ApiResponse.<ConversationResponse>builder()
                 .result(chatService.getConversationById(conversationId))
-                .build();
-
-        return ResponseEntity.ok(response);
+                .build());
     }
 
     @PatchMapping("/conversations/{conversationId}/read")
@@ -73,32 +57,8 @@ public class ChatController {
             @RequestParam UUID userId) {
 
         chatService.markAllMessagesInConversationAsRead(conversationId, userId);
-
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .message("Conversation marked as read")
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/send-test")
-    public ResponseEntity<ApiResponse<MessageResponse>> sendTest(
-            @RequestBody MessageRequest messageRequest) {
-
-        MessageResponse savedMessage = chatService.saveMessage(messageRequest);
-
-        messagingTemplate.convertAndSendToUser(
-                messageRequest.getRecipientId().toString(),
-                "/queue/messages",
-                savedMessage
-        );
-
-        ApiResponse<MessageResponse> response =
-                ApiResponse.<MessageResponse>builder()
-                        .message("Message sent and room created successfully")
-                        .result(savedMessage)
-                        .build();
-
-        return ResponseEntity.status(201).body(response);
+                .build());
     }
 }

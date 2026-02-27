@@ -56,10 +56,13 @@ const ChatBubble = () => {
   const [loading, setLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const currentConversationIdRef = useRef<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+
+  const isOpenRef = useRef(isOpen);
+  const showChatListRef = useRef(showChatList);
+  const currentConversationIdRef = useRef(selectedChat?.conversationId || null);
 
   /* ================= LOAD CONVERSATIONS ================= */
 
@@ -111,7 +114,13 @@ const ChatBubble = () => {
     loadConversations();
 
     const unsubscribeNewMsg = websocketService.onNewMessage((data: any) => {
-      if (currentConversationIdRef.current === data.conversationId) {
+      const isCurrentChat =
+        currentConversationIdRef.current === data.conversationId;
+
+      const isWatchingChat =
+        isCurrentChat && isOpenRef.current && !showChatListRef.current;
+
+      if (isCurrentChat) {
         const incoming: Message = {
           messageId: data.messageId,
           senderId: data.senderId,
@@ -119,9 +128,14 @@ const ChatBubble = () => {
           sender: data.senderId === currentUserId ? "user" : "other",
           content: data.content,
           createdAt: data.createdAt,
-          isRead: data.senderId === currentUserId ? false : true,
+          isRead: data.senderId === currentUserId ? false : isWatchingChat,
           senderName: "",
-          status: data.senderId === currentUserId ? "SENT" : "READ",
+          status:
+            data.senderId === currentUserId
+              ? "SENT"
+              : isWatchingChat
+                ? "READ"
+                : "SENT",
         };
 
         setMessages((prev) => {
@@ -135,10 +149,15 @@ const ChatBubble = () => {
               !m.messageId.startsWith("temp-") ||
               m.content !== incoming.content,
           );
-          return [...filtered, incoming];
+          return [
+            ...prev.filter((m) => !m.messageId.startsWith("temp-")),
+            incoming,
+          ];
         });
 
-        chatService.markMessageAsRead(data.conversationId, currentUserId!);
+        if (isWatchingChat && data.senderId !== currentUserId) {
+          chatService.markMessageAsRead(data.conversationId, currentUserId!);
+        }
       }
       loadConversations();
     });
@@ -215,6 +234,14 @@ const ChatBubble = () => {
         // 3. CẬP NHẬT UI NGAY LẬP TỨC
         setMessages((prev) => [...prev, tempMessage]);
         setNewMessage(""); // Xóa ô input
+
+        if (selectedChat.conversationId === null) {
+          setTimeout(() => {
+            loadConversations();
+            // Tùy chọn: Bạn có thể viết thêm logic để tự động
+            // chuyển selectedChat sang ID thật vừa tạo
+          }, 500);
+        }
       } else {
         console.error("Chưa kết nối WebSocket!");
       }
@@ -223,6 +250,59 @@ const ChatBubble = () => {
     }
   };
 
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  useEffect(() => {
+    showChatListRef.current = showChatList;
+  }, [showChatList]);
+
+  useEffect(() => {
+    currentConversationIdRef.current = selectedChat?.conversationId || null;
+  }, [selectedChat]);
+
+  // ChatBubble.tsx
+  useEffect(() => {
+    const handleOpenChatFromExternal = async (event: any) => {
+      const { userId, userName } = event.detail;
+
+      setIsOpen(true);
+      setIsMinimized(false);
+
+      // 1. Tìm xem đã có hội thoại với người này chưa
+      const existingChat = conversations.find(
+        (c) => c.user1.userId === userId || c.user2.userId === userId,
+      );
+
+      if (existingChat) {
+        handleChatSelect(existingChat);
+      } else {
+        // 2. Tạo hội thoại tạm thời (Lúc này Interface đã gọn nên không còn lỗi)
+        const fakeConversation: Conversation = {
+          conversationId: null,
+          user1: { userId: currentUserId!, userName: user?.userName || "" },
+          user2: { userId: userId, userName: userName },
+          otherPerson: { userId: userId, userName: userName },
+          lastMessage: "",
+          lastSenderName: "",
+          updatedAt: new Date().toISOString(),
+        };
+
+        setSelectedChat(fakeConversation);
+        setShowChatList(false);
+        setMessages([]);
+      }
+    };
+
+    window.addEventListener("OPEN_CHAT_WITH_USER", handleOpenChatFromExternal);
+    return () =>
+      window.removeEventListener(
+        "OPEN_CHAT_WITH_USER",
+        handleOpenChatFromExternal,
+      );
+  }, [conversations, currentUserId, user]);
+
   /* ================= CHAT SELECT ================= */
 
   const handleChatSelect = async (chat: Conversation) => {
@@ -230,9 +310,11 @@ const ChatBubble = () => {
 
     setSelectedChat(chat);
     setShowChatList(false);
-    await loadMessages(chat.conversationId);
-    await chatService.markMessageAsRead(chat.conversationId, currentUserId!);
-    loadConversations();
+    if (chat.conversationId) {
+      await loadMessages(chat.conversationId);
+      await chatService.markMessageAsRead(chat.conversationId, currentUserId!);
+      loadConversations();
+    }
   };
 
   if (window.location.pathname === "/chat") return null;

@@ -58,8 +58,10 @@ interface Room {
 const MOCK_ROOM: Room = {
   listingId: 1,
   id: 1,
-  title: "Giỏ hàng tháng 11 – Căn hộ studio 1-2PN nội thất cao cấp, view đẹp, vào ở ngay",
-  address: "Nguyễn Đức Cảnh, phường Tân Phong, Quận 7, Thành phố Hồ Chí Minh, Việt Nam",
+  title:
+    "Giỏ hàng tháng 11 – Căn hộ studio 1-2PN nội thất cao cấp, view đẹp, vào ở ngay",
+  address:
+    "Nguyễn Đức Cảnh, phường Tân Phong, Quận 7, Thành phố Hồ Chí Minh, Việt Nam",
   location: "Nguyễn Đức Cảnh, phường Tân Phong, Quận 7, Thành phố Hồ Chí Minh",
   pricePerMonth: 4500000,
   price: 4500000,
@@ -97,7 +99,8 @@ const MOCK_ROOM: Room = {
     one: 0,
   },
   buildingName: "Science Hall 42, Ground floor",
-  directions: "Tòa nhà dễ dàng tiếp cận với nhiều phương tiện giao thông công cộng.",
+  directions:
+    "Tòa nhà dễ dàng tiếp cận với nhiều phương tiện giao thông công cộng.",
   seller: {
     userId: 1,
     userName: "HoangkhanhVinhomes",
@@ -129,8 +132,15 @@ const RoomDetailPage = () => {
       setIsDarkMode(event.detail.isDarkMode);
     };
 
-    window.addEventListener("darkModeChanged", handleDarkModeChange as EventListener);
-    return () => window.removeEventListener("darkModeChanged", handleDarkModeChange as EventListener);
+    window.addEventListener(
+      "darkModeChanged",
+      handleDarkModeChange as EventListener,
+    );
+    return () =>
+      window.removeEventListener(
+        "darkModeChanged",
+        handleDarkModeChange as EventListener,
+      );
   }, []);
 
   // Get current user ID from localStorage
@@ -151,7 +161,10 @@ const RoomDetailPage = () => {
   const isLoggedIn = !!currentUserId;
 
   // Check if this is own product
-  const isOwnProduct = room && currentUserId && room.seller?.userId?.toString() === currentUserId.toString();
+  const isOwnProduct =
+    room &&
+    currentUserId &&
+    room.seller?.userId?.toString() === currentUserId.toString();
 
   // Mock requireAuth function - replace with actual auth check later
   const requireAuth = (callback: () => void) => {
@@ -170,7 +183,12 @@ const RoomDetailPage = () => {
     requireAuth(async () => {
       try {
         // TODO: Implement chat creation logic
-        console.log("Creating chat for listing:", room.listingId, "with preset:", preset);
+        console.log(
+          "Creating chat for listing:",
+          room.listingId,
+          "with preset:",
+          preset,
+        );
         // Navigate to chat page when ready
         // navigate(`/chat?conversationId=${conversationId}&preset=${preset}`);
       } catch (error) {
@@ -234,7 +252,10 @@ const RoomDetailPage = () => {
     return (
       <div className="flex flex-col min-h-screen relative">
         {/* Background with overlay */}
-        <div className="fixed inset-0 -z-10" style={{ background: isDarkMode ? '#1a1a2e' : '#f5f7fa' }}>
+        <div
+          className="fixed inset-0 -z-10"
+          style={{ background: isDarkMode ? "#1a1a2e" : "#f5f7fa" }}
+        >
           <div
             className={`absolute inset-0 backdrop-blur-sm transition-colors duration-500 ${
               isDarkMode ? "bg-[#1a1a2e]/95" : "bg-[#f5f7fa]/95"
@@ -246,35 +267,55 @@ const RoomDetailPage = () => {
           <div className="basis-3/5 space-y-4">
             <div
               className={`p-4 border rounded-lg ${
-                isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                isDarkMode
+                  ? "bg-gray-800 border-gray-700"
+                  : "bg-white border-gray-200"
               }`}
             >
-              <div className={`h-96 rounded-lg ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}></div>
+              <div
+                className={`h-96 rounded-lg ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}
+              ></div>
             </div>
             <div
               className={`p-4 border rounded-lg space-y-4 ${
-                isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                isDarkMode
+                  ? "bg-gray-800 border-gray-700"
+                  : "bg-white border-gray-200"
               }`}
             >
-              <div className={`h-8 rounded w-3/4 ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}></div>
-              <div className={`h-4 rounded w-1/2 ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}></div>
-              <div className={`h-4 rounded w-2/3 ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}></div>
+              <div
+                className={`h-8 rounded w-3/4 ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}
+              ></div>
+              <div
+                className={`h-4 rounded w-1/2 ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}
+              ></div>
+              <div
+                className={`h-4 rounded w-2/3 ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}
+              ></div>
             </div>
           </div>
           <div className="basis-2/5 space-y-4">
             <div
               className={`p-4 border rounded-lg ${
-                isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                isDarkMode
+                  ? "bg-gray-800 border-gray-700"
+                  : "bg-white border-gray-200"
               }`}
             >
-              <div className={`h-32 rounded ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}></div>
+              <div
+                className={`h-32 rounded ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}
+              ></div>
             </div>
             <div
               className={`p-4 border rounded-lg ${
-                isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                isDarkMode
+                  ? "bg-gray-800 border-gray-700"
+                  : "bg-white border-gray-200"
               }`}
             >
-              <div className={`h-48 rounded ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}></div>
+              <div
+                className={`h-48 rounded ${isDarkMode ? "bg-gray-700" : "bg-gray-300"}`}
+              ></div>
             </div>
           </div>
         </div>
@@ -310,7 +351,10 @@ const RoomDetailPage = () => {
   return (
     <div className="min-h-screen relative">
       {/* Background with overlay */}
-      <div className="fixed inset-0 -z-10" style={{ background: isDarkMode ? '#1a1a2e' : '#f5f7fa' }}>
+      <div
+        className="fixed inset-0 -z-10"
+        style={{ background: isDarkMode ? "#1a1a2e" : "#f5f7fa" }}
+      >
         <div
           className={`absolute inset-0 backdrop-blur-sm transition-colors duration-500 ${
             isDarkMode ? "bg-[#1a1a2e]/95" : "bg-[#f5f7fa]/95"
@@ -325,7 +369,9 @@ const RoomDetailPage = () => {
             <div className="basis-3/5 space-y-6">
               <div
                 className={`p-4 border rounded-lg transition-colors duration-500 ${
-                  isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200"
                 }`}
               >
                 <DetailImages
@@ -334,10 +380,7 @@ const RoomDetailPage = () => {
                   isDarkMode={isDarkMode}
                 />
               </div>
-              <DetailInfo
-                room={room}
-                isDarkMode={isDarkMode}
-              />
+              <DetailInfo room={room} isDarkMode={isDarkMode} />
             </div>
 
             {/* Cột phải */}
@@ -359,14 +402,6 @@ const RoomDetailPage = () => {
 
               <CommentsSection
                 listingId={room.listingId}
-                currentUser={
-                  currentUserId
-                    ? {
-                        id: currentUserId,
-                        name: "Người dùng", // TODO: Get from userInfo
-                      }
-                    : undefined
-                }
                 rating={room.rating}
                 reviewCount={room.reviewCount}
                 ratingDistribution={room.ratingDistribution}

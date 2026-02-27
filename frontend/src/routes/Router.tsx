@@ -19,6 +19,8 @@ import ManagePage from "../pages/Customer/ManagePage/ManagePage";
 import ConfirmRegister from "../pages/Customer/LoginPage/ConfirmRegister";
 import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManagementPage";
 import CategoryManagementPage from "../pages/Admin/CategoryManagement/CategoryManagementPage";
+import PostManagePage from "../pages/Admin/PostManagement/PostManagePage";
+import RentalDetailPage from "../pages/Customer/LandingPage/RentalDetailPage";
 
 export const router = createBrowserRouter([
   {
@@ -31,6 +33,7 @@ export const router = createBrowserRouter([
         element: <LandingPage />,
         handle: { breadcrumb: "Trang chủ" },
       },
+
       {
         path: "home",
         element: <LandingPage />,
@@ -40,6 +43,11 @@ export const router = createBrowserRouter([
         path: "landing",
         element: <LandingPage />,
         handle: { breadcrumb: "Trang chủ" },
+      },
+      {
+        //  <Route path="/rentals/:id" element={<RentalDetailPage />} />
+        path: "rentals/:id",
+        element: <RentalDetailPage />,
       },
       {
         path: "product/:id",
@@ -136,6 +144,11 @@ export const router = createBrowserRouter([
         path: "customers",
         element: <UserManagement />,
       },
+      {
+        path: "posts",
+        element: <PostManagePage />,
+      },
+
       {
         path: "reports",
         element: <ReportPage />,

@@ -17,7 +17,6 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
     @ExceptionHandler(value = AppException.class)
     ResponseEntity<ApiResponse<?>> handleRuntimeException(AppException e) {
 
@@ -65,7 +64,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(
                 ApiResponse.builder()
                         .code(ErrorCode.INVALID_KEY.getCode())
-                        .message("Malformed JSON request")
+                        .message("Malformed JSON request "+e.getMessage())
                         .build()
         );
     }

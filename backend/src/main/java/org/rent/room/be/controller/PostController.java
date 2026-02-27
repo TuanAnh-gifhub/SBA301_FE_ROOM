@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.base.ApiResponse;
+
 import org.rent.room.be.dto.request.post.CreatePostRequest;
 import org.rent.room.be.dto.request.post.UpdatePostRequest;
 import org.rent.room.be.dto.response.post.PostDetailResponse;
@@ -13,11 +14,13 @@ import org.rent.room.be.dto.response.post.PostResponse;
 import org.rent.room.be.dto.response.post.PostSummaryResponse;
 import org.rent.room.be.security.CustomUserDetails;
 import org.rent.room.be.service.PostService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -50,7 +53,16 @@ public class PostController {
 
     // Public feed
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PostSummaryResponse>>> getAllPosts() {
+    public ApiResponse<?> getAllPosts(@RequestParam(required = false) String title,
+                                      @RequestParam(required = false) String content,
+                                      @RequestParam(required = false)
+                                      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                                      LocalDate fromDate,
+                                      @RequestParam(required = false)
+                                      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                                      LocalDate toDate,
+                                      @RequestParam(defaultValue = "1", required = false) int page,
+                                      @RequestParam(defaultValue = "10", required = false) int size) {
         List<PostSummaryResponse> result = postService.getAllPosts();
 
         ApiResponse<List<PostSummaryResponse>> response = ApiResponse.<List<PostSummaryResponse>>builder()
@@ -59,7 +71,7 @@ public class PostController {
                 .result(result)
                 .build();
 
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(200, "Get all posts successfully", result);
     }
 
     // Public detail
@@ -208,7 +220,28 @@ public class PostController {
         if (currentUserId == null) {
             throw new RuntimeException("User not authenticated");
         }
-
         return currentUserId;
+    }
+@GetMapping("/all/customer")
+    public ApiResponse<?> getAllPostsForCustomer(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String content,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDate fromDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDate toDate,
+            @RequestParam(defaultValue = "1", required = false) int page,
+            @RequestParam(defaultValue = "10", required = false) int size) {
+
+        try {
+
+            return ApiResponse.success(200, "Get all posts successfully", postService.getAllPostsForCustomer(page, size, title, content, fromDate, toDate));
+        } catch (Exception e) {
+            return ApiResponse.error(500, "Get all posts failed " + e.getMessage());
+
+        }
+
     }
 }
