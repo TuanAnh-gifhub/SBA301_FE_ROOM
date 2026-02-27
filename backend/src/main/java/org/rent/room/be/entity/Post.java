@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.*;
 import org.rent.room.be.base.BaseEntity;
+import org.rent.room.be.constant.PostStatus;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -30,21 +31,22 @@ public class Post extends BaseEntity {
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     String content;
 
-    @Column(name = "price", precision = 19, scale = 2, nullable = false)
-    private BigDecimal price;
-
+    @Enumerated(EnumType.STRING)
     @Column(name = "post_status", length = 20)
-    String postStatus;
-
-    @Column(name = "post_user_name")
-    String postUserName;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rental_area_id")
-    RentalArea rentalArea;
+    PostStatus postStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     User user;
-    
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", nullable = false)
+    Room room;
+
+//    @ManyToOne
+//    @JoinColumn(name = "area_id")
+//    private RentalArea rentalArea;
+   @OneToOne
+    @JoinColumn(name = "area_id", nullable = false)
+    private RentalArea rentalArea;
 }

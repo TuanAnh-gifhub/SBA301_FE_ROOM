@@ -8,6 +8,7 @@ import org.rent.room.be.base.BaseEntity;
 import org.rent.room.be.constant.RentalAreaStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -25,10 +26,10 @@ public class RentalArea extends BaseEntity {
     @Column(name = "rental_area_id")
     UUID rentalAreaId;
 
-    @Column(name = "rental_area_name", length = 150, nullable = false)
+    @Column(name = "rental_area_name", length = 150)
     String rentalAreaName;
 
-    @Column(name = "address", length = 255, nullable = false)
+    @Column(name = "address")
     String address;
 
     @Column(name = "contact_name", length = 100)
@@ -38,7 +39,7 @@ public class RentalArea extends BaseEntity {
     String contactPhone;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 20, nullable = false)
+    @Column(name = "status", length = 20)
     RentalAreaStatus status;
 
     @Column(name = "deleted_at")
@@ -49,6 +50,12 @@ public class RentalArea extends BaseEntity {
     City city;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", nullable = false)
+    @JoinColumn(name = "owner_id")
     User owner;
+
+    @OneToMany(mappedBy = "rentalArea",fetch = FetchType.LAZY)
+    List<Room> room;
+
+//    @OneToMany(mappedBy = "rentalArea")
+//    private List<Post> posts;
 }

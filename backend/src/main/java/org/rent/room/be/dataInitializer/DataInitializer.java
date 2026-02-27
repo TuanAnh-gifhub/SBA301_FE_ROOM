@@ -3,6 +3,9 @@ package org.rent.room.be.dataInitializer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.rent.room.be.constant.RoomCopyStatus;
+import org.rent.room.be.entity.*;
+import org.rent.room.be.repository.*;
 import org.rent.room.be.entity.*;
 import org.jspecify.annotations.NonNull;
 import org.rent.room.be.repository.*;
@@ -13,7 +16,9 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -29,14 +34,94 @@ public class DataInitializer implements CommandLineRunner {
     RentPackageRepository rentPackageRepository;
 
 
+    RoomCopyRepository roomCopyRepository;
+    RoomRepository roomRepository;
+    RentalAreaRepository rentalAreaRepository;
     @Override
     public void run(String... args) throws Exception {
         seedUsers();
         seedCities();
         seedCategories();
         seedAmenities();
+        seedRooms();
         seedPackages();
     }
+
+
+    private void seedRooms(){
+        List<City> cities = cityRepository.findAll();
+        List<Amenity> amenities = amenityRepository.findAll();
+        Set<Amenity> amenitySet = new HashSet<>(amenities);
+        List<Category> categories = categoryRepository.findAll();
+        RentalArea rentalArea =RentalArea.builder()
+                .address("90 Phạm Đăng Giảng, phường Bình Hưng Hòa")
+                .city(cities.getFirst() != null ? cities.getFirst() : City.builder()
+                        .cityName("Thành phố Huế")
+                        .build())
+                .build();
+        rentalAreaRepository.save(rentalArea);
+        RoomCopy roomCopy1 = RoomCopy.builder()
+                .roomCode("Phỏng 301")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .build();
+        RoomCopy roomCopy2 = RoomCopy.builder()
+                .roomCode("Phỏng 302")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .build();
+        RoomCopy roomCopy3 = RoomCopy.builder()
+                .roomCode("Phỏng 303")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .build();
+
+        RoomCopy roomCopy4 = RoomCopy.builder()
+                .roomCode("Phỏng 401")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .build();
+        RoomCopy roomCopy5 = RoomCopy.builder()
+                .roomCode("Phỏng 402")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .build();
+
+
+        roomCopyRepository.save(roomCopy1);
+        roomCopyRepository.save(roomCopy2);
+        roomCopyRepository.save(roomCopy3);
+        roomCopyRepository.save(roomCopy4);
+        roomCopyRepository.save(roomCopy5);
+
+
+        Room room1 = Room.builder()
+                .roomName("Phòng học 30 người")
+                .description("Phòng học")
+                .category(categories.get(0))
+                .amenities(amenitySet)
+                .rentalArea(rentalArea)
+                .capacity(30)
+                .price(BigDecimal.valueOf(50000))
+                .build();
+
+        roomCopy1.setRoom(room1);
+        roomCopy2.setRoom(room1);
+        roomCopy3.setRoom(room1);
+        roomRepository.save(room1);
+        roomCopyRepository.saveAll(List.of(roomCopy1, roomCopy2, roomCopy3));
+
+
+
+        Room room2 = Room.builder()
+                .roomName("Phòng học 40 người")
+                .description("Phòng học")
+                .category(categories.get(0))
+                .amenities(amenitySet)
+                .rentalArea(rentalArea)
+                .capacity(40)
+                .price(BigDecimal.valueOf(60000))
+                .build();
+        roomRepository.save(room1);
+        roomRepository.save(room2);
+
+    }
+
 
     private void seedUsers() {
         Role adminRole = createRoleIfNotExist("ADMIN", "Quản trị hệ thống");
@@ -125,25 +210,32 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedAmenities() {
-        List<String> amenities = List.of(
-                "Wifi",
-                "Ổ điện",
-                "Máy lạnh",
-                "Máy chiếu",
-                "Bảng trắng",
-                "Micro",
-                "Loa",
-                "Nước uống"
+
+        List<Amenity> amenities = List.of(
+                Amenity.builder().amenityName("Wifi tốc độ cao").iconKey("FaWifi").build(),
+                Amenity.builder().amenityName("Máy lạnh").iconKey("FaSnowflake").build(),
+                Amenity.builder().amenityName("Ổ điện").iconKey("FaPlug").build(),
+                Amenity.builder().amenityName("Bảng trắng").iconKey("FaChalkboard").build(),
+                Amenity.builder().amenityName("Máy chiếu").iconKey("FaVideo").build(),
+                Amenity.builder().amenityName("TV / Màn hình lớn").iconKey("FaTv").build(),
+                Amenity.builder().amenityName("Micro").iconKey("FaMicrophone").build(),
+                Amenity.builder().amenityName("Loa").iconKey("FaVolumeUp").build(),
+                Amenity.builder().amenityName("Máy tính cấu hình cao").iconKey("FaDesktop").build(),
+                Amenity.builder().amenityName("Máy in").iconKey("FaPrint").build(),
+                Amenity.builder().amenityName("Server nội bộ").iconKey("FaServer").build(),
+                Amenity.builder().amenityName("Thiết bị đo lường").iconKey("FaRulerCombined").build(),
+                Amenity.builder().amenityName("Hệ thống thông gió").iconKey("FaFan").build(),
+                Amenity.builder().amenityName("Máy lọc nước").iconKey("FaTint").build()
         );
 
-        for (String name : amenities) {
-            if (!amenityRepository.existsByAmenityName(name)) {
-                amenityRepository.save(Amenity.builder()
-                        .amenityName(name)
-                        .build());
+        for (Amenity a : amenities) {
+            if (!amenityRepository.existsByAmenityName(a.getAmenityName())) {
+                amenityRepository.save(a);
             }
         }
     }
+
+
 
     private Role createRoleIfNotExist(String roleName, String description) {
         return roleRepository.findByRoleName(roleName)
