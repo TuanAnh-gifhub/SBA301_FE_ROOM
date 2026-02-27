@@ -9,24 +9,26 @@ import type { Room } from "../../../types/room";
 import type { BookingType } from "../../../types/booking";
 
 interface Props {
-  room?: Room | null;
-  quantity: number;
+  selectedRooms: Record<string, { room: Room; quantity: number }>;
   userId: string;
 }
 
-export default function BookingPanel({ room, quantity, userId }: Props) {
+export default function BookingPanel({ selectedRooms, userId }: Props) {
   const [type, setType] = useState<BookingType>("HOURLY");
+
+
+  const hasSelectedRoom = Object.keys(selectedRooms).length > 0;
 
   const renderForm = () => {
     switch (type) {
       case "HOURLY":
-        return <HourlyForm room={room} quantity={quantity}  userId={userId} />;
+        return <HourlyForm selectedRooms={selectedRooms} userId={userId} />;
 
       case "DAILY":
-        return <DailyForm room={room}  quantity={quantity} userId={userId} />;
+        return <DailyForm selectedRooms={selectedRooms} userId={userId} />;
 
       case "MONTHLY":
-        return <MonthlyForm room={room} quantity={quantity}  userId={userId} />;
+        return <MonthlyForm selectedRooms={selectedRooms} userId={userId} />;
 
       default:
         return null;
@@ -54,9 +56,9 @@ export default function BookingPanel({ room, quantity, userId }: Props) {
         style={{ marginBottom: 20 }}
       />
 
-      {!room || quantity === 0 ? (
+      {!hasSelectedRoom ? (
         <div style={{ textAlign: "center", color: "#999" }}>
-          <p>Vui lòng chọn số lượng phòng để đặt</p>
+          <p>Vui lòng chọn phòng để đặt</p>
         </div>
       ) : (
         renderForm()

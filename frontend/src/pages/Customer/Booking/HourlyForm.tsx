@@ -1,90 +1,76 @@
 import { useState } from "react";
-import type { Room } from "../../../types/room";
-import type { BookingRequest } from "../../../types/booking";
-import { InputNumber, Space } from "antd";
 import axios from "axios";
-export default function HourlyForm({
-  room,
-  quantity,
-  userId,
-}: {
-  room: Room;
-  quantity: number;
-  userId: string;
-}) {
-  const [date, setDate] = useState("");
-  const [start, setStart] = useState("08:00");
-  const [end, setEnd] = useState("10:00");
-  const [quantityState, setQuantityState] = useState(quantity);
+import RoomSlotEditor from "./RoomSlotEditor";
+import type { Room } from "../../../types/room";
 
-  const bookingRequest: BookingRequest = {
-    userId,
-    bookingType: "HOURLY",
-    numberOfMonths: 0,
-    slotRequests: date
-      ? [
-          {
-            roomId: room.id,
-            quantity: quantityState,
-            startTime: `${date}T${start}:00`,
-            endTime: `${date}T${end}:00`,
-          },
-        ]
-      : [],
+interface Props {
+  selectedRooms: Record<string, { room: Room; quantity: number }>;
+  userId: string;
+}
+
+interface Slot {
+  roomId: string;
+  date: string;
+  start: string;
+  end: string;
+  quantity: number;
+}
+
+export default function HourlyForm({ selectedRooms, userId }: Props) {
+  
+  const [slots, setSlots] = useState<Slot[]>([]);
+
+
+  const addSlot = (slot: Slot) => {
+    setSlots((prev) => [...prev, slot]);
   };
+
   const onSubmit = async () => {
-    const payload: BookingRequest = {
-      userId: userId,
+    if (slots.length === 0) {
+      alert("Vui lòng thêm ít nhất 1 khung giờ");
+      return;
+    }
+
+    const payload = {
+      userId,
       bookingType: "HOURLY",
       numberOfMonths: 0,
-      slotRequests: bookingRequest.slotRequests,
+      slotRequests: slots.map((s) => ({
+        roomId: s.roomId,
+        quantity: s.quantity,
+        startTime: `${s.date}T${s.start}:00`,
+        endTime: `${s.date}T${s.end}:00`,
+      })),
     };
 
-    console.log("Payload gửi BE:", payload);
-    alert("Đã gửi dữ liệu! Kiểm tra Console log.");
-    await axios.post(
-      "http://localhost:8080/api/v1/rent-room/bookings",
-      payload,
-    );
+    console.log("Payload:", payload);
+
+    await axios.post("/api/v1/rent-room/bookings", payload);
   };
+
   return (
-    <div className="space-y-4">
-      <input
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-      />
+    <div className="space-y-6">
 
-      <div className="grid grid-cols-2 gap-3">
-        <input
-          type="time"
-          value={start}
-          onChange={(e) => setStart(e.target.value)}
-        />
-        <input
-          type="time"
-          value={end}
-          onChange={(e) => setEnd(e.target.value)}
-        />
+      {Object.values(selectedRooms).map(({ room }) => (
+        <RoomSlotEditor key={room.roomId} room={room} onAddSlot={addSlot} />
+      ))}
+
+   
+      <div className="border rounded-lg p-3">
+        <h3 className="font-bold mb-2">Khung giờ đã chọn ({slots.length})</h3>
+
+        {slots.map((s, i) => (
+          <div key={i} className="text-sm">
+            Room: {s.roomId} | {s.date} | {s.start} → {s.end} ({s.quantity})
+          </div>
+        ))}
       </div>
-
-      <Space>
-        <span className="text-sm font-medium">Số lượng</span>
-        <InputNumber
-          min={1}
-          max={quantityState}
-          value={quantityState}
-          onChange={(v) => setQuantityState(v || 1)}
-          className="w-24"
-        />
-        <span className="text-xs text-gray-400">/ {room.quantity}</span>
-      </Space>
 
       <button
         onClick={onSubmit}
-        className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition"
+        className="w-full bg-black text-white py-4 rounded-2xl font-bold"
       >
-         ĐẶT LỊCH
+        ĐẶT LỊCH
       </button>
     </div>
   );

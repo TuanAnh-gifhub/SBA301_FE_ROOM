@@ -36,7 +36,7 @@ public class Booking extends BaseEntity {
     @Column(name = "total_price", precision = 19, scale = 2)
     BigDecimal totalPrice;
 
-    @Column(length = 500)
+    @Column(name = "note", length = 500)
     String note;
 
     @Column(name = "start_time_booking")

@@ -58,14 +58,53 @@ public class BookingController {
     }
 
 
+
+    @GetMapping("/booking-intents/{intentId}")
+    public ApiResponse<?> getBookingIntentById(@PathVariable UUID intentId) {
+        try {
+            return ApiResponse.builder()
+                    .code(200)
+                    .message("Get booking intent successfully")
+                    .result(bookingService.getBookingIntentById(intentId))
+                    .build();
+        } catch (Exception e) {
+            e.getStackTrace();
+            return ApiResponse.builder()
+                    .code(500)
+                    .message("Api system have some problems " + e.getMessage())
+                    .build();
+        }
+    }
+
+  @PostMapping("/booking-intents")
+    public ApiResponse<?> createBookingIntent(@Valid @RequestBody BookingRequest request) {
+        try {
+
+            return ApiResponse.builder()
+                    .code(200)
+                    .message("Create booking intent successfully")
+                    .result(bookingService.createBookingIntent(request))
+                    .build();
+
+        } catch (Exception e) {
+            e.getStackTrace();
+            return ApiResponse.builder()
+                    .code(500)
+                    .message("Api system have some problems " + e.getMessage())
+                    .build();
+        }
+    }
+
+
+
     @PostMapping
-    public ApiResponse<?> booking(@Valid @RequestBody  BookingRequest request) {
+    public ApiResponse<?> booking(UUID bookingIntentID) {
         try {
 
             return ApiResponse.builder()
                     .code(200)
                     .message("Create booking successfully")
-                    .result(bookingService.createBooking(request))
+                    .result(bookingService.createBooking(bookingIntentID))
                     .build();
 
         } catch (Exception e) {

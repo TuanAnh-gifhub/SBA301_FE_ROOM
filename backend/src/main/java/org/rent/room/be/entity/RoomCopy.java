@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.rent.room.be.constant.RoomCopyStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +29,8 @@ public class RoomCopy {
     @Enumerated(EnumType.STRING)
     private RoomCopyStatus roomCopyStatus;
 
+    @Column(name = "held_until")
+    private LocalDateTime heldUntil;
     @ManyToOne
     private Room room;
 

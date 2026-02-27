@@ -20,28 +20,28 @@ export default function RentalDetailPage() {
     setRental(res.data.result);
   };
   const [selectedRooms, setSelectedRooms] = useState<
-  Record<string, { room: Room; quantity: number }>
->({});
+    Record<string, { room: Room; quantity: number }>
+  >({});
   const [quantity, setQuantity] = useState(0);
   if (!rental) return <p>Loading...</p>;
   const { user } = useAuth();
 
   const handleQuantityChange = (room: Room, qty: number) => {
-  setSelectedRooms((prev) => {
-    const updated = { ...prev };
+    setSelectedRooms((prev) => {
+      const updated = { ...prev };
 
-    if (qty === 0) {
-      delete updated[room.roomId];
-    } else {
-      updated[room.roomId] = {
-        room,
-        quantity: qty,
-      };
-    }
+      if (qty === 0) {
+        delete updated[room.roomId];
+      } else {
+        updated[room.roomId] = {
+          room,
+          quantity: qty,
+        };
+      }
 
-    return updated;
-  });
-};
+      return updated;
+    });
+  };
   return (
     <>
       <RentalHeader rental={rental} />
@@ -50,7 +50,7 @@ export default function RentalDetailPage() {
           <Col span={16}>
             <RoomListPage
               rooms={rental.rooms}
-             onQuantityChange={handleQuantityChange}
+              onQuantityChange={handleQuantityChange}
             />
           </Col>
 
@@ -65,12 +65,10 @@ export default function RentalDetailPage() {
                 ))}
               </div>
             )}
-              <BookingPanel
-                room={Object.values(selectedRooms)[0]?.room || null}
-                quantity={Object.values(selectedRooms)[0]?.quantity || 0}
-                userId={user?.userId || ""}
-              />
-           
+            <BookingPanel
+              selectedRooms={selectedRooms}
+              userId={user?.userId || ""}
+            />
           </Col>
         </Row>
       </BookingProvider>
