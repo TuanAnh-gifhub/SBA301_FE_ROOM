@@ -17,6 +17,7 @@ public class RentPackageResponse {
     private String rentPackageName;
     private double price;
     private int durationDays;
+    private String description;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
