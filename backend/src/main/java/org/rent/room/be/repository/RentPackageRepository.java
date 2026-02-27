@@ -7,5 +7,4 @@ import java.util.UUID;
 
 @Repository
 public interface RentPackageRepository extends JpaRepository<RentPackage, UUID> {
-    boolean existsByRentPackageName(String rentPackageName);
 }

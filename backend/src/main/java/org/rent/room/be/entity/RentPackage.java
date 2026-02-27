@@ -40,9 +40,6 @@ public class RentPackage extends BaseEntity {
     @Column(name = "duration_days", nullable = false)
     private int durationDays;
 
-    @Column(name = "description", length = 255)
-    private String description;
-
     @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Subscription> subscriptions;
