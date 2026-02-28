@@ -21,6 +21,8 @@ public interface ChatMapper {
 
     @Mapping(target = "messageId", source = "messageId")
     @Mapping(target = "senderId", source = "sender.userId")
+    @Mapping(target = "senderName", source = "sender.userName")
     @Mapping(target = "content", source = "messageBody")
+    @Mapping(target = "conversationId", source = "conversation.conversationId")
     MessageResponse toMessageResponse(Message message);
 }

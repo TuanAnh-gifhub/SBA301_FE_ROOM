@@ -111,25 +111,36 @@ const ChatBubble = () => {
   useEffect(() => {
     if (!currentUserId || window.location.pathname === "/chat") return;
 
+    console.log(
+      "🔌 [WebSocket] Initializing listeners for User:",
+      currentUserId,
+    );
     loadConversations();
 
     const unsubscribeNewMsg = websocketService.onNewMessage((data: any) => {
-      const isCurrentChat =
-        currentConversationIdRef.current === data.conversationId;
+      console.log("📩 [WebSocket] New message received raw data:", data);
 
+      const isCurrentChat =
+        String(currentConversationIdRef.current) ===
+        String(data.conversationId);
       const isWatchingChat =
         isCurrentChat && isOpenRef.current && !showChatListRef.current;
 
+      console.log(`🔍 [WebSocket] Analysis: 
+        - Is current chat: ${isCurrentChat} 
+        - Current Chat Ref: ${currentConversationIdRef.current}
+        - Watching detailed chat: ${isWatchingChat}`);
+
       if (isCurrentChat) {
         const incoming: Message = {
-          messageId: data.messageId,
+          messageId: data.messageId || `msg-${Date.now()}`,
           senderId: data.senderId,
           conversationId: data.conversationId,
           sender: data.senderId === currentUserId ? "user" : "other",
           content: data.content,
           createdAt: data.createdAt,
           isRead: data.senderId === currentUserId ? false : isWatchingChat,
-          senderName: "",
+          senderName: data.senderName || "",
           status:
             data.senderId === currentUserId
               ? "SENT"
@@ -139,55 +150,62 @@ const ChatBubble = () => {
         };
 
         setMessages((prev) => {
-          const isExisting = prev.some(
+          // 1. Kiểm tra xem tin nhắn thật (từ socket) đã tồn tại chưa
+          const isExistingReal = prev.some(
             (m) => m.messageId === incoming.messageId,
           );
-          if (isExisting) return prev;
+          if (isExistingReal) return prev;
 
-          const filtered = prev.filter(
-            (m) =>
-              !m.messageId.startsWith("temp-") ||
-              m.content !== incoming.content,
+          // 2. Tìm và loại bỏ tin nhắn tạm (temp-) dựa trên nội dung
+          // Chỉ lọc bỏ nếu tin nhắn tạm đó có cùng nội dung với tin nhắn thật vừa nhận
+          const filtered = prev.filter((m) => {
+            const isTempMatch =
+              m.messageId.startsWith("temp-") && m.content === incoming.content;
+            return !isTempMatch;
+          });
+
+          console.log(
+            "✅ [WebSocket] Adding new message to list. Total:",
+            filtered.length + 1,
           );
-          return [
-            ...prev.filter((m) => !m.messageId.startsWith("temp-")),
-            incoming,
-          ];
+          return [...filtered, incoming];
         });
 
         if (isWatchingChat && data.senderId !== currentUserId) {
+          console.log("📖 [WebSocket] Auto-marking as read...");
           chatService.markMessageAsRead(data.conversationId, currentUserId!);
         }
+      } else {
+        console.log(
+          "🔔 [WebSocket] Message belongs to another conversation. Refreshing list.",
+        );
       }
-      loadConversations();
+
+      loadConversations(); // Luôn load lại list để cập nhật tin nhắn mới nhất/thời gian
     });
 
     const unsubscribeReadReceipt = websocketService.onReadReceipt(
       (data: any) => {
+        console.log("👁️ [WebSocket] Read Receipt received:", data);
         if (
           String(currentConversationIdRef.current) ===
           String(data.conversationId)
         ) {
-          setMessages((prev) => {
-            // Duyệt và cập nhật, đảm bảo trả về Message[]
-            const updatedMessages: Message[] = prev.map((m) => {
-              if (m.sender === "user") {
-                return { ...m, isRead: true, status: "READ" };
-              }
-              return m;
-            });
-            return updatedMessages;
-          });
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.sender === "user" ? { ...m, isRead: true, status: "READ" } : m,
+            ),
+          );
         }
         loadConversations();
       },
     );
-
     return () => {
+      console.log("⚰️ [WebSocket] Cleaning up listeners.");
       unsubscribeNewMsg();
       unsubscribeReadReceipt();
     };
-  }, [user?.userId]);
+  }, [currentUserId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -196,17 +214,13 @@ const ChatBubble = () => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !currentUserId || !selectedChat) return;
 
+    console.log("📤 [Action] Attempting to send message...");
+
     const recipientId =
       selectedChat.user1.userId === currentUserId
         ? selectedChat.user2.userId
         : selectedChat.user1.userId;
 
-    if (!recipientId) {
-      console.error("Không tìm thấy ID người nhận");
-      return;
-    }
-
-    // 1. Tạo đối tượng tin nhắn tạm thời
     const tempMessage: Message = {
       messageId: `temp-${Date.now()}`,
       senderId: currentUserId,
@@ -222,31 +236,22 @@ const ChatBubble = () => {
     try {
       if (websocketService.isConnected()) {
         const messagePayload = {
-          conversationId: selectedChat.conversationId || null,
+          conversationId: selectedChat.conversationId,
           senderId: currentUserId,
           recipientId: recipientId,
           content: newMessage.trim(),
         };
 
-        // 2. Gửi qua socket
+        console.log("🚀 [Action] Sending payload via Socket:", messagePayload);
         websocketService.send("/app/chat", messagePayload);
 
-        // 3. CẬP NHẬT UI NGAY LẬP TỨC
         setMessages((prev) => [...prev, tempMessage]);
-        setNewMessage(""); // Xóa ô input
-
-        if (selectedChat.conversationId === null) {
-          setTimeout(() => {
-            loadConversations();
-            // Tùy chọn: Bạn có thể viết thêm logic để tự động
-            // chuyển selectedChat sang ID thật vừa tạo
-          }, 500);
-        }
+        setNewMessage("");
       } else {
-        console.error("Chưa kết nối WebSocket!");
+        console.error("❌ [Error] WebSocket is DISCONNECTED!");
       }
     } catch (err) {
-      console.error("Lỗi gửi tin nhắn:", err);
+      console.error("❌ [Error] Send failed:", err);
     }
   };
 
