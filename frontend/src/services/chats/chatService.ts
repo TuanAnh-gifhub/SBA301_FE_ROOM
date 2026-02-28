@@ -15,6 +15,7 @@ export interface MessageResponse {
   createdAt: string;
   status: "SENT" | "DELIVERED" | "READ";
   readAt?: string;
+  imageUrl: string | null;
 }
 
 export interface UserChatResponse {
@@ -69,6 +70,21 @@ const chatService = {
       null,
       {
         params: { userId },
+      },
+    );
+    return response.data;
+  },
+
+  sendMessageWithImage: async (
+    formData: FormData,
+  ): Promise<ApiResponse<MessageResponse>> => {
+    const response = await api.post<ApiResponse<MessageResponse>>(
+      `/chat/send-with-image`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       },
     );
     return response.data;

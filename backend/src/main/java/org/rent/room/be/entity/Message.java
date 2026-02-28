@@ -24,8 +24,11 @@ public class Message extends BaseEntity {
     @Column(name = "message_id")
     UUID messageId;
 
-    @Column(name = "message_body", columnDefinition = "TEXT", nullable = false)
+    @Column(name = "message_body", columnDefinition = "TEXT")
     String messageBody;
+
+    @Column(name = "image_url", length = 500)
+    String imageUrl;
 
     @Column(name = "status", nullable = false)
     MessageStatus status;

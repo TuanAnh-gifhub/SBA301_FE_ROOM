@@ -14,12 +14,16 @@ import org.rent.room.be.mapper.ChatMapper;
 import org.rent.room.be.repository.ConversationRepository;
 import org.rent.room.be.repository.MessageRepository;
 import org.rent.room.be.service.ChatService;
+import org.rent.room.be.service.UploadService;
 import org.rent.room.be.service.UserService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,36 +35,19 @@ public class ChatServiceImpl implements ChatService {
     private final ConversationRepository conversationRepository;
     private final ChatMapper chatMapper;
     private final UserService userService;
+    private final UploadService uploadService;
 
     @Transactional
     @Override
     public void saveMessage(MessageRequest request, String currentUserIdStr) {
-
         UUID currentUserId = UUID.fromString(currentUserIdStr);
-
         if (currentUserId.equals(request.getRecipientId())) {
             throw new RuntimeException("Cannot send message to yourself");
         }
 
         User sender = userService.findByUserId(currentUserId);
-
         User recipient = userService.findByUserId(request.getRecipientId());
-
-        // Tìm hoặc tạo Conversation (Quy tắc: User có ID nhỏ hơn luôn là User1)
-        Conversation conversation = conversationRepository
-                .findBetweenUsers(sender.getUserId(), recipient.getUserId())
-                .orElseGet(() -> {
-                    boolean senderIsUser1 = sender.getUserId().compareTo(recipient.getUserId()) < 0;
-                    return Conversation.builder()
-                            .user1(senderIsUser1 ? sender : recipient)
-                            .user2(senderIsUser1 ? recipient : sender)
-                            .conversationTitle(sender.getUserName() + " & " + recipient.getUserName())
-                            .createdAt(LocalDateTime.now())
-                            .build();
-                });
-
-        conversation.setUpdatedAt(LocalDateTime.now());
-        conversationRepository.save(conversation);
+        Conversation conversation = getOrCreateConversation(sender, recipient);
 
         Message newMessage = Message.builder()
                 .messageBody(request.getContent())
@@ -72,22 +59,7 @@ public class ChatServiceImpl implements ChatService {
                 .build();
 
         Message saved = messageRepository.save(newMessage);
-        MessageResponse response = chatMapper.toMessageResponse(saved);
-
-        // --- GỬI REAL-TIME ---
-        // Gửi cho người nhận
-        messagingTemplate.convertAndSendToUser(
-                recipient.getUserId().toString(),
-                "/queue/messages",
-                response
-        );
-
-        // Gửi cho chính người gửi để đồng bộ các tab hoặc thiết bị khác
-        messagingTemplate.convertAndSendToUser(
-                sender.getUserId().toString(),
-                "/queue/messages",
-                response
-        );
+        broadcastMessage(chatMapper.toMessageResponse(saved), sender.getUserId(), recipient.getUserId());
     }
 
     @Override
@@ -138,6 +110,83 @@ public class ChatServiceImpl implements ChatService {
                 originalSenderId.toString(),
                 "/queue/read-receipt",
                 new ReadReceiptResponse(conversationId, userId)
+        );
+    }
+
+    @Transactional
+    @Override
+    public MessageResponse saveMessageWithFile(MessageRequest request, String currentUserEmail, MultipartFile file) throws IOException {
+
+        // Tìm người gửi dựa trên Email (vì principal.getName() là email)
+        User sender = userService.findByEmail(currentUserEmail);
+
+        User recipient = userService.findByUserId(request.getRecipientId());
+
+        // Kiểm tra không gửi cho chính mình bằng UUID sau khi đã tìm thấy User
+        if (sender.getUserId().equals(recipient.getUserId())) {
+            throw new RuntimeException("Cannot send message to yourself");
+        }
+
+        // 1. Upload ảnh lên Cloudinary
+        String imageUrl = null;
+        if (file != null && !file.isEmpty()) {
+            Map<?, ?> uploadResult = uploadService.uploadImage(file);
+            imageUrl = uploadResult.get("secure_url").toString();
+        }
+
+        // 2. Lấy/Tạo hội thoại
+        Conversation conversation = getOrCreateConversation(sender, recipient);
+
+        // 3. Lưu tin nhắn
+        Message newMessage = Message.builder()
+                .messageBody(request.getContent())
+                .imageUrl(imageUrl)
+                .sender(sender)
+                .recipient(recipient)
+                .conversation(conversation)
+                .status(MessageStatus.SENT)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Message saved = messageRepository.save(newMessage);
+        MessageResponse response = chatMapper.toMessageResponse(saved);
+
+        // 4. Phát WebSocket
+        broadcastMessage(response, sender.getUserId(), recipient.getUserId());
+
+        return response;
+    }
+
+    private Conversation getOrCreateConversation(User sender, User recipient) {
+        Conversation conversation = conversationRepository
+                .findBetweenUsers(sender.getUserId(), recipient.getUserId())
+                .orElseGet(() -> {
+                    boolean senderIsUser1 = sender.getUserId().compareTo(recipient.getUserId()) < 0;
+                    return Conversation.builder()
+                            .user1(senderIsUser1 ? sender : recipient)
+                            .user2(senderIsUser1 ? recipient : sender)
+                            .conversationTitle(sender.getUserName() + " & " + recipient.getUserName())
+                            .createdAt(LocalDateTime.now())
+                            .build();
+                });
+
+        conversation.setUpdatedAt(LocalDateTime.now());
+        return conversationRepository.save(conversation);
+    }
+
+    // Helper method để gửi thông báo qua WebSocket
+    private void broadcastMessage(MessageResponse response, UUID senderId, UUID recipientId) {
+        // Gửi cho người nhận
+        messagingTemplate.convertAndSendToUser(
+                recipientId.toString(),
+                "/queue/messages",
+                response
+        );
+        // Gửi cho chính người gửi (đồng bộ tab)
+        messagingTemplate.convertAndSendToUser(
+                senderId.toString(),
+                "/queue/messages",
+                response
         );
     }
 }

@@ -19,4 +19,5 @@ public class MessageResponse {
     private LocalDateTime createdAt;
     private MessageStatus status;
     private LocalDateTime readAt;
+    private String imageUrl;
 }

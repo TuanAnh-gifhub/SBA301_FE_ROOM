@@ -6,11 +6,14 @@ import org.rent.room.be.dto.request.chat.MessageRequest;
 import org.rent.room.be.dto.response.chat.ConversationResponse;
 import org.rent.room.be.dto.response.chat.MessageResponse;
 import org.rent.room.be.service.ChatService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
@@ -60,5 +63,16 @@ public class ChatController {
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .message("Conversation marked as read")
                 .build());
+    }
+
+    @PostMapping(value = "/send-with-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<MessageResponse>> sendMessageWithImage(
+            @RequestPart("data") MessageRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            Principal principal) throws IOException {
+
+        // Gọi service xử lý lưu tin nhắn và upload ảnh
+        MessageResponse response = chatService.saveMessageWithFile(request, principal.getName(), file);
+        return ResponseEntity.ok(ApiResponse.<MessageResponse>builder().result(response).build());
     }
 }

@@ -6,7 +6,6 @@ import { FaUserCircle } from "react-icons/fa";
 
 interface Message extends MessageResponse {
   isRead: boolean;
-  isVoice?: boolean;
 }
 
 interface MessageListProps {
@@ -90,11 +89,18 @@ const MessageList = ({
             >
               <div className="flex flex-col w-full">
                 {group.messages.map((message, idx) => {
+                  console.log(`Message ID: ${message.messageId}`);
+                  console.log(`- imageUrl: ${message.imageUrl}`);
+                  console.log(`- content: ${message.content}`);
+
                   const parsed = parseMessageContent(message.content) as any;
                   const isMediaOnly = parsed.isMedia && !parsed.text;
 
                   const isFirst = idx === 0;
                   const isLast = idx === group.messages.length - 1;
+
+                  const hasImage = !!message.imageUrl;
+                  const hasText = !!(parsed.text || message.content);
 
                   // Logic bo góc tùy biến
                   let borderRadiusClass = isMe
@@ -127,6 +133,20 @@ const MessageList = ({
                               : "bg-white text-gray-800 border border-gray-200 mr-auto"
                         }`}
                       >
+                        {hasImage && (
+                          <div className={`${hasText ? "mb-2" : ""}`}>
+                            <img
+                              src={message.imageUrl}
+                              alt="Sent attachment"
+                              className="max-w-[240px] rounded-lg cursor-pointer hover:opacity-95 transition-opacity shadow-md"
+                              onClick={() =>
+                                window.open(message.imageUrl, "_blank")
+                              }
+                              // Xử lý khi ảnh đang load để tránh layout bị nhảy
+                              loading="lazy"
+                            />
+                          </div>
+                        )}
                         <p className="whitespace-pre-wrap leading-tight text-sm">
                           {parsed.text || message.content}
                         </p>

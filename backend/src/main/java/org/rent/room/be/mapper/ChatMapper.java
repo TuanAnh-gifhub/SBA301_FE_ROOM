@@ -12,9 +12,6 @@ import org.rent.room.be.entity.User;
 @Mapper(componentModel = "spring")
 public interface ChatMapper {
 
-    @Mapping(target = "role", source = "role.roleName")
-    UserResponse toUserResponse(User user);
-
     @Mapping(target = "user1", source = "user1")
     @Mapping(target = "user2", source = "user2")
     ConversationResponse toConversationResponse(Conversation conversation);
@@ -24,5 +21,6 @@ public interface ChatMapper {
     @Mapping(target = "senderName", source = "sender.userName")
     @Mapping(target = "content", source = "messageBody")
     @Mapping(target = "conversationId", source = "conversation.conversationId")
+    @Mapping(target = "imageUrl", source = "imageUrl")
     MessageResponse toMessageResponse(Message message);
 }

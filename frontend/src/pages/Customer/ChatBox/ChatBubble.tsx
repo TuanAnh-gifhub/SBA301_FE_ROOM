@@ -64,6 +64,8 @@ const ChatBubble = () => {
   const showChatListRef = useRef(showChatList);
   const currentConversationIdRef = useRef(selectedChat?.conversationId || null);
 
+  const [selectedFiles, setSelectedFiles] = useState<any[]>([]);
+
   /* ================= LOAD CONVERSATIONS ================= */
 
   const loadConversations = async () => {
@@ -95,13 +97,16 @@ const ChatBubble = () => {
   const loadMessages = async (id: string) => {
     currentConversationIdRef.current = id;
     const res = await chatService.getMessages(id);
-
     if (res.result) {
-      const transformed: Message[] = res.result.map((msg) => ({
-        ...msg,
-        sender: msg.senderId === currentUserId ? "user" : "other",
-        isRead: msg.status === "READ",
-      }));
+
+      const transformed: Message[] = res.result.map((msg: any) => {
+        return {
+          ...msg,
+          sender: msg.senderId === currentUserId ? "user" : "other",
+          isRead: msg.status === "READ",
+          imageUrl: msg.imageUrl, // Kiểm tra xem backend trả về key là imageUrl hay image_url
+        };
+      });
       setMessages(transformed);
     }
   };
@@ -110,26 +115,15 @@ const ChatBubble = () => {
 
   useEffect(() => {
     if (!currentUserId || window.location.pathname === "/chat") return;
-
-    console.log(
-      "🔌 [WebSocket] Initializing listeners for User:",
-      currentUserId,
-    );
     loadConversations();
 
     const unsubscribeNewMsg = websocketService.onNewMessage((data: any) => {
-      console.log("📩 [WebSocket] New message received raw data:", data);
 
       const isCurrentChat =
         String(currentConversationIdRef.current) ===
         String(data.conversationId);
       const isWatchingChat =
         isCurrentChat && isOpenRef.current && !showChatListRef.current;
-
-      console.log(`🔍 [WebSocket] Analysis: 
-        - Is current chat: ${isCurrentChat} 
-        - Current Chat Ref: ${currentConversationIdRef.current}
-        - Watching detailed chat: ${isWatchingChat}`);
 
       if (isCurrentChat) {
         const incoming: Message = {
@@ -147,6 +141,7 @@ const ChatBubble = () => {
               : isWatchingChat
                 ? "READ"
                 : "SENT",
+          imageUrl: data.imageUrl,
         };
 
         setMessages((prev) => {
@@ -164,29 +159,30 @@ const ChatBubble = () => {
             return !isTempMatch;
           });
 
-          console.log(
-            "✅ [WebSocket] Adding new message to list. Total:",
-            filtered.length + 1,
-          );
           return [...filtered, incoming];
         });
 
         if (isWatchingChat && data.senderId !== currentUserId) {
-          console.log("📖 [WebSocket] Auto-marking as read...");
           chatService.markMessageAsRead(data.conversationId, currentUserId!);
         }
-      } else {
-        console.log(
-          "🔔 [WebSocket] Message belongs to another conversation. Refreshing list.",
-        );
       }
 
-      loadConversations(); // Luôn load lại list để cập nhật tin nhắn mới nhất/thời gian
+      setConversations((prev) => {
+        return prev.map((conv) => {
+          if (conv.conversationId === data.conversationId) {
+            return {
+              ...conv,
+              lastMessage: data.content || "[Hình ảnh]",
+              updatedAt: data.createdAt,
+            };
+          }
+          return conv;
+        });
+      });
     });
 
     const unsubscribeReadReceipt = websocketService.onReadReceipt(
       (data: any) => {
-        console.log("👁️ [WebSocket] Read Receipt received:", data);
         if (
           String(currentConversationIdRef.current) ===
           String(data.conversationId)
@@ -201,7 +197,6 @@ const ChatBubble = () => {
       },
     );
     return () => {
-      console.log("⚰️ [WebSocket] Cleaning up listeners.");
       unsubscribeNewMsg();
       unsubscribeReadReceipt();
     };
@@ -212,46 +207,67 @@ const ChatBubble = () => {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !currentUserId || !selectedChat) return;
-
-    console.log("📤 [Action] Attempting to send message...");
+    if (!newMessage.trim() && selectedFiles.length === 0) return;
+    if (!currentUserId || !selectedChat) return;
 
     const recipientId =
       selectedChat.user1.userId === currentUserId
         ? selectedChat.user2.userId
         : selectedChat.user1.userId;
 
-    const tempMessage: Message = {
-      messageId: `temp-${Date.now()}`,
-      senderId: currentUserId,
-      conversationId: selectedChat.conversationId || "",
-      sender: "user",
-      content: newMessage.trim(),
-      createdAt: new Date().toISOString(),
-      isRead: false,
-      senderName: user?.userName || "",
-      status: "SENT",
-    };
+    // --- TRƯỜNG HỢP 1: GỬI KÈM ẢNH (Dùng HTTP) ---
+    if (selectedFiles.length > 0) {
+      try {
+        const formData = new FormData();
+        const messageData = {
+          content: newMessage.trim(),
+          recipientId: recipientId,
+          conversationId: selectedChat.conversationId,
+        };
 
-    try {
+        formData.append(
+          "data",
+          new Blob([JSON.stringify(messageData)], { type: "application/json" }),
+        );
+        formData.append("file", selectedFiles[0].file);
+
+        // Gọi service upload (bạn cần thêm hàm này vào chatService)
+        const response = await chatService.sendMessageWithImage(formData);
+
+        // Reset input
+        setNewMessage("");
+        setSelectedFiles([]);
+        // Lưu ý: Không cần setMessages ở đây vì Socket sẽ tự đẩy tin nhắn mới về cho cả 2 bên
+      } catch (err) {
+        console.error("❌ [Upload Error] Lỗi khi gửi ảnh:", err);
+      }
+    }
+
+    // --- TRƯỜNG HỢP 2: CHỈ GỬI TEXT (Dùng Socket) ---
+    else {
+      const tempMessage: Message = {
+        messageId: `temp-${Date.now()}`,
+        senderId: currentUserId,
+        conversationId: selectedChat.conversationId || "",
+        sender: "user",
+        content: newMessage.trim(),
+        createdAt: new Date().toISOString(),
+        isRead: false,
+        senderName: user?.userName || "",
+        status: "SENT",
+        imageUrl: null,
+      };
+
       if (websocketService.isConnected()) {
-        const messagePayload = {
+        websocketService.send("/app/chat", {
           conversationId: selectedChat.conversationId,
           senderId: currentUserId,
           recipientId: recipientId,
           content: newMessage.trim(),
-        };
-
-        console.log("🚀 [Action] Sending payload via Socket:", messagePayload);
-        websocketService.send("/app/chat", messagePayload);
-
+        });
         setMessages((prev) => [...prev, tempMessage]);
         setNewMessage("");
-      } else {
-        console.error("❌ [Error] WebSocket is DISCONNECTED!");
       }
-    } catch (err) {
-      console.error("❌ [Error] Send failed:", err);
     }
   };
 
@@ -387,7 +403,6 @@ const ChatBubble = () => {
                   onChatSelect={handleChatSelect}
                   loading={loading}
                   error={null}
-                  // Truyền thêm các props này để tránh lỗi undefined.trim()
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
                   activeTab={activeTab}
@@ -405,16 +420,23 @@ const ChatBubble = () => {
                     newMessage={newMessage}
                     setNewMessage={setNewMessage}
                     onSendMessage={handleSendMessage}
-                    selectedFiles={[]}
-                    setSelectedFiles={() => {}}
+                    selectedFiles={selectedFiles}
+                    setSelectedFiles={setSelectedFiles}
                     imagePreview={null}
                     setImagePreview={() => {}}
                     isRecording={false}
                     onVoiceRecord={() => {}}
-                    onFileSelect={() => {}}
-                    onRemoveFile={() => {}}
+                    onFileSelect={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedFiles([
+                          { file, dataURL: URL.createObjectURL(file) },
+                        ]);
+                      }
+                    }}
+                    onRemoveFile={() => setSelectedFiles([])}
                     onRemoveImagePreview={() => {}}
-                    onClearAllFiles={() => {}}
+                    onClearAllFiles={() => setSelectedFiles([])}
                   />
                 </div>
               )}
