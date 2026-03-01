@@ -43,11 +43,11 @@ public class RentPackage extends BaseEntity {
     @Column(name = "description", length = 255)
     private String description;
 
-    @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rentPackage", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Subscription> subscriptions;
 
-    @OneToMany(mappedBy = "servicePackage", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rentPackage", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Order> orders;
 }
