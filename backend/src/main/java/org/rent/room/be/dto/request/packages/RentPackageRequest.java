@@ -24,7 +24,4 @@ public class RentPackageRequest {
     @NotNull(message = "durationDays is required")
     @Min(value = 0, message = "durationDays must be >= 0")
     private Integer durationDays;
-
-    @NotBlank(message = "description is required")
-    private String description;
 }
