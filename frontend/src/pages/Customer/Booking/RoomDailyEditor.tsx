@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { InputNumber } from "antd";
 import type { Room } from "../../../types/room";
-
+import { toast } from "react-toastify";
 export default function RoomDailyEditor({ room, onAddSlot }) {
   const [date, setDate] = useState("");
   const [start, setStart] = useState("07:00");
@@ -10,12 +10,18 @@ export default function RoomDailyEditor({ room, onAddSlot }) {
 
   const handleAdd = () => {
     if (!date) {
-      alert("Chọn ngày");
+      toast.error("Chọn ngày");
+      return;
+    }
+
+    if (start >= end) {
+      toast.error("Giờ không hợp lệ");
       return;
     }
 
     onAddSlot({
       roomId: room.roomId,
+      room,
       date,
       start,
       end,

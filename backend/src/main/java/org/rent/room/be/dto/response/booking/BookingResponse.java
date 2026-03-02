@@ -32,5 +32,8 @@ public class BookingResponse {
     private String statusPayment;
     private LocalDateTime checkIn;
     private LocalDateTime checkOut;
+    private RentalAreaResponse rentalArea;
 
+    private String qrCodeUrl;
+    private String invoicePdfUrl;
 }

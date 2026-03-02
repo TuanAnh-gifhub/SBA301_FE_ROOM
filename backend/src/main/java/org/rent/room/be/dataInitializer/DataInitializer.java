@@ -47,6 +47,8 @@ public class DataInitializer implements CommandLineRunner {
         List<Category> categories = categoryRepository.findAll();
         RentalArea rentalArea =RentalArea.builder()
                 .address("90 Phạm Đăng Giảng, phường Bình Hưng Hòa")
+                .contactName("Quang B")
+                .contactPhone("0777964742")
                 .city(cities.getFirst() != null ? cities.getFirst() : City.builder()
                         .cityName("Thành phố Huế")
                         .build())

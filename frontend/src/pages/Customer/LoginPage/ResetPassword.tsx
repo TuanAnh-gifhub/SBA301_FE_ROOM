@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Form, Input, Button, Card, Typography, Alert, message } from "antd";
 import authService from "../../../services/auth/authService";
@@ -15,13 +15,12 @@ const ResetPassword = () => {
 
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    if (!token) {
-      setApiError("Đường dẫn không hợp lệ hoặc thiếu Token xác thực.");
-    }
-  }, [token]);
+  type ResetPasswordFormValues = {
+    password: string;
+    confirmPassword: string;
+  };
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: ResetPasswordFormValues) => {
     setApiError("");
     setSuccessMsg("");
     setIsLoading(true);
@@ -33,16 +32,31 @@ const ResetPassword = () => {
           newPassword: values.password,
         });
 
-        setSuccessMsg("Đổi mật khẩu thành công! Đang chuyển hướng...");
-        message.success("Đổi mật khẩu thành công!");
+        setSuccessMsg("Đặt lại mật khẩu thành công!");
+        message.success("Đặt lại mật khẩu thành công!");
 
         setTimeout(() => navigate("/"), 2000);
       }
-    } catch (err: any) {
-      const errorMsg =
-        err.response?.data?.message ||
-        err.response?.data ||
-        "Đã có lỗi xảy ra.";
+    } catch (err: unknown) {
+      let errorMsg = "Không thể đặt lại mật khẩu. Vui lòng thử lại.";
+
+      if (typeof err === "object" && err !== null && "response" in err) {
+        type ErrorResponseData = { message?: string } | string;
+        const errorWithResponse = err as {
+          response?: { data?: ErrorResponseData };
+        };
+        const data = errorWithResponse.response?.data;
+
+        if (typeof data === "string") {
+          errorMsg = data;
+        } else if (data && typeof data === "object" && "message" in data) {
+          const messageFromData = (data as { message?: string }).message;
+          if (messageFromData) {
+            errorMsg = messageFromData;
+          }
+        }
+      }
+
       setApiError(errorMsg);
     } finally {
       setIsLoading(false);
@@ -51,11 +65,11 @@ const ResetPassword = () => {
 
   if (!token) {
     return (
-      <div style={styles.container}>
-        <Card style={styles.card}>
+      <div className="flex justify-center items-start pt-[60px] min-h-screen bg-[#F3F4F6] [font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif] pb-5">
+        <Card className="w-full max-w-[420px] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] text-center p-[10px]" bordered={false}>
           <Alert
-            message="Lỗi Đường Dẫn"
-            description="Token không hợp lệ. Vui lòng kiểm tra lại email."
+            message="Liên kết không hợp lệ"
+            description="Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn."
             type="error"
             showIcon
           />
@@ -65,8 +79,8 @@ const ResetPassword = () => {
   }
 
   return (
-    <div style={styles.container}>
-      <Card style={styles.card} bordered={false}>
+    <div className="flex justify-center items-start pt-[60px] min-h-screen bg-[#F3F4F6] [font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif] pb-5">
+      <Card className="w-full max-w-[420px] rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] text-center p-[10px]" bordered={false}>
         {/* Header - Giảm margin bottom từ 30 xuống 20 */}
         <div style={{ marginBottom: 20 }}>
           <Title
@@ -75,7 +89,7 @@ const ResetPassword = () => {
           >
             Đặt lại mật khẩu
           </Title>
-          <Text type="secondary" style={{ fontSize: "13px" }}>
+          <Text type="secondary" style={{ fontSize: "14px" }}>
             Nhập mật khẩu mới cho tài khoản của bạn.
           </Text>
         </div>
@@ -105,22 +119,26 @@ const ResetPassword = () => {
           size="large"
           requiredMark={false} // Tắt dấu sao đỏ mặc định nếu muốn form sạch hơn (tuỳ chọn)
         >
-          {/* Mật khẩu mới - Giảm khoảng cách xuống 12px */}
           <Form.Item
-            label={<span style={styles.label}>Mật khẩu mới</span>}
             name="password"
             style={{ marginBottom: 12 }} // <--- CHỈNH Ở ĐÂY
             rules={[
-              { required: true, message: "Vui lòng nhập mật khẩu!" },
-              { min: 6, message: "Mật khẩu tối thiểu 6 ký tự." },
+              { required: true, message: "Vui lòng nhập mật khẩu." },
+              { min: 8, message: "Mật khẩu tối thiểu 8 ký tự." },
             ]}
           >
-            <Input.Password placeholder="••••••" style={styles.input} />
+            <div className="relative group">
+              <Input.Password
+                placeholder=" "
+                className="w-full rounded-lg! border! border-gray-300! bg-gray-100! text-[15px] focus-within:border-[#4da6ff]! focus-within:bg-white! focus-within:shadow-[0_0_0_1px_#4da6ff] transition-all duration-150"
+              />
+              <label className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-gray-100 px-1 text-sm text-gray-600 z-10 transition-all duration-150 group-focus-within:top-0 group-focus-within:-translate-y-1/2 group-focus-within:text-[0.65rem] group-focus-within:text-blue-700 group-focus-within:font-semibold group-focus-within:border-t group-focus-within:border-blue-600 group-has-[input:not(:placeholder-shown)]:top-0 group-has-[input:not(:placeholder-shown)]:-translate-y-1/2 group-has-[input:not(:placeholder-shown)]:text-[0.65rem] group-has-[input:not(:placeholder-shown)]:text-blue-700 group-has-[input:not(:placeholder-shown)]:font-semibold">
+                Mật khẩu mới
+              </label>
+            </div>
           </Form.Item>
 
-          {/* Xác nhận mật khẩu - Giảm khoảng cách xuống 15px (để cách nút một chút) */}
           <Form.Item
-            label={<span style={styles.label}>Xác nhận mật khẩu</span>}
             name="confirmPassword"
             dependencies={["password"]}
             style={{ marginBottom: 20 }} // <--- CHỈNH Ở ĐÂY
@@ -131,12 +149,22 @@ const ResetPassword = () => {
                   if (!value || getFieldValue("password") === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error("Mật khẩu không khớp!"));
+                  return Promise.reject(
+                    new Error("Mật khẩu không khớp!"),
+                  );
                 },
               }),
             ]}
           >
-            <Input.Password placeholder="••••••" style={styles.input} />
+            <div className="relative group">
+              <Input.Password
+                placeholder=" "
+                className="w-full rounded-lg! border! border-gray-300! bg-gray-100! text-[15px] focus-within:border-[#4da6ff]! focus-within:bg-white! focus-within:shadow-[0_0_0_1px_#4da6ff] transition-all duration-150"
+              />
+              <label className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-gray-100 px-1 text-sm text-gray-600 z-10 transition-all duration-150 group-focus-within:top-0 group-focus-within:-translate-y-1/2 group-focus-within:text-[0.65rem] group-focus-within:text-blue-700 group-focus-within:font-semibold group-focus-within:border-t group-focus-within:border-blue-600 group-has-[input:not(:placeholder-shown)]:top-0 group-has-[input:not(:placeholder-shown)]:-translate-y-1/2 group-has-[input:not(:placeholder-shown)]:text-[0.65rem] group-has-[input:not(:placeholder-shown)]:text-blue-700 group-has-[input:not(:placeholder-shown)]:font-semibold">
+                Nhập lại mật khẩu mới
+              </label>
+            </div>
           </Form.Item>
 
           {/* Nút Submit */}
@@ -146,54 +174,15 @@ const ResetPassword = () => {
               htmlType="submit"
               block
               loading={isLoading}
-              style={styles.button}
+              className="bg-[#4da6ff]! border-[#4da6ff]! rounded-[30px] h-[42px] font-semibold text-[16px] shadow-[0_2px_4px_rgba(77,166,255,0.25)]"
             >
-              Xác nhận thay đổi
+              Xác nhận
             </Button>
           </Form.Item>
         </Form>
       </Card>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "flex-start",
-    paddingTop: "60px",
-    minHeight: "100vh",
-    backgroundColor: "#F3F4F6",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    paddingBottom: "20px",
-  },
-  card: {
-    width: "100%",
-    maxWidth: "420px", // Giảm chiều rộng card một chút cho gọn
-    borderRadius: "16px",
-    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-    textAlign: "center" as const,
-    padding: "10px 10px", // Giảm padding dọc của card
-  },
-  label: {
-    fontWeight: 600,
-    color: "#374151",
-    fontSize: "13px", // Giảm size chữ label 1 chút cho tinh tế
-  },
-  input: {
-    borderRadius: "8px",
-    fontSize: "14px", // Chữ trong input vừa phải
-  },
-  button: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
-    borderRadius: "30px",
-    height: "42px", // Giảm chiều cao nút 1 xíu
-    fontWeight: 600,
-    fontSize: "15px",
-    boxShadow: "0 2px 4px rgba(37, 99, 235, 0.2)",
-  },
 };
 
 export default ResetPassword;

@@ -6,17 +6,21 @@ import {
   FaEyeSlash,
   FaTimes,
   FaArrowLeft,
-  FaUser,
 } from "react-icons/fa";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  animate,
+} from "framer-motion";
 import { message } from "antd";
 import { useGoogleLogin } from "@react-oauth/google";
 import authService, {
   type ApiResponse as AuthApiResponse,
   type LoginResponse,
   type LoginGoogleResponse,
-  type CreateUsersRequest,
 } from "../../../services/auth/authService";
+import { RegisterForm } from "./RegisterPage";
 import { useAuth } from "../../../context/AuthContext";
 import type { UserResponse } from "../../../services/usersService";
 import loginIntroVideo from "../../../assets/login_intro_video.mp4";
@@ -24,16 +28,6 @@ interface LoginPageProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-type RegisterFormValues = {
-  userName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  phone?: string;
-  gender: "MALE" | "FEMALE";
-  dateOfBirth: string;
-};
 
 const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
   const { login } = useAuth();
@@ -45,17 +39,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
   const [successMessage, setSuccessMessage] = useState("");
   const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [registerFormValues, setRegisterFormValues] = useState<RegisterFormValues>({
-    userName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    phone: "",
-    gender: "MALE",
-    dateOfBirth: "",
-  });
-  const [isRegisterLoading, setIsRegisterLoading] = useState(false);
-  const panelControls = useAnimation();
+  const panelX = useMotionValue(192); // vị trí mặc định cho màn đăng nhập (lệch sát hơn)
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
 
   const resetForm = () => {
@@ -66,16 +50,9 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
     setIsRegisterMode(false);
     setEmail("");
     setPassword("");
-    setRegisterFormValues({
-      userName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      phone: "",
-      gender: "MALE",
-      dateOfBirth: "",
-    });
-    setIsRegisterLoading(false);
+
+    // Đảm bảo khi mở lại luôn bắt đầu ở vị trí/thẻ đăng nhập bên phải
+    panelX.set(192);
   };
 
   const handleClose = () => {
@@ -117,11 +94,14 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
     } catch (error: unknown) {
       const errorResponse =
         typeof error === "object" &&
-          error !== null &&
-          "response" in error &&
-          (error as { response?: { data?: unknown } }).response?.data
-          ? (error as { response?: { data?: { message?: string; code?: number } } })
-            .response!.data
+        error !== null &&
+        "response" in error &&
+        (error as { response?: { data?: unknown } }).response?.data
+          ? (
+              error as {
+                response?: { data?: { message?: string; code?: number } };
+              }
+            ).response!.data
           : undefined;
 
       if (errorResponse?.code === 1000) {
@@ -161,163 +141,53 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
       console.error("Forgot password failed:", error);
       const errorResponse =
         typeof error === "object" &&
-          error !== null &&
-          "response" in error &&
-          (error as { response?: { data?: { message?: string } } }).response?.data
-          ? (error as { response?: { data?: { message?: string } } }).response!.data
+        error !== null &&
+        "response" in error &&
+        (error as { response?: { data?: { message?: string } } }).response?.data
+          ? (error as { response?: { data?: { message?: string } } }).response!
+              .data
           : undefined;
       setErrorMessage(
         errorResponse?.message ||
-        "Không thể gửi yêu cầu. Vui lòng kiểm tra lại email.",
+          "Không thể gửi yêu cầu. Vui lòng kiểm tra lại email.",
       );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRegisterChange =
-    (field: keyof RegisterFormValues) =>
-      (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const value = e.target.value;
-        setRegisterFormValues((prev) => ({ ...prev, [field]: value }));
-      };
+  const animatePanelToMode = async (mode: "login" | "register") => {
+    if (isPanelAnimating) return;
+    setIsPanelAnimating(true);
 
-  const validateRegisterForm = (): string | null => {
-    if (!registerFormValues.userName.trim()) return "Vui lòng nhập họ và tên.";
-    if (!registerFormValues.email.trim()) return "Vui lòng nhập email.";
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(registerFormValues.email)) return "Email không hợp lệ.";
+    // Đổi nội dung (login/register) NGAY TRƯỚC khi animate
+    // để header + form bên trong trông "đi cùng" với chuyển động của thẻ
+    setIsRegisterMode(mode === "register");
 
-    if (registerFormValues.phone && !/^0\d{9,10}$/.test(registerFormValues.phone)) {
-      return "Số điện thoại không hợp lệ.";
-    }
+    const targetX = mode === "login" ? 192 : -192;
 
-    if (!registerFormValues.dateOfBirth) return "Vui lòng chọn ngày sinh.";
-    if (!registerFormValues.gender) return "Vui lòng chọn giới tính.";
+    await animate(panelX, targetX, {
+      type: "spring",
+      stiffness: 280,
+      damping: 30,
+    }).finished;
 
-    if (!registerFormValues.password) return "Vui lòng nhập mật khẩu.";
-    if (registerFormValues.password.length < 8) {
-      return "Mật khẩu tối thiểu 8 ký tự.";
-    }
-
-    if (!registerFormValues.confirmPassword) return "Vui lòng nhập lại mật khẩu.";
-    if (registerFormValues.password !== registerFormValues.confirmPassword) {
-      return "Mật khẩu nhập lại không khớp.";
-    }
-
-    return null;
-  };
-
-  const handleRegisterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    const validationError = validateRegisterForm();
-    if (validationError) {
-      setErrorMessage(validationError);
-      return;
-    }
-
-    setIsRegisterLoading(true);
-    try {
-      const payload: CreateUsersRequest = {
-        userName: registerFormValues.userName.trim(),
-        email: registerFormValues.email.trim(),
-        password: registerFormValues.password,
-        phone: registerFormValues.phone ?? "",
-        gender: registerFormValues.gender,
-        dateOfBirth: registerFormValues.dateOfBirth,
-        roleName: "RENTER",
-      };
-
-      const response = await authService.registerRequest(payload);
-
-      if (response && response.code === 200) {
-        setSuccessMessage(
-          "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.",
-        );
-        message.success(response.message || "Đăng ký thành công!");
-
-        setRegisterFormValues({
-          userName: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          phone: "",
-          gender: "MALE",
-          dateOfBirth: "",
-        });
-      } else {
-        setErrorMessage(
-          response?.message || "Đăng ký thất bại. Vui lòng thử lại!",
-        );
-        message.error(
-          response?.message || "Đăng ký thất bại. Vui lòng thử lại!",
-        );
-      }
-    } catch (error: unknown) {
-      console.error("Register Error:", error);
-      const errorMsg =
-        typeof error === "object" &&
-          error !== null &&
-          "response" in error &&
-          (error as { response?: { data?: { message?: string } } }).response?.data
-            ?.message
-          ? (
-            error as {
-              response?: { data?: { message?: string } };
-            }
-          ).response!.data!.message!
-          : "Lỗi kết nối máy chủ!";
-      setErrorMessage(errorMsg);
-      message.error(errorMsg);
-    } finally {
-      setIsRegisterLoading(false);
-    }
+    setIsPanelAnimating(false);
   };
 
   const slideToRegister = async () => {
-    if (isRegisterMode || isPanelAnimating) return;
-    setIsPanelAnimating(true);
-
-    await panelControls.start({
-      x: "60%",
-      transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-    });
-
-    setIsRegisterMode(true);
+    if (isRegisterMode) return;
     setIsForgotPasswordMode(false);
     setErrorMessage("");
     setSuccessMessage("");
-
-    await panelControls.start({
-      x: "0%",
-      transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-    });
-
-    setIsPanelAnimating(false);
+    await animatePanelToMode("register");
   };
 
   const slideToLogin = async () => {
-    if (!isRegisterMode || isPanelAnimating) return;
-    setIsPanelAnimating(true);
-
-    await panelControls.start({
-      x: "-60%",
-      transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-    });
-
-    setIsRegisterMode(false);
+    if (!isRegisterMode) return;
     setErrorMessage("");
     setSuccessMessage("");
-
-    await panelControls.start({
-      x: "0%",
-      transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-    });
-
-    setIsPanelAnimating(false);
+    await animatePanelToMode("login");
   };
 
   const googleLogin = useGoogleLogin({
@@ -379,77 +249,94 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
             />
             <div className="absolute inset-0 bg-black/40" />
 
-            <div className={`absolute bottom-4 text-white hidden md:block ${isRegisterMode ? "right-4 text-right" : "left-4 text-left"}`}>
+            <div
+              className={`absolute bottom-4 text-white hidden md:block ${isRegisterMode ? "right-4 text-right" : "left-4 text-left"}`}
+            >
               <div className="text-lg font-semibold">EduRoom</div>
-              <div className="text-xs text-white/90">
+              <div className="text-sm text-white/90">
                 Tìm phòng nhanh, quản lý dễ dàng.
               </div>
             </div>
 
-            <div
-              className={`relative z-10 flex h-full items-stretch ${isRegisterMode ? "justify-start" : "justify-end"}`}
-            >
+            <div className="relative z-10 flex h-full items-center justify-center">
               <motion.div
-                animate={panelControls}
-                initial={{ x: "0%" }}
-                className="w-full max-w-sm h-full bg-transparent backdrop-blur-md rounded-2xl shadow-2xl border-2 border-white flex flex-col overflow-hidden"
+                style={{ x: panelX }}
+                drag={isPanelAnimating ? false : "x"}
+                dragConstraints={{ left: -140, right: 140 }}
+                dragElastic={0.18}
+                onDragEnd={(_, info) => {
+                  const deltaX = info.offset.x;
+
+                  if (isForgotPasswordMode) {
+                    // Ở màn quên mật khẩu thì chỉ snap về mode hiện tại
+                    void animatePanelToMode(
+                      isRegisterMode ? "register" : "login",
+                    );
+                    return;
+                  }
+
+                  // Luôn snap hẳn sang một trong hai trạng thái tùy hướng kéo
+                  if (deltaX < 0) {
+                    // Kéo sang trái -> đăng ký
+                    setIsForgotPasswordMode(false);
+                    setErrorMessage("");
+                    setSuccessMessage("");
+                    void animatePanelToMode("register");
+                  } else if (deltaX > 0) {
+                    // Kéo sang phải -> đăng nhập
+                    setIsForgotPasswordMode(false);
+                    setErrorMessage("");
+                    setSuccessMessage("");
+                    void animatePanelToMode("login");
+                  } else {
+                    // Không kéo (chỉ click) -> giữ nguyên trạng thái hiện tại
+                    void animatePanelToMode(
+                      isRegisterMode ? "register" : "login",
+                    );
+                  }
+                }}
+                className="w-full max-w-sm h-full bg-transparent backdrop-blur-md rounded-2xl shadow-2xl border-2 border-white flex flex-col overflow-hidden overflow-x-hidden"
               >
-                <div className="relative bg-linear-to-br from-[#4da6ff] to-blue-500 px-5 py-3.5 text-white transition-all duration-300">
+                <div
+                  className={`relative bg-linear-to-br from-[#4da6ff] to-blue-500 px-5 text-white transition-all duration-200 ease-in-out ${
+                    errorMessage || successMessage ? "py-0" : "py-1"
+                  }`}
+                >
                   {isForgotPasswordMode && !isRegisterMode && (
                     <button
                       onClick={() => {
                         setIsForgotPasswordMode(false);
                         resetForm();
                       }}
-                      className="absolute top-2 left-2 w-6.5 h-6.5 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors"
+                      className="absolute top-3 left-3 z-20 w-8 h-8 bg-black/30 hover:bg-black/40 rounded-full flex items-center justify-center transition-colors"
                       aria-label="Quay lại"
                     >
-                      <FaArrowLeft className="w-3 h-3 text-white" />
+                      <FaArrowLeft className="w-3.5 h-3.5 text-white" />
                     </button>
                   )}
 
-                  <div className="flex justify-center mb-2">
-                    <div className="w-10 h-10 border-2 border-white rounded-lg flex items-center justify-center">
-                      {isRegisterMode ? (
-                        <svg
-                          width="22"
-                          height="22"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                          <polyline points="9 22 9 12 15 12 15 22" />
-                        </svg>
-                      ) : isForgotPasswordMode ? (
-                        <FaEnvelope className="w-5 h-5" />
-                      ) : (
-                        <svg
-                          width="22"
-                          height="22"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                          <polyline points="9 22 9 12 15 12 15 22" />
-                        </svg>
-                      )}
+                  <div
+                    className={`flex justify-center transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "mb-0" : "mb-0"}`}
+                  >
+                    <div
+                      className={`rounded-xl flex items-center justify-center overflow-hidden bg-white/90 shadow-md shadow-black/20 transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "w-13 h-11" : "w-24 h-14"}`}
+                    >
+                      {/* Logo tạm bỏ, chỉ để khối màu trắng */}
                     </div>
                   </div>
 
-                  <h2 className="text-xl font-bold text-center mb-1">
+                  <h2
+                    className={`${errorMessage || successMessage ? "text-lg" : "text-xl"} font-bold text-center text-white transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "mb-0" : "mb-0.5"}`}
+                  >
                     {isRegisterMode
                       ? "Tạo Tài Khoản"
                       : isForgotPasswordMode
                         ? "Khôi Phục Mật Khẩu"
                         : "Chào Mừng Trở Lại!"}
                   </h2>
-                  <p className="text-center text-white/90 text-xs">
+                  <p
+                    className={`text-center text-white/90 transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "text-xs" : "text-sm"}`}
+                  >
                     {isRegisterMode
                       ? "Đăng ký ngay để bắt đầu"
                       : isForgotPasswordMode
@@ -458,264 +345,148 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                   </p>
                 </div>
 
-                <div className="px-5 py-3 flex-1 overflow-y-auto text-xs">
-                  {errorMessage && (
-                    <div className="mb-3 p-2 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg text-center font-medium">
-                      {errorMessage}
-                    </div>
-                  )}
-                  {successMessage && (
-                    <div className="mb-3 p-2 bg-green-50 border border-green-200 text-green-600 text-xs rounded-lg text-center font-medium">
-                      {successMessage}
-                    </div>
-                  )}
+                <div className="px-5 py-2 min-h-0 flex-1 overflow-y-auto text-sm">
+                  <div
+                    className={`flex items-start transition-all duration-150 ${
+                      errorMessage || successMessage
+                        ? "min-h-[32px] mb-1"
+                        : "min-h-[4px] mb-0.5"
+                    }`}
+                  >
+                    <AnimatePresence mode="wait">
+                      {errorMessage && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                          transition={{
+                            duration: 0.2,
+                            delay: 0.12,
+                            ease: [0.4, 0, 0.2, 1],
+                          }}
+                          className="w-full px-2 py-1 bg-red-50 border border-red-200 text-red-600 text-xs leading-snug rounded-md text-center font-semibold"
+                        >
+                          {errorMessage}
+                        </motion.div>
+                      )}
+                      {successMessage && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                          transition={{
+                            duration: 0.2,
+                            delay: 0.12,
+                            ease: [0.4, 0, 0.2, 1],
+                          }}
+                          className="w-full px-2 py-1 bg-green-50 border border-green-200 text-green-600 text-xs leading-snug rounded-md text-center font-semibold"
+                        >
+                          {successMessage}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
                   {isRegisterMode ? (
-                    <form onSubmit={handleRegisterSubmit} className="space-y-2.5">
-                      <div className="grid grid-cols-12 gap-2">
-                        <div className="col-span-7">
-                          <label className="block text-left text-xs font-medium text-white mb-1">
-                            Họ và tên
-                          </label>
-                          <div className="relative">
-                            <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                              <FaUser className="w-4 h-4 text-white/70" />
-                            </div>
-                            <input
-                              type="text"
-                              value={registerFormValues.userName}
-                              onChange={handleRegisterChange("userName")}
-                              placeholder="Họ tên"
-                              className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4da6ff] focus:border-transparent"
-                              disabled={isRegisterLoading}
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div className="col-span-5">
-                          <label className="block text-left text-xs font-medium text-white mb-1">
-                            SĐT
-                          </label>
-                          <input
-                            type="tel"
-                            value={registerFormValues.phone}
-                            onChange={handleRegisterChange("phone")}
-                            placeholder="Số điện thoại"
-                            className="w-full px-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4da6ff] focus:border-transparent"
-                            disabled={isRegisterLoading}
-                            pattern="^0\\d{9,10}$"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-12 gap-2">
-                        <div className="col-span-7">
-                          <label className="block text-left text-xs font-medium text-white mb-1">
-                            Ngày sinh
-                          </label>
-                          <input
-                            type="date"
-                            value={registerFormValues.dateOfBirth}
-                            onChange={handleRegisterChange("dateOfBirth")}
-                            className="w-full px-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4da6ff] focus:border-transparent"
-                            disabled={isRegisterLoading}
-                            required
-                          />
-                        </div>
-
-                        <div className="col-span-5">
-                          <label className="block text-left text-xs font-medium text-white mb-1">
-                            Giới tính
-                          </label>
-                          <select
-                            value={registerFormValues.gender}
-                            onChange={handleRegisterChange("gender")}
-                            className="w-full px-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#4da6ff] focus:border-transparent"
-                            disabled={isRegisterLoading}
-                          >
-                            <option value="MALE">Nam</option>
-                            <option value="FEMALE">Nữ</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-left text-xs font-medium text-white mb-1">
-                          Email
-                        </label>
-                        <div className="relative">
-                          <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                            <FaEnvelope className="w-4 h-4 text-white/70" />
-                          </div>
-                          <input
-                            type="email"
-                            value={registerFormValues.email}
-                            onChange={handleRegisterChange("email")}
-                            placeholder="email@example.com"
-                            className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4da6ff] focus:border-transparent"
-                            disabled={isRegisterLoading}
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-12 gap-2">
-                        <div className="col-span-6">
-                          <label className="block text-left text-xs font-medium text-white mb-1">
-                            Mật khẩu
-                          </label>
-                          <div className="relative">
-                            <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                              <FaLock className="w-4 h-4 text-white/70" />
-                            </div>
-                            <input
-                              type="password"
-                              value={registerFormValues.password}
-                              onChange={handleRegisterChange("password")}
-                              placeholder="••••••••"
-                              className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4da6ff] focus:border-transparent"
-                              disabled={isRegisterLoading}
-                              required
-                              minLength={8}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="col-span-6">
-                          <label className="block text-left text-xs font-medium text-white mb-1">
-                            Nhập lại mật khẩu
-                          </label>
-                          <div className="relative">
-                            <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                              <FaLock className="w-4 h-4 text-white/70" />
-                            </div>
-                            <input
-                              type="password"
-                              value={registerFormValues.confirmPassword}
-                              onChange={handleRegisterChange("confirmPassword")}
-                              placeholder="••••••••"
-                              className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4da6ff] focus:border-transparent"
-                              disabled={isRegisterLoading}
-                              required
-                              minLength={8}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={isRegisterLoading}
-                        className={`w-full bg-[#4da6ff] hover:bg-[#3d8cff] text-white font-semibold py-1.5 px-4 rounded-lg transition-colors shadow-md hover:shadow-lg text-xs mt-1 ${isRegisterLoading ? "opacity-70 cursor-not-allowed" : ""}`}
-                      >
-                        {isRegisterLoading ? "Đang xử lý..." : "Tiếp tục"}
-                      </button>
-
-                      <div className="mt-2 text-center">
-                        <span className="text-xs text-white">
-                          Đã có tài khoản?{" "}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={isPanelAnimating}
-                          onClick={slideToLogin}
-                          className="text-xs text-[#4da6ff] hover:text-blue-600 font-semibold focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          Đăng nhập
-                        </button>
-                      </div>
-                    </form>
+                    <RegisterForm
+                      onSwitchToLogin={slideToLogin}
+                      isSwitchDisabled={isPanelAnimating}
+                      onErrorMessage={setErrorMessage}
+                      onSuccessMessage={setSuccessMessage}
+                      variant="dark"
+                    />
                   ) : isForgotPasswordMode ? (
                     <form
                       onSubmit={handleForgotPasswordSubmit}
-                      className="space-y-4 pt-2 pb-2"
+                      className="space-y-4 pt-12 pb-2"
                     >
                       <div>
-                        <label className="block text-left text-xs font-medium text-white mb-1">
-                          Email đăng ký
-                        </label>
                         <div className="relative">
                           <div className="absolute left-2.5 top-1/2 transform -translate-y-1/2">
-                            <FaEnvelope className="w-4 h-4 text-white/70" />
+                            <FaEnvelope className="w-4 h-4 text-blue-600/70" />
                           </div>
                           <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Nhập email của bạn..."
-                            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4da6ff] focus:border-transparent"
+                            placeholder=" "
+                            className="peer w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-9 pr-3 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
                             required
                             disabled={isLoading}
                           />
+                          <label className="pointer-events-none absolute left-9 top-1/2 -translate-y-1/2 rounded-full bg-white px-1 text-sm text-gray-600 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:border-gray-300 peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-[0.65rem] peer-not-placeholder-shown:text-blue-700 peer-not-placeholder-shown:font-semibold">
+                            Email
+                          </label>
                         </div>
                       </div>
 
                       <button
                         type="submit"
                         disabled={isLoading || !!successMessage}
-                        className={`w-full bg-[#4da6ff] hover:bg-[#3d8cff] text-white font-semibold py-2 px-4 rounded-lg transition-colors shadow-md hover:shadow-lg text-xs ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
+                        className={`w-full bg-[#4da6ff] hover:bg-[#3d8cff] text-white font-semibold py-2 px-4 rounded-lg transition-colors shadow-md hover:shadow-lg text-sm ${
+                          isLoading ? "opacity-70 cursor-not-allowed" : ""
+                        }`}
                       >
                         {isLoading ? "Đang gửi..." : "Gửi link xác nhận"}
                       </button>
 
-                      <div className="text-center mt-2">
+                      <div className="text-center mt-1">
                         <button
                           type="button"
                           onClick={() => {
                             setIsForgotPasswordMode(false);
                             resetForm();
                           }}
-                          className="text-xs text-white/80 hover:text-white font-medium"
+                          className="text-sm text-white/80 hover:text-white font-medium"
                         >
-                          Quay lại đăng nhập
+                          "Quay lại đăng nhập"
                         </button>
                       </div>
                     </form>
                   ) : (
                     <>
-                      <form onSubmit={handleLoginSubmit} className="space-y-2.5">
+                      <form onSubmit={handleLoginSubmit} className="space-y-3">
                         <div>
-                          <label className="block text-left text-xs font-medium text-white mb-1">
-                            Email
-                          </label>
                           <div className="relative">
                             <div className="absolute left-2.5 top-1/2 transform -translate-y-1/2">
-                              <FaEnvelope className="w-4 h-4 text-white/70" />
+                              <FaEnvelope className="w-4 h-4 text-blue-600/70" />
                             </div>
                             <input
                               type="email"
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
-                              placeholder="email@example.com"
-                              className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4da6ff] focus:border-transparent"
+                              placeholder=" "
+                              className="peer w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-9 pr-3 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
                               required
                               disabled={isLoading}
                             />
+                            <label className="pointer-events-none absolute left-9 top-1/2 -translate-y-1/2 rounded-full bg-white px-1 text-sm text-gray-600 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:border-gray-300 peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-[0.65rem] peer-not-placeholder-shown:text-blue-700 peer-not-placeholder-shown:font-semibold">
+                              Email
+                            </label>
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-left text-xs font-medium text-white mb-1">
-                            Mật khẩu
-                          </label>
                           <div className="relative">
                             <div className="absolute left-2.5 top-1/2 transform -translate-y-1/2">
-                              <FaLock className="w-4 h-4 text-white/70" />
+                              <FaLock className="w-4 h-4 text-blue-600/70" />
                             </div>
                             <input
                               type={showPassword ? "text" : "password"}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
-                              placeholder="••••••••"
-                              className="w-full pl-9 pr-9 py-2 text-xs bg-gray-100 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4da6ff] focus:border-transparent"
+                              placeholder=" "
+                              className="peer w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-9 pr-9 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
                               required
                               disabled={isLoading}
                             />
+                            <label className="pointer-events-none absolute left-9 top-1/2 -translate-y-1/2 rounded-full bg-white px-1 text-sm text-gray-600 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:border-gray-300 peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-[0.65rem] peer-not-placeholder-shown:text-blue-700 peer-not-placeholder-shown:font-semibold">
+                              Mật khẩu
+                            </label>
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white focus:outline-none"
+                              className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-blue-600/80 hover:text-blue-700 focus:outline-none"
                             >
                               {showPassword ? (
                                 <FaEyeSlash className="w-4 h-4" />
@@ -734,7 +505,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                               setSuccessMessage("");
                               setIsForgotPasswordMode(true);
                             }}
-                            className="text-xs text-[#4da6ff] hover:text-blue-600 font-medium focus:outline-none"
+                            className="text-sm text-[#4da6ff] hover:text-blue-600 font-medium focus:outline-none"
                           >
                             Quên mật khẩu?
                           </button>
@@ -743,7 +514,9 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                         <button
                           type="submit"
                           disabled={isLoading}
-                          className={`w-full bg-[#4da6ff] hover:bg-[#3d8cff] text-white font-semibold py-2 px-4 rounded-lg transition-colors shadow-md hover:shadow-lg text-xs mt-2 ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
+                          className={`w-full bg-[#4da6ff] hover:bg-[#3d8cff] text-white font-semibold py-2 px-4 rounded-lg transition-colors shadow-md hover:shadow-lg text-sm mt-2 ${
+                            isLoading ? "opacity-70 cursor-not-allowed" : ""
+                          }`}
                         >
                           {isLoading ? "Đang xử lý..." : "Đăng nhập"}
                         </button>
@@ -753,7 +526,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                         <div className="absolute inset-0 flex items-center">
                           <div className="w-full border-t border-white/30"></div>
                         </div>
-                        <div className="relative flex justify-center text-xs">
+                        <div className="relative flex justify-center text-sm">
                           <span className="px-2 bg-transparent text-white/80">
                             hoặc
                           </span>
@@ -765,7 +538,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                           onClick={() => googleLogin()}
                           disabled={isLoading}
                           type="button"
-                          className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-800 font-medium py-2 px-3 rounded-lg transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-800 font-medium py-1.5 px-3 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <svg width="17" height="17" viewBox="0 0 24 24">
                             <path
@@ -790,14 +563,14 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                       </div>
 
                       <div className="mt-2.5 text-center">
-                        <span className="text-xs text-white">
+                        <span className="text-sm text-white">
                           Chưa có tài khoản?{" "}
                         </span>
                         <button
                           type="button"
                           disabled={isPanelAnimating}
                           onClick={slideToRegister}
-                          className="text-xs text-[#4da6ff] hover:text-blue-600 font-semibold focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="text-sm text-[#4da6ff] hover:text-blue-600 font-semibold focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           Đăng ký ngay
                         </button>

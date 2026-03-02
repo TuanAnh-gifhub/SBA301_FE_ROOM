@@ -57,4 +57,8 @@ public class BookingIntent {
 
     @Column(name = "end_time")
     private LocalDateTime endTime;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rental_area_id")
+    private RentalArea rentalArea;
 }

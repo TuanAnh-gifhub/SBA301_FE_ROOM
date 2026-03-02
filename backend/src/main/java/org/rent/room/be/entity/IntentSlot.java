@@ -25,7 +25,10 @@ public class IntentSlot {
     private BookingIntent bookingIntent;
 
     @ManyToOne
-    RoomCopy roomCopy;
+//    RoomCopy roomCopy;
+    Room room;
+
+    Integer quantity;
 
     LocalDateTime startTime;
     LocalDateTime endTime;

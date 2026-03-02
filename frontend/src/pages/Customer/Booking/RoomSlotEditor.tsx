@@ -1,22 +1,31 @@
 import { useState } from "react";
 import { InputNumber } from "antd";
 import type { Room } from "../../../types/room";
-
+import { toast } from "react-toastify";
 export default function RoomSlotEditor({
   room,
+  selectedRooms,
+  setSelectedRooms,
   onAddSlot,
 }: {
   room: Room;
+  selectedRooms: any;
+  setSelectedRooms: any;
   onAddSlot: (slot: any) => void;
 }) {
   const [date, setDate] = useState("");
-  const [start, setStart] = useState("08:00");
-  const [end, setEnd] = useState("10:00");
+  const [start, setStart] = useState(null);
+  const [end, setEnd] = useState(null);
   const [quantity, setQuantity] = useState(1);
-
+  const selected = selectedRooms[room.roomId];
   const handleAdd = () => {
     if (!date) {
-      alert("Vui lòng chọn ngày");
+      toast.error("Vui lòng chọn ngày");
+      return;
+    }
+    if (!start || !end) {
+      toast.error("Vui lòng chọn thời gian bắt đầu và kết thúc");
+
       return;
     }
 
@@ -25,7 +34,7 @@ export default function RoomSlotEditor({
       date,
       start,
       end,
-      quantity,
+      quantity:selected.quantity || quantity,
     });
   };
 
@@ -47,14 +56,14 @@ export default function RoomSlotEditor({
           value={end}
           onChange={(e) => setEnd(e.target.value)}
         />
-      </div>
+        {selected && (
+          <div className="flex items-center gap-2">
+            <span>Số lượng:</span>
 
-      <InputNumber
-        min={1}
-        max={room.roomCopies?.length || 1}
-        value={quantity}
-        onChange={(v) => setQuantity(v || 1)}
-      />
+            <InputNumber min={1} value={selected.quantity} disabled />
+          </div>
+        )}
+      </div>
 
       <button
         onClick={handleAdd}

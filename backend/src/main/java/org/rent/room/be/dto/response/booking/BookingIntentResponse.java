@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.rent.room.be.constant.BookingIntentStatus;
 import org.rent.room.be.constant.BookingType;
+import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,7 +15,7 @@ import java.util.UUID;
 @Builder
 @Getter
 public class BookingIntentResponse {
-    private UUID intentId;
+    private UUID bookingIntentId;
     private BookingIntentStatus status;
     private BigDecimal previewPrice;
     private LocalDateTime expiresAt;
@@ -27,4 +28,8 @@ public class BookingIntentResponse {
     private LocalDateTime endTime;
     private String title;
     private String note;
+    private RentalAreaResponse rentalAreaResponse;
+    private BigDecimal tax;
+    private BigDecimal discount;
+    private BigDecimal totalAmount;
 }

@@ -21,6 +21,9 @@ import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManag
 import CategoryManagementPage from "../pages/Admin/CategoryManagement/CategoryManagementPage";
 import PostManagePage from "../pages/Admin/PostManagement/PostManagePage";
 import RentalDetailPage from "../pages/Customer/LandingPage/RentalDetailPage";
+import BookingDetail from "../pages/Customer/Booking/BookingDetail";
+import LoginPage from "../pages/Customer/LoginPage/LoginPage";
+import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
 
 export const router = createBrowserRouter([
   {
@@ -48,6 +51,17 @@ export const router = createBrowserRouter([
         //  <Route path="/rentals/:id" element={<RentalDetailPage />} />
         path: "rentals/:id",
         element: <RentalDetailPage />,
+      },
+      {
+        //    navigate(`/customer/bookings/${res.data.bookingIntentId}`);
+        path: "customer/bookings/:bookingId",
+        element: <BookingDetail />,
+        handle: { breadcrumb: "Chi tiết booking" },
+      },
+      {
+        path: "payment/success/:bookingId",
+        element: <PaymentSuccessPage />,
+        handle: { breadcrumb: "Thanh toán thành công" },
       },
       {
         path: "product/:id",

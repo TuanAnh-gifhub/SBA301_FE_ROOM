@@ -1,7 +1,20 @@
-import { useState } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import RoomSlotEditor from "./RoomSlotEditor";
 import type { Room } from "../../../types/room";
+
+import {
+  createBookingIntent,
+  updateBookingIntent,
+} from "../../../services/booking/bookingService";
+
+import {
+  getBookingIntent,
+  saveBookingIntent,
+  clearBookingIntent,
+} from "../../../hooks/useBookingIntent";
+
+import { toast } from "react-toastify";
 
 interface Props {
   selectedRooms: Record<string, { room: Room; quantity: number }>;
@@ -16,59 +29,106 @@ interface Slot {
   quantity: number;
 }
 
-export default function HourlyForm({ selectedRooms, userId }: Props) {
-  
-  const [slots, setSlots] = useState<Slot[]>([]);
+export default function HourlyForm({
+  selectedRooms,
+  setSelectedRooms,
+  userId,
+}: any) {
+  const navigate = useNavigate();
 
+  const saved = getBookingIntent();
 
-  const addSlot = (slot: Slot) => {
-    setSlots((prev) => [...prev, slot]);
+  const [slots, setSlots] = useState<Slot[]>(saved?.slots || []);
+  const [bookingIntentId, setBookingIntentId] = useState<string | null>(
+    saved?.bookingIntentId || null,
+  );
+
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!saved?.expireAt) return;
+
+    if (new Date(saved.expireAt) < new Date()) {
+      clearBookingIntent();
+      setSlots([]);
+      setBookingIntentId(null);
+    }
+  }, []);
+
+  const buildPayload = (slotList: Slot[]) => ({
+    userId,
+    bookingType: "HOURLY",
+    numberOfMonths: 0,
+    slotRequests: slotList.map((s) => ({
+      roomId: s.roomId,
+      quantity: s.quantity,
+      startTime: `${s.date}T${s.start}:00`,
+      endTime: `${s.date}T${s.end}:00`,
+    })),
+  });
+
+  const addSlot = async (slot: Slot) => {
+    try {
+      const updated = [...slots, slot];
+      setSlots(updated);
+
+      const payload = buildPayload(updated);
+
+      if (!bookingIntentId) {
+        const res = await createBookingIntent(payload);
+
+        const bookingIntentId = res.bookingIntentId;
+
+        setBookingIntentId(bookingIntentId);
+
+        saveBookingIntent({
+          bookingIntentId: bookingIntentId,
+          slots: updated,
+          expireAt: res.expiresAt,
+        });
+
+        toast.success("Đã giữ phòng");
+      } else {
+        await updateBookingIntent(bookingIntentId, payload);
+
+        saveBookingIntent({
+          bookingIntentId,
+          slots: updated,
+        });
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    }
   };
 
   const onSubmit = async () => {
-    if (slots.length === 0) {
-      alert("Vui lòng thêm ít nhất 1 khung giờ");
+    if (!bookingIntentId) {
+      toast.error("Vui lòng thêm khung giờ trước khi đặt lịch");
       return;
     }
 
-    const payload = {
-      userId,
-      bookingType: "HOURLY",
-      numberOfMonths: 0,
-      slotRequests: slots.map((s) => ({
-        roomId: s.roomId,
-        quantity: s.quantity,
-        startTime: `${s.date}T${s.start}:00`,
-        endTime: `${s.date}T${s.end}:00`,
-      })),
-    };
-
-    console.log("Payload:", payload);
-
-    await axios.post("/api/v1/rent-room/bookings", payload);
+    navigate(`/customer/bookings/${bookingIntentId}`);
   };
 
   return (
     <div className="space-y-6">
-
       {Object.values(selectedRooms).map(({ room }) => (
-        <RoomSlotEditor key={room.roomId} room={room} onAddSlot={addSlot} />
+        <RoomSlotEditor
+          key={room.roomId}
+          room={room}
+          selectedRooms={selectedRooms}
+          setSelectedRooms={setSelectedRooms}
+          onAddSlot={addSlot}
+        />
       ))}
-
-   
-      <div className="border rounded-lg p-3">
-        <h3 className="font-bold mb-2">Khung giờ đã chọn ({slots.length})</h3>
-
-        {slots.map((s, i) => (
-          <div key={i} className="text-sm">
-            Room: {s.roomId} | {s.date} | {s.start} → {s.end} ({s.quantity})
-          </div>
-        ))}
-      </div>
 
       <button
         onClick={onSubmit}
-        className="w-full bg-black text-white py-4 rounded-2xl font-bold"
+        disabled={loading}
+        className={`
+        w-full py-4 rounded-2xl font-bold text-white
+        ${loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}
+      `}
       >
         ĐẶT LỊCH
       </button>

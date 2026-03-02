@@ -71,8 +71,26 @@ public class BookingController {
             e.getStackTrace();
             return ApiResponse.builder()
                     .code(500)
-                    .message("Api system have some problems " + e.getMessage())
+                    .message(e.getMessage())
                     .build();
+        }
+    }
+
+
+    @PutMapping("/booking-intents/{intentId}")
+    public ApiResponse<?> updateBookingIntent(@PathVariable UUID intentId, @Valid @RequestBody BookingRequest request) {
+        try {
+            return ApiResponse.builder()
+                    .code(200)
+                    .message("Update booking intent successfully")
+                    .result(bookingService.updateBooking(request))
+                    .build();
+        }catch (Exception e){
+                e.getStackTrace();
+                return ApiResponse.builder()
+                        .code(500)
+                        .message(e.getMessage())
+                        .build();
         }
     }
 
@@ -90,7 +108,7 @@ public class BookingController {
             e.getStackTrace();
             return ApiResponse.builder()
                     .code(500)
-                    .message("Api system have some problems " + e.getMessage())
+                    .message( e.getMessage())
                     .build();
         }
     }

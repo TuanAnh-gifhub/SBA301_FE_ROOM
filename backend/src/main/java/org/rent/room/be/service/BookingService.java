@@ -17,6 +17,7 @@ public interface BookingService {
     BookingIntentResponse getBookingIntentById(UUID bookingIntentId);
     BookingIntentResponse createBookingIntent(BookingRequest bookingRequest);
   BookingResponse createBooking(UUID bookingIntentID);
+    BookingIntentResponse updateBookingIntent(UUID bookingIntentId,BookingRequest bookingRequest);
   BookingResponse updateBooking(BookingRequest bookingRequest);
   BookingResponse getBookingById(UUID bookingId);
   PageResponse<BookingResponse> getAllBookings(BookingStatus bookingStatus, String keyword, LocalDate from, LocalDate to, int page, int size);

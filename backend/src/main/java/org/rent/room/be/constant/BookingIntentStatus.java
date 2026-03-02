@@ -1,7 +1,7 @@
 package org.rent.room.be.constant;
 
 public enum BookingIntentStatus {
-     HOLDING,
+     ACTIVE,
     CONFIRMED,
     EXPIRED,
     CANCELLED
