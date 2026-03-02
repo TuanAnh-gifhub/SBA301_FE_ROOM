@@ -46,23 +46,21 @@ const ConfirmRegister: React.FC = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#F3F4F6",
+        background: "#f5f5f5",
       }}
     >
       {status === "loading" && (
         <div style={{ textAlign: "center" }}>
           <Spin size="large" />
-          <p style={{ marginTop: 16, fontSize: "15px" }}>
-            Đang xác thực tài khoản, vui lòng chờ...
-          </p>
+          <p style={{ marginTop: 16, fontSize: "15px" }}>Đang xác thực tài khoản...</p>
         </div>
       )}
 
       {status === "success" && (
         <Result
           status="success"
-          title="Xác nhận tài khoản thành công"
-          subTitle="Tài khoản của bạn đã được kích hoạt. Bạn có thể đăng nhập ngay bây giờ."
+          title="Xác thực thành công!"
+          subTitle="Tài khoản của bạn đã sẵn sàng. Hãy đăng nhập để bắt đầu."
           extra={[
             <Button type="primary" key="login" onClick={() => navigate("/")}>
               Đăng nhập ngay
@@ -74,8 +72,8 @@ const ConfirmRegister: React.FC = () => {
       {status === "error" && (
         <Result
           status="error"
-          title="Xác nhận tài khoản thất bại"
-          subTitle="Link xác nhận không hợp lệ hoặc đã hết hạn."
+          title="Xác thực thất bại"
+          subTitle="Liên kết đã hết hạn hoặc đã được sử dụng. Vui lòng thử lại."
           extra={[
             <Button type="primary" key="home" onClick={() => navigate("/")}>
               Quay lại trang chủ

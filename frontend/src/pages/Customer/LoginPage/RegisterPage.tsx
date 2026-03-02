@@ -1,149 +1,162 @@
-import React, { useState } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import React, { useMemo, useState } from "react";
 import { message } from "antd";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaEnvelope,
   FaLock,
-  FaPhone,
-  FaUser,
   FaTimes,
+  FaEye,
+  FaEyeSlash,
+  FaUser,
+  FaPhone,
+  FaCalendarAlt,
+  FaVenusMars,
 } from "react-icons/fa";
 import authService, {
   type CreateUsersRequest,
 } from "../../../services/auth/authService";
 import loginIntroVideo from "../../../assets/login_intro_video.mp4";
 
-interface RegisterPageProps {
+export interface RegisterPageProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
 }
 
-type RegisterFormValues = {
+export type RegisterFormValues = {
   userName: string;
   email: string;
   password: string;
   confirmPassword: string;
   phone?: string;
-  gender: "MALE" | "FEMALE";
+  // Cho phép "" để LoginPage có thể dùng cùng type (ban đầu chưa chọn giới tính)
+  gender: "" | "MALE" | "FEMALE";
   dateOfBirth: string;
 };
 
-const RegisterPage: React.FC<RegisterPageProps> = ({
-  isOpen,
-  onClose,
+// Hàm validate dùng chung cho cả RegisterPage và LoginPage
+export const validateRegisterFormValues = (
+  values: RegisterFormValues,
+): string | null => {
+  if (!values.userName.trim()) return "Vui lòng nhập họ và tên.";
+  if (!values.email.trim()) return "Vui lòng nhập email.";
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(values.email)) return "Email không hợp lệ.";
+
+  if (values.phone && !/^0\d{9,10}$/.test(values.phone)) {
+    return "Số điện thoại không hợp lệ.";
+  }
+
+  if (!values.dateOfBirth) return "Vui lòng chọn ngày sinh.";
+  if (!values.gender) return "Vui lòng chọn giới tính.";
+
+  if (!values.password) return "Vui lòng nhập mật khẩu.";
+  if (values.password.length < 8) {
+    return "Mật khẩu tối thiểu 8 ký tự.";
+  }
+
+  if (!values.confirmPassword) return "Vui lòng nhập lại mật khẩu.";
+  if (values.password !== values.confirmPassword) {
+    return "Mật khẩu nhập lại không khớp.";
+  }
+
+  return null;
+};
+
+export interface RegisterFormProps {
+  onSwitchToLogin?: () => void;
+  isSwitchDisabled?: boolean;
+  onErrorMessage?: (msg: string) => void;
+  onSuccessMessage?: (msg: string) => void;
+  variant?: "dark" | "light";
+}
+
+export const RegisterForm: React.FC<RegisterFormProps> = ({
   onSwitchToLogin,
+  isSwitchDisabled = false,
+  onErrorMessage,
+  onSuccessMessage,
+  variant = "dark",
 }) => {
-  const [formValues, setFormValues] = useState<RegisterFormValues>({
+  const [values, setValues] = useState<RegisterFormValues>({
     userName: "",
     email: "",
     password: "",
     confirmPassword: "",
     phone: "",
-    gender: "MALE",
+    gender: "",
     dateOfBirth: "",
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+
+  const isPasswordMatch = useMemo(() => {
+    return (
+      values.password.length > 0 &&
+      values.confirmPassword.length > 0 &&
+      values.password === values.confirmPassword
+    );
+  }, [values.password, values.confirmPassword]);
+
+  const isPasswordMismatch = useMemo(() => {
+    return values.confirmPassword.length > 0 && !isPasswordMatch;
+  }, [values.confirmPassword.length, isPasswordMatch]);
 
   const handleChange =
     (field: keyof RegisterFormValues) =>
       (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const value = e.target.value;
-        setFormValues((prev) => ({ ...prev, [field]: value }));
+        setValues((prev) => ({ ...prev, [field]: value }));
       };
 
-  const validateForm = (): string | null => {
-    if (!formValues.userName.trim()) return "Vui lòng nhập họ và tên.";
-    if (!formValues.email.trim()) return "Vui lòng nhập email.";
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formValues.email)) return "Email không hợp lệ.";
-
-    if (formValues.phone && !/^0\d{9,10}$/.test(formValues.phone)) {
-      return "Số điện thoại không hợp lệ.";
-    }
-
-    if (!formValues.dateOfBirth) return "Vui lòng chọn ngày sinh.";
-    if (!formValues.gender) return "Vui lòng chọn giới tính.";
-
-    if (!formValues.password) return "Vui lòng nhập mật khẩu.";
-    if (formValues.password.length < 8) {
-      return "Mật khẩu tối thiểu 8 ký tự.";
-    }
-
-    if (!formValues.confirmPassword) return "Vui lòng nhập lại mật khẩu.";
-    if (formValues.password !== formValues.confirmPassword) {
-      return "Mật khẩu nhập lại không khớp.";
-    }
-
-    return null;
-  };
-
-  const resetStates = () => {
-    setErrorMessage("");
-    setSuccessMessage("");
-  };
-
-  const onFinish = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    resetStates();
+    onErrorMessage?.("");
+    onSuccessMessage?.("");
 
-    const validationError = validateForm();
+    const validationError = validateRegisterFormValues(values);
     if (validationError) {
-      setErrorMessage(validationError);
+      onErrorMessage?.(validationError);
       return;
     }
 
     setLoading(true);
     try {
       const payload: CreateUsersRequest = {
-        userName: formValues.userName.trim(),
-        email: formValues.email.trim(),
-        password: formValues.password,
-        phone: formValues.phone ?? "",
-        gender: formValues.gender,
-        dateOfBirth: formValues.dateOfBirth,
+        userName: values.userName.trim(),
+        email: values.email.trim(),
+        password: values.password,
+        phone: values.phone ?? "",
+        gender: values.gender,
+        dateOfBirth: values.dateOfBirth,
         roleName: "RENTER",
       };
 
       const response = await authService.registerRequest(payload);
-
-      // Kiểm tra logic response tùy theo API của bạn
       if (response && response.code === 200) {
-        setLoading(false);
-        setSuccessMessage(
-          "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.",
-        );
-
-        // THÊM DÒNG NÀY ĐỂ HIỆN MESSAGE POP-UP
+        const successText =
+          "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.";
+        onSuccessMessage?.(successText);
         message.success(response.message || "Đăng ký thành công!");
-
-        // Reset form
-        setFormValues({
+        setValues({
           userName: "",
           email: "",
           password: "",
           confirmPassword: "",
           phone: "",
-          gender: "MALE",
+          gender: "",
           dateOfBirth: "",
         });
       } else {
-        setLoading(false);
-        setErrorMessage(
-          response?.message || "Đăng ký thất bại. Vui lòng thử lại!",
-        );
-        message.error(
-          response?.message || "Đăng ký thất bại. Vui lòng thử lại!",
-        );
+        const errorText = response?.message || "Lỗi kết nối máy chủ!";
+        onErrorMessage?.(errorText);
+        message.error(errorText);
       }
     } catch (error: unknown) {
       console.error("Register Error:", error);
-      setLoading(false);
-
-      // Lấy message lỗi từ Server trả về (nếu có dạng response.data.message)
       const errorMsg =
         typeof error === "object" &&
           error !== null &&
@@ -156,10 +169,258 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
             }
           ).response!.data!.message!
           : "Lỗi kết nối máy chủ!";
-      setErrorMessage(errorMsg);
+      onErrorMessage?.(errorMsg);
       message.error(errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3.5">
+      <div className="grid grid-cols-12 gap-3">
+        <div className="col-span-7">
+          <div className="relative">
+            <div className="absolute left-2 top-1/2 -translate-y-1/2">
+              <FaUser className="w-4 h-4 text-blue-600/70" />
+            </div>
+            <input
+              type="text"
+              value={values.userName}
+              onChange={handleChange("userName")}
+              placeholder=" "
+              className="peer w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-8 pr-3 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
+              disabled={loading}
+              required
+            />
+            <label className="pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 rounded-full bg-white px-1 text-sm text-gray-600 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:border-gray-300 peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-[0.65rem] peer-not-placeholder-shown:text-blue-700 peer-not-placeholder-shown:font-semibold">
+              Họ và tên
+            </label>
+          </div>
+        </div>
+
+        <div className="col-span-5">
+          <div className="relative">
+            <div className="absolute left-2 top-1/2 -translate-y-1/2">
+              <FaPhone className="w-4 h-4 text-blue-600/70" />
+            </div>
+            <input
+              type="tel"
+              value={values.phone}
+              onChange={handleChange("phone")}
+              placeholder=" "
+              className="peer w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-8 pr-3 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
+              disabled={loading}
+              pattern="^0\\d{9,10}$"
+            />
+            <label className="pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 rounded-full bg-white px-1 text-sm text-gray-600 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:border-gray-300 peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-[0.65rem] peer-not-placeholder-shown:text-blue-700 peer-not-placeholder-shown:font-semibold">
+              SĐT
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-12 gap-3">
+        <div className="col-span-7">
+          <div className="relative">
+            <div className="absolute left-2 top-1/2 -translate-y-1/2">
+              <FaCalendarAlt className="w-4 h-4 text-blue-600/70" />
+            </div>
+            <input
+              type="date"
+              value={values.dateOfBirth}
+              onChange={handleChange("dateOfBirth")}
+              className="peer date-input w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-8 pr-3 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
+              disabled={loading}
+              required
+            />
+            <label
+              className={`pointer-events-none absolute left-8 rounded-full bg-white px-1 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold ${
+                values.dateOfBirth
+                  ? "top-0 -translate-y-1/2 text-[0.65rem] text-blue-700 font-semibold border-gray-300"
+                  : "top-1/2 -translate-y-1/2 text-sm text-gray-700"
+              }`}
+              >
+              Ngày sinh
+            </label>
+          </div>
+        </div>
+
+        <div className="col-span-5">
+          <div className="relative">
+            <div className="absolute left-2 top-1/2 -translate-y-1/2">
+              <FaVenusMars className="w-4 h-4 text-blue-600/70" />
+            </div>
+            <select
+              value={values.gender}
+              onChange={handleChange("gender")}
+              className="peer w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-8 pr-3 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
+              disabled={loading}
+              required
+            >
+              <option value="" disabled hidden>
+                {""}
+              </option>
+              <option value="MALE">Nam</option>
+              <option value="FEMALE">Nữ</option>
+            </select>
+            <label
+              className={`pointer-events-none absolute left-8 rounded-full bg-white px-1 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold ${
+                values.gender
+                  ? "top-0 -translate-y-1/2 text-[0.65rem] text-blue-700 font-semibold border-gray-300"
+                  : "top-1/2 -translate-y-1/2 text-sm text-gray-700"
+              }`}
+            >
+              Giới tính
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="relative">
+          <div className="absolute left-2 top-1/2 -translate-y-1/2">
+            <FaEnvelope className="w-4 h-4 text-blue-600/70" />
+          </div>
+          <input
+            type="email"
+            value={values.email}
+            onChange={handleChange("email")}
+            placeholder=" "
+            className="peer w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-8 pr-3 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
+            disabled={loading}
+            required
+          />
+          <label className="pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 rounded-full bg-white px-1 text-sm text-gray-600 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:border-gray-300 peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-[0.65rem] peer-not-placeholder-shown:text-blue-700 peer-not-placeholder-shown:font-semibold">
+            Email
+          </label>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-12 gap-3">
+        <div className="col-span-6">
+          <div className="relative">
+            <div className="absolute left-2 top-1/2 -translate-y-1/2">
+              <FaLock className="w-4 h-4 text-blue-600/70" />
+            </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={values.password}
+              onChange={handleChange("password")}
+              placeholder=" "
+              className="peer w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-8 pr-9 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
+              disabled={loading}
+              required
+              minLength={8}
+            />
+            <label className="pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 rounded-full bg-white px-1 text-sm text-gray-600 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:border-gray-300 peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-[0.65rem] peer-not-placeholder-shown:text-blue-700 peer-not-placeholder-shown:font-semibold">
+              Mật khẩu
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-blue-600/80 hover:text-blue-700 focus:outline-none"
+            >
+              {showPassword ? (
+                <FaEyeSlash className="w-4 h-4" />
+              ) : (
+                <FaEye className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="col-span-6">
+          <div className="relative">
+            <div className="absolute left-2 top-1/2 -translate-y-1/2">
+              <FaLock className="w-4 h-4 text-blue-600/70" />
+            </div>
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              value={values.confirmPassword}
+              onChange={handleChange("confirmPassword")}
+              placeholder=" "
+              className={`peer w-full rounded-lg border-2 bg-white text-gray-900 text-sm pl-8 pr-9 py-2.5 transition-all duration-150 focus:outline-none focus:bg-white ${
+                isPasswordMismatch
+                  ? "border-red-400 focus:border-red-500"
+                  : "border-gray-300 focus:border-blue-600"
+              }`}
+              disabled={loading}
+              required
+              minLength={8}
+            />
+            <label
+              className={`pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 rounded-full bg-white px-1 text-sm border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-not-placeholder-shown:bg-white peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:font-semibold peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-[0.65rem] peer-not-placeholder-shown:font-semibold ${
+                isPasswordMismatch
+                  ? "text-red-600 peer-not-placeholder-shown:border-red-400 peer-focus:border-red-500 peer-not-placeholder-shown:text-red-600"
+                  : "text-gray-600 peer-not-placeholder-shown:border-gray-300 peer-focus:border-blue-600 peer-focus:text-blue-700 peer-not-placeholder-shown:text-blue-700"
+              }`}
+            >
+              {isPasswordMismatch
+                ? "Mật khẩu nhập lại không khớp."
+                : "Nhập lại mật khẩu"}
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((v) => !v)}
+              className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-blue-600/80 hover:text-blue-700 focus:outline-none"
+            >
+              {showConfirmPassword ? (
+                <FaEyeSlash className="w-4 h-4" />
+              ) : (
+                <FaEye className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={loading || isPasswordMismatch || !isPasswordMatch}
+        className={`w-full bg-[#4da6ff] hover:bg-[#3d8cff] text-white font-semibold py-2 px-4 rounded-lg transition-colors shadow-md hover:shadow-lg text-sm mt-2 ${
+          loading || isPasswordMismatch || !isPasswordMatch
+            ? "opacity-70 cursor-not-allowed"
+            : ""
+        }`}
+      >
+        {loading ? "Đang xử lý..." : "Đăng ký"}
+      </button>
+
+      {onSwitchToLogin && (
+        <div className="mt-0 text-center">
+          <span
+            className={`text-sm ${
+              variant === "light" ? "text-gray-700" : "text-white"
+            }`}
+          >
+            Đã có tài khoản?{" "}
+          </span>
+          <button
+            type="button"
+            disabled={isSwitchDisabled}
+            onClick={onSwitchToLogin}
+            className={`text-sm font-semibold focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed ${
+              variant === "light"
+                ? "text-[#4da6ff] hover:text-blue-600"
+                : "text-[#4da6ff] hover:text-blue-300"
+            }`}
+          >
+            Đăng nhập ngay
+          </button>
+        </div>
+      )}
+    </form>
+  );
+};
+
+const RegisterPage: React.FC<RegisterPageProps> = ({
+  isOpen,
+  onClose,
+  onSwitchToLogin,
+}) => {
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   if (!isOpen) return null;
 
@@ -231,197 +492,56 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                       </svg>
                     </div>
                   </div>
-                  <h2 className="text-xl font-bold text-center">Tạo Tài Khoản</h2>
+                  <h2 className="text-xl font-bold text-center">
+                    Tạo Tài Khoản
+                  </h2>
                   <p className="text-center text-white/80 text-sm">
-                    Đăng ký ngay để bắt đầu
+                    Đăng ký ngay để bắt đầu.
                   </p>
                 </div>
 
                 <div className="px-5 py-2.5 flex-1 overflow-y-auto">
-                  {/* Alert lỗi */}
-                  {errorMessage && (
-                    <div className="mb-2 p-1.5 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg text-center font-medium">
-                      {errorMessage}
-                    </div>
-                  )}
+                  <div className="flex items-start min-h-[32px] mb-1">
+                    <AnimatePresence mode="wait">
+                      {errorMessage && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                          transition={{
+                            duration: 0.2,
+                            delay: 0.12,
+                            ease: [0.4, 0, 0.2, 1],
+                          }}
+                          className="w-full px-2 py-1 bg-red-50 border border-red-200 text-red-600 text-xs leading-snug rounded-md text-center font-semibold"
+                        >
+                          {errorMessage}
+                        </motion.div>
+                      )}
+                      {successMessage && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                          transition={{
+                            duration: 0.2,
+                            delay: 0.12,
+                            ease: [0.4, 0, 0.2, 1],
+                          }}
+                          className="w-full px-2 py-1 bg-green-50 border border-green-200 text-green-600 text-xs leading-snug rounded-md text-center font-semibold"
+                        >
+                          {successMessage}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
-                  {/* Alert thành công */}
-                  {successMessage && (
-                    <div className="mb-2 p-1.5 bg-green-50 border border-green-200 text-green-600 text-sm rounded-lg text-center font-medium">
-                      {successMessage}
-                    </div>
-                  )}
-
-                  <form onSubmit={onFinish} className="space-y-2.5">
-                    {/* Họ và tên + SĐT */}
-                    <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-7">
-                        <div className="relative">
-                          <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                            <FaUser className="w-4 h-4 text-blue-600/70" />
-                          </div>
-                          <input
-                            type="text"
-                            value={formValues.userName}
-                            onChange={handleChange("userName")}
-                            placeholder=" "
-                            className="peer w-full rounded-lg border border-gray-300 bg-gray-100 text-gray-900 text-sm pl-8 pr-3 pt-3.5 pb-1.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white focus:shadow-[0_0_0_1px_#2563eb]"
-                            disabled={loading}
-                            required
-                          />
-                          <label className="pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 rounded-full bg-gray-100 px-1 text-sm text-gray-600 z-10 transition-all duration-150 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-focus:border-t peer-focus:border-blue-600 peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:text-[0.65rem] peer-[&:not(:placeholder-shown)]:text-blue-700 peer-[&:not(:placeholder-shown)]:font-semibold">
-                            Họ và tên
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="col-span-5">
-                        <div className="relative">
-                          <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                            <FaPhone className="w-4 h-4 text-gray-400" />
-                          </div>
-                          <input
-                            type="tel"
-                            value={formValues.phone}
-                            onChange={handleChange("phone")}
-                            placeholder=" "
-                            className="peer w-full rounded-lg border border-gray-300 bg-gray-100 text-gray-900 text-sm pl-8 pr-3 pt-3.5 pb-1.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white focus:shadow-[0_0_0_1px_#2563eb]"
-                            disabled={loading}
-                            pattern="^0\\d{9,10}$"
-                          />
-                          <label className="pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 rounded-full bg-gray-100 px-1 text-sm text-gray-600 z-10 transition-all duration-150 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-focus:border-t peer-focus:border-blue-600 peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:text-[0.65rem] peer-[&:not(:placeholder-shown)]:text-blue-700 peer-[&:not(:placeholder-shown)]:font-semibold">
-                            SĐT
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Ngày sinh + Giới tính */}
-                    <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-7">
-                        <div className="relative">
-                          <input
-                            type="date"
-                            value={formValues.dateOfBirth}
-                            onChange={handleChange("dateOfBirth")}
-                            placeholder=" "
-                            className="peer w-full rounded-lg border border-gray-300 bg-gray-100 text-gray-900 text-sm px-3 pt-3.5 pb-1.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white focus:shadow-[0_0_0_1px_#2563eb]"
-                            disabled={loading}
-                            required
-                          />
-                          <label className="pointer-events-none absolute left-3 top-0 -translate-y-1/2 rounded-full bg-gray-100 px-1 text-sm text-gray-700 z-10 transition-all duration-150 peer-focus:text-blue-700 peer-focus:font-semibold peer-focus:border-t peer-focus:border-blue-600">
-                            Ngày sinh
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="col-span-5">
-                        <div className="relative">
-                          <select
-                            value={formValues.gender}
-                            onChange={handleChange("gender")}
-                            className="peer w-full rounded-lg border border-gray-300 bg-gray-100 text-gray-900 text-sm px-3 pt-3.5 pb-1.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white focus:shadow-[0_0_0_1px_#2563eb]"
-                            disabled={loading}
-                          >
-                            <option value="MALE">Nam</option>
-                            <option value="FEMALE">Nữ</option>
-                          </select>
-                          <label className="pointer-events-none absolute left-3 top-0 -translate-y-1/2 rounded-full bg-gray-100 px-1 text-sm text-gray-700 z-10 transition-all duration-150 peer-focus:text-blue-700 peer-focus:font-semibold peer-focus:border-t peer-focus:border-blue-600">
-                            Giới tính
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                      <div className="relative">
-                        <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                          <FaEnvelope className="w-4 h-4 text-gray-400" />
-                        </div>
-                        <input
-                          type="email"
-                          value={formValues.email}
-                          onChange={handleChange("email")}
-                          placeholder=" "
-                          className="peer w-full rounded-lg border border-gray-300 bg-gray-100 text-gray-900 text-sm pl-8 pr-3 pt-3.5 pb-1.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white focus:shadow-[0_0_0_1px_#2563eb]"
-                          disabled={loading}
-                          required
-                        />
-                        <label className="pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 rounded-full bg-gray-100 px-1 text-sm text-gray-600 z-10 transition-all duration-150 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-focus:border-t peer-focus:border-blue-600 peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:text-[0.65rem] peer-[&:not(:placeholder-shown)]:text-blue-700 peer-[&:not(:placeholder-shown)]:font-semibold">
-                          Email
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Mật khẩu + Nhập lại mật khẩu */}
-                    <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-6">
-                        <div className="relative">
-                          <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                            <FaLock className="w-4 h-4 text-gray-400" />
-                          </div>
-                          <input
-                            type="password"
-                            value={formValues.password}
-                            onChange={handleChange("password")}
-                            placeholder=" "
-                            className="peer w-full rounded-lg border border-gray-300 bg-gray-100 text-gray-900 text-sm pl-8 pr-3 pt-3.5 pb-1.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white focus:shadow-[0_0_0_1px_#2563eb]"
-                            disabled={loading}
-                            required
-                            minLength={8}
-                          />
-                          <label className="pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 rounded-full bg-gray-100 px-1 text-sm text-gray-600 z-10 transition-all duration-150 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-focus:border-t peer-focus:border-blue-600 peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:text-[0.65rem] peer-[&:not(:placeholder-shown)]:text-blue-700 peer-[&:not(:placeholder-shown)]:font-semibold">
-                            Mật khẩu
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="col-span-6">
-                        <div className="relative">
-                          <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                            <FaLock className="w-4 h-4 text-gray-400" />
-                          </div>
-                          <input
-                            type="password"
-                            value={formValues.confirmPassword}
-                            onChange={handleChange("confirmPassword")}
-                            placeholder=" "
-                            className="peer w-full rounded-lg border border-gray-300 bg-gray-100 text-gray-900 text-sm pl-8 pr-3 pt-3.5 pb-1.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white focus:shadow-[0_0_0_1px_#2563eb]"
-                            disabled={loading}
-                            required
-                            minLength={8}
-                          />
-                          <label className="pointer-events-none absolute left-8 top-1/2 -translate-y-1/2 rounded-full bg-gray-100 px-1 text-sm text-gray-600 z-10 transition-all duration-150 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-focus:border-t peer-focus:border-blue-600 peer-[&:not(:placeholder-shown)]:top-0 peer-[&:not(:placeholder-shown)]:-translate-y-1/2 peer-[&:not(:placeholder-shown)]:text-[0.65rem] peer-[&:not(:placeholder-shown)]:text-blue-700 peer-[&:not(:placeholder-shown)]:font-semibold">
-                            Nhập lại mật khẩu
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Submit */}
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className={`w-full bg-[#4da6ff] hover:bg-[#3d8cff] text-white font-semibold py-1.5 px-4 rounded-lg transition-colors shadow-md hover:shadow-lg text-sm mt-1 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
-                    >
-                      {loading ? "Đang xử lý..." : "Tiếp tục"}
-                    </button>
-
-                    {/* Đã có tài khoản? */}
-                    <div className="mt-2 text-center">
-                      <span className="text-sm text-gray-700">
-                        Đã có tài khoản?{" "}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={onSwitchToLogin}
-                        className="text-sm text-[#4da6ff] hover:text-blue-600 font-semibold focus:outline-none"
-                      >
-                        Đăng nhập
-                      </button>
-                    </div>
-                  </form>
+                  <RegisterForm
+                    onSwitchToLogin={onSwitchToLogin}
+                    onErrorMessage={setErrorMessage}
+                    onSuccessMessage={setSuccessMessage}
+                    variant="light"
+                  />
                 </div>
               </div>
             </div>

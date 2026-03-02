@@ -99,9 +99,6 @@ const authService = {
     return api.post<unknown, ApiResponse<void>>("/auth/reset-password", data);
   },
 
-  // Lấy thông tin user hiện tại sau khi đã có accessToken
-  // ĐẢM BẢO trả về đúng ApiResponse<UserResponse> (response.data),
-  // thay vì nguyên AxiosResponse để các chỗ gọi có thể dùng meResponse.result
   getCurrentUser: async (): Promise<ApiResponse<UserResponse>> => {
     const response = await api.get<ApiResponse<UserResponse>>("/users/me");
     return response.data;
