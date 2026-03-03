@@ -124,6 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <Link to="/admin/amenities">Thiết bị & Tiện ích</Link>,
         "/admin/amenities",
       ),
+      getItem(<Link to="/admin/packages">Gói Premium</Link>, "/admin/packages"),
       getItem(
         <Link to="/admin/settings">Cài đặt chung</Link>,
         "/admin/settings",

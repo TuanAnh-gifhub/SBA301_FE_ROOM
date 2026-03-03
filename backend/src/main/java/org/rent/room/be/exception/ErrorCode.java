@@ -19,27 +19,28 @@ public enum ErrorCode {
     SOCIAL_ACCOUNT_REQUIRED(1008, "Social account required", HttpStatus.BAD_REQUEST),
 
     //User
-    USER_EXISTED(2001,"Email existed", HttpStatus.BAD_REQUEST),
-    USER_NOT_FOUND(2002,"User not found", HttpStatus.NOT_FOUND),
-    USER_NOT_AUTHENTICATED(2003,"User not authenticated", HttpStatus.UNAUTHORIZED),
-    EMAIL_NOT_FOUND(2004,"Email not found", HttpStatus.NOT_FOUND),
+    USER_EXISTED(2001, "Email existed", HttpStatus.BAD_REQUEST),
+    USER_NOT_FOUND(2002, "User not found", HttpStatus.NOT_FOUND),
+    USER_NOT_AUTHENTICATED(2003, "User not authenticated", HttpStatus.UNAUTHORIZED),
+    EMAIL_NOT_FOUND(2004, "Email not found", HttpStatus.NOT_FOUND),
 
     //Role
-    ROLE_NOT_FOUND(3001,"Role not found", HttpStatus.NOT_FOUND),
+    ROLE_NOT_FOUND(3001, "Role not found", HttpStatus.NOT_FOUND),
 
     // Page Errors
-    INVALID_PAGINATION(4001,"Invalid pagination parameters",HttpStatus.BAD_REQUEST),
+    INVALID_PAGINATION(4001, "Invalid pagination parameters", HttpStatus.BAD_REQUEST),
 
     // Package Errors
-    RENTPACKAGE_NOT_FOUND(4001, "Package not found", HttpStatus.NOT_FOUND),
-    INVALID_RENTPACKAGE(4002, "Invalid package data", HttpStatus.BAD_REQUEST),
+    RENTPACKAGE_NOT_FOUND(4002, "Package not found", HttpStatus.NOT_FOUND),      // đổi 4001→4002
+    INVALID_RENTPACKAGE(4003, "Invalid package data", HttpStatus.BAD_REQUEST),    // đổi 4002→4003
 
-    //Rental Area
-    RENTAL_AREA_NOT_FOUND(4001, "Rental area not found", HttpStatus.NOT_FOUND),
+    // Rental Area
+    RENTAL_AREA_NOT_FOUND(4004, "Rental area not found", HttpStatus.NOT_FOUND),  // đổi 4001→4004
 
+    // Subscription
+    SUBSCRIPTION_ALREADY_ACTIVE(4005, "User already has an active subscription", HttpStatus.BAD_REQUEST),
+    SUBSCRIPTION_NOT_FOUND(4006, "Subscription not found", HttpStatus.NOT_FOUND),
 
-    UNCATEGORIZED_EXCEPTION(9999, "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR), // Lỗi 500 không xác định
-    INVALID_KEY(8888, "Invalid message key", HttpStatus.BAD_REQUEST), // Lỗi validate chung
     ;
 
 

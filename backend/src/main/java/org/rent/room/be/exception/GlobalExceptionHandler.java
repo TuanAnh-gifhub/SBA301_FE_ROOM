@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(
                 ApiResponse.<Map<String, String>>builder()
-                        .code(ErrorCode.INVALID_KEY.getCode())
+                        .code(ErrorCode.USER_NOT_AUTHENTICATED.getCode())
                         .message("Validation failed")
                         .result(errors)
                         .build()
@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleJsonError(HttpMessageNotReadableException e) {
         return ResponseEntity.badRequest().body(
                 ApiResponse.builder()
-                        .code(ErrorCode.INVALID_KEY.getCode())
+                        .code(ErrorCode.USER_NOT_AUTHENTICATED.getCode())
                         .message("Malformed JSON request "+e.getMessage())
                         .build()
         );
@@ -76,7 +76,7 @@ public class GlobalExceptionHandler {
         // Ghi log lỗi ra console server để Developer sửa
         log.error("Uncaught Exception: ", e);
 
-        ErrorCode errorCode = ErrorCode.UNCATEGORIZED_EXCEPTION;
+        ErrorCode errorCode = ErrorCode.USER_NOT_AUTHENTICATED;
 
         return ResponseEntity
                 .status(errorCode.getHttpStatusCode())

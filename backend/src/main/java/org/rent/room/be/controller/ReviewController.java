@@ -1,6 +1,5 @@
 package org.rent.room.be.controller;
 
-import com.beust.ah.A;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.rent.room.be.base.ApiResponse;

@@ -101,10 +101,10 @@ const authService = {
 
   // Lấy thông tin user hiện tại sau khi đã có accessToken
   getCurrentUser: async (): Promise<ApiResponse<UserResponse>> => {
-    const response = await api.get<unknown, ApiResponse<UserResponse>>(
-      "/users/me",
-    );
-    return response;
+    // Axios sẽ trả về AxiosResponse<ApiResponse<UserResponse>>
+    const response = await api.get<ApiResponse<UserResponse>>("/users/me");
+    // Lấy phần payload { code, message, result }
+    return response.data;
   },
 };
 

@@ -35,8 +35,9 @@ const ChatBubble = () => {
       setShowChatList(false);
 
       const existingChat = chatLogic.conversations.find(
-        (c) => c.otherPerson?.userId === userId,
+        (c) => String(c.otherPerson?.userId) === String(userId),
       );
+
       if (existingChat) {
         chatLogic.handleChatSelect(existingChat);
       } else {

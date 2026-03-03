@@ -5,7 +5,7 @@ import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import ChatHeader from "./ChatHeader";
 import { useAuth } from "../../../context/AuthContext";
-import { useChat } from "./useChat"; // Import hook chung
+import { useChat } from "./useChat";
 
 const ChatBoxHome = () => {
   const { user } = useAuth();

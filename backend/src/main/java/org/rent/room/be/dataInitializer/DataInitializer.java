@@ -47,6 +47,8 @@ public class DataInitializer implements CommandLineRunner {
         List<Category> categories = categoryRepository.findAll();
         RentalArea rentalArea =RentalArea.builder()
                 .address("90 Phạm Đăng Giảng, phường Bình Hưng Hòa")
+                .contactName("Quang B")
+                .contactPhone("0777964742")
                 .city(cities.getFirst() != null ? cities.getFirst() : City.builder()
                         .cityName("Thành phố Huế")
                         .build())
@@ -166,18 +168,80 @@ public class DataInitializer implements CommandLineRunner {
 
 
     private void seedCities() {
+
         List<String> cities = List.of(
-                "TP. Hồ Chí Minh",
                 "Hà Nội",
+                "TP. Hồ Chí Minh",
+                "Hải Phòng",
                 "Đà Nẵng",
-                "Cần Thơ"
+                "Cần Thơ",
+                "An Giang",
+                "Bà Rịa - Vũng Tàu",
+                "Bắc Giang",
+                "Bắc Kạn",
+                "Bạc Liêu",
+                "Bắc Ninh",
+                "Bến Tre",
+                "Bình Định",
+                "Bình Dương",
+                "Bình Phước",
+                "Bình Thuận",
+                "Cà Mau",
+                "Cao Bằng",
+                "Đắk Lắk",
+                "Đắk Nông",
+                "Điện Biên",
+                "Đồng Nai",
+                "Đồng Tháp",
+                "Gia Lai",
+                "Hà Giang",
+                "Hà Nam",
+                "Hà Tĩnh",
+                "Hải Dương",
+                "Hậu Giang",
+                "Hòa Bình",
+                "Hưng Yên",
+                "Khánh Hòa",
+                "Kiên Giang",
+                "Kon Tum",
+                "Lai Châu",
+                "Lâm Đồng",
+                "Lạng Sơn",
+                "Lào Cai",
+                "Long An",
+                "Nam Định",
+                "Nghệ An",
+                "Ninh Bình",
+                "Ninh Thuận",
+                "Phú Thọ",
+                "Phú Yên",
+                "Quảng Bình",
+                "Quảng Nam",
+                "Quảng Ngãi",
+                "Quảng Ninh",
+                "Quảng Trị",
+                "Sóc Trăng",
+                "Sơn La",
+                "Tây Ninh",
+                "Thái Bình",
+                "Thái Nguyên",
+                "Thanh Hóa",
+                "Thừa Thiên Huế",
+                "Tiền Giang",
+                "Trà Vinh",
+                "Tuyên Quang",
+                "Vĩnh Long",
+                "Vĩnh Phúc",
+                "Yên Bái"
         );
 
         for (String name : cities) {
             if (!cityRepository.existsByCityName(name)) {
-                cityRepository.save(City.builder()
-                        .cityName(name)
-                        .build());
+                cityRepository.save(
+                        City.builder()
+                                .cityName(name)
+                                .build()
+                );
             }
         }
     }

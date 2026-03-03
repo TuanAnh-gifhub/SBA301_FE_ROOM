@@ -40,8 +40,8 @@ public class Slot extends BaseEntity {
     LocalDate specificDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "availability_status")
-    SlotStatus availabilityStatus;
+    @Column(name = "slot_status")
+    SlotStatus slotStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id")

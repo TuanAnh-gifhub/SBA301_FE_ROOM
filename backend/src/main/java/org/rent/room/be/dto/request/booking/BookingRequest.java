@@ -18,6 +18,8 @@ import java.util.UUID;
 public class BookingRequest {
 //    @NotNull(message = "User id không được bỏ trống")
     private UUID userId;
+    private String userName;
+    private String userPhone;
     private List<@Valid SlotRequest> slotRequests;
     private int numberOfMonths;
     private String note;

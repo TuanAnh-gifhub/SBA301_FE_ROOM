@@ -21,6 +21,12 @@ import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManag
 import CategoryManagementPage from "../pages/Admin/CategoryManagement/CategoryManagementPage";
 import PostManagePage from "../pages/Admin/PostManagement/PostManagePage";
 import RentalDetailPage from "../pages/Customer/LandingPage/RentalDetailPage";
+import PackagePage from "../pages/Customer/PackagePage";
+import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManagementPage";
+
+import BookingDetail from "../pages/Customer/Booking/BookingDetail";
+import LoginPage from "../pages/Customer/LoginPage/LoginPage";
+import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
 
 export const router = createBrowserRouter([
   {
@@ -48,6 +54,17 @@ export const router = createBrowserRouter([
         //  <Route path="/rentals/:id" element={<RentalDetailPage />} />
         path: "rentals/:id",
         element: <RentalDetailPage />,
+      },
+      {
+        //    navigate(`/customer/bookings/${res.data.bookingIntentId}`);
+        path: "customer/bookings/:bookingId",
+        element: <BookingDetail />,
+        handle: { breadcrumb: "Chi tiết booking" },
+      },
+      {
+        path: "payment/success/:bookingId",
+        element: <PaymentSuccessPage />,
+        handle: { breadcrumb: "Thanh toán thành công" },
       },
       {
         path: "product/:id",
@@ -105,6 +122,11 @@ export const router = createBrowserRouter([
         handle: { breadcrumb: "Về chúng tôi" },
       },
       {
+        path: "packages",
+        element: <PackagePage />,
+        handle: { breadcrumb: "Gói Premium" },
+      },
+      {
         path: "report-form",
         element: <ReportForm />,
         handle: { breadcrumb: "Báo cáo vi phạm" },
@@ -160,6 +182,10 @@ export const router = createBrowserRouter([
       {
         path: "room-types",
         element: <CategoryManagementPage />,
+      },
+      {
+        path: "packages",
+        element: <PackageManagementPage />,
       },
     ],
   },

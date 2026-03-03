@@ -18,6 +18,12 @@ export const useChat = (
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentConversationIdRef = useRef<string | null>(null);
 
+  // 1. Thêm Ref để giữ selectedChat mới nhất mà không gây re-render useEffect
+  const selectedChatRef = useRef(selectedChat);
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -57,13 +63,34 @@ export const useChat = (
     loadConversations();
 
     const unsubscribeNewMsg = websocketService.onNewMessage((data: any) => {
-      const isCurrentChat =
-        String(currentConversationIdRef.current) ===
-        String(data.conversationId);
-      const isWatchingChat = isCurrentChat && isChatActiveRef.current;
-      const isMe = data.senderId === currentUserId;
+      const incomingConvId = data.conversationId
+        ? String(data.conversationId)
+        : null;
+      const currentConvId = currentConversationIdRef.current
+        ? String(currentConversationIdRef.current)
+        : null;
 
-      if (isCurrentChat) {
+      const currentSelectedChat = selectedChatRef.current;
+
+      const isMatchID = currentConvId === incomingConvId;
+      const isNewChatMatch =
+        !currentConvId &&
+        currentSelectedChat?.otherPerson?.userId &&
+        (data.senderId === currentSelectedChat.otherPerson.userId ||
+          data.recipientId === currentSelectedChat.otherPerson.userId);
+
+      if (isMatchID || isNewChatMatch) {
+        if (!currentConvId && incomingConvId) {
+          currentConversationIdRef.current = incomingConvId;
+          setSelectedChat((prev: any) => ({
+            ...prev,
+            conversationId: incomingConvId,
+          }));
+        }
+
+        const isMe = data.senderId === currentUserId;
+        const isWatchingChat = isChatActiveRef.current;
+
         const incoming = {
           ...data,
           messageId: data.messageId || `msg-${Date.now()}`,
@@ -74,24 +101,37 @@ export const useChat = (
 
         setMessages((prev) => {
           const isExisting = prev.some(
-            (m) => m.messageId === incoming.messageId,
+            (m) => String(m.messageId) === String(incoming.messageId),
           );
           if (isExisting) return prev;
-          const filtered = prev.filter(
-            (m) =>
-              !(
-                m.messageId.startsWith("temp-") &&
-                m.content === incoming.content
-              ),
-          );
-          return [...filtered, incoming];
+
+          const isMeMsg = String(data.senderId) === String(currentUserId);
+          let tempRemoved = false;
+
+          const newMessages = [...prev];
+          for (let i = newMessages.length - 1; i >= 0; i--) {
+            const m = newMessages[i];
+            if (
+              isMeMsg &&
+              m.isOptimistic &&
+              m.content === incoming.content &&
+              !tempRemoved
+            ) {
+              newMessages.splice(i, 1);
+              tempRemoved = true;
+              break;
+            }
+          }
+
+          return [...newMessages, incoming];
         });
 
-        if (isWatchingChat && !isMe) {
-          chatService.markMessageAsRead(data.conversationId, currentUserId);
+        if (isWatchingChat && !isMe && incomingConvId) {
+          chatService.markMessageAsRead(incomingConvId, currentUserId);
         }
       }
-      loadConversations(); // Cập nhật last message
+
+      loadConversations();
     });
 
     const unsubscribeReadReceipt = websocketService.onReadReceipt(
@@ -123,18 +163,22 @@ export const useChat = (
     const recipientId = selectedChat.otherPerson?.userId;
     if (!recipientId) return;
 
+    const targetConversationId =
+      currentConversationIdRef.current || selectedChat.conversationId;
+
     if (selectedFiles.length > 0 && selectedFiles[0]) {
       try {
         const formData = new FormData();
         const messageData = {
           content: newMessage.trim(),
           recipientId,
-          conversationId: selectedChat.conversationId,
+          conversationId: targetConversationId,
         };
         formData.append(
           "data",
           new Blob([JSON.stringify(messageData)], { type: "application/json" }),
         );
+
         if (selectedFiles[0].file) {
           formData.append("file", selectedFiles[0].file);
         }
@@ -146,24 +190,25 @@ export const useChat = (
       }
     } else {
       const content = newMessage.trim();
-      const tempMessage = {
-        messageId: `temp-${Date.now()}`,
-        senderId: currentUserId,
-        conversationId: selectedChat.conversationId,
-        sender: "user",
-        content,
-        createdAt: new Date().toISOString(),
-        isRead: false,
-        status: "SENT",
-      };
-
       if (websocketService.isConnected()) {
         websocketService.send("/app/chat", {
           senderId: currentUserId,
           recipientId,
           content,
-          conversationId: selectedChat.conversationId,
+          conversationId: targetConversationId,
         });
+        const tempId = `temp-${Date.now()}`;
+        const tempMessage = {
+          messageId: tempId,
+          senderId: currentUserId,
+          conversationId: targetConversationId,
+          sender: "user",
+          content,
+          createdAt: new Date().toISOString(),
+          isRead: false,
+          status: "SENT",
+          isOptimistic: true,
+        };
         setMessages((prev) => [...prev, tempMessage]);
         setNewMessage("");
       }
@@ -171,10 +216,18 @@ export const useChat = (
   };
 
   const handleChatSelect = async (chat: any) => {
+    // 4. Kiểm tra xem có thực sự đang click sang một người khác không
+    const isChangingConversation =
+      currentConversationIdRef.current !== chat.conversationId;
+
     setSelectedChat(chat);
     currentConversationIdRef.current = chat.conversationId;
+
     if (chat.conversationId) {
-      await loadMessages(chat.conversationId);
+      // CHỈ load lại API nếu là cuộc hội thoại mới, tránh gọi API ghi đè tin nhắn đang chat
+      if (isChangingConversation) {
+        await loadMessages(chat.conversationId);
+      }
       await chatService.markMessageAsRead(chat.conversationId, currentUserId!);
       loadConversations();
     }
