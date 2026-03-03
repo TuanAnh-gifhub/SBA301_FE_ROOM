@@ -30,7 +30,7 @@ const ConfirmRegister: React.FC = () => {
       try {
         await authService.registerConfirm(email, otp);
         setStatus("success");
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(error);
         setStatus("error");
       }
@@ -46,21 +46,23 @@ const ConfirmRegister: React.FC = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f5f5f5",
+        background: "#F3F4F6",
       }}
     >
       {status === "loading" && (
         <div style={{ textAlign: "center" }}>
           <Spin size="large" />
-          <p style={{ marginTop: 16 }}>Đang xác thực tài khoản...</p>
+          <p style={{ marginTop: 16, fontSize: "15px" }}>
+            Đang xác thực tài khoản, vui lòng chờ...
+          </p>
         </div>
       )}
 
       {status === "success" && (
         <Result
           status="success"
-          title="Xác thực thành công!"
-          subTitle="Tài khoản của bạn đã sẵn sàng. Hãy đăng nhập để bắt đầu."
+          title="Xác nhận tài khoản thành công"
+          subTitle="Tài khoản của bạn đã được kích hoạt. Bạn có thể đăng nhập ngay bây giờ."
           extra={[
             <Button type="primary" key="login" onClick={() => navigate("/")}>
               Đăng nhập ngay
@@ -72,8 +74,8 @@ const ConfirmRegister: React.FC = () => {
       {status === "error" && (
         <Result
           status="error"
-          title="Xác thực thất bại"
-          subTitle="Liên kết đã hết hạn hoặc đã được sử dụng. Vui lòng thử lại."
+          title="Xác nhận tài khoản thất bại"
+          subTitle="Link xác nhận không hợp lệ hoặc đã hết hạn."
           extra={[
             <Button type="primary" key="home" onClick={() => navigate("/")}>
               Quay lại trang chủ
