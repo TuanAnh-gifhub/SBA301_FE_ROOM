@@ -7,12 +7,7 @@ import {
   FaTimes,
   FaArrowLeft,
 } from "react-icons/fa";
-import {
-  motion,
-  AnimatePresence,
-  useMotionValue,
-  animate,
-} from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
 import { message } from "antd";
 import { useGoogleLogin } from "@react-oauth/google";
 import authService, {
@@ -94,14 +89,11 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
     } catch (error: unknown) {
       const errorResponse =
         typeof error === "object" &&
-        error !== null &&
-        "response" in error &&
-        (error as { response?: { data?: unknown } }).response?.data
-          ? (
-              error as {
-                response?: { data?: { message?: string; code?: number } };
-              }
-            ).response!.data
+          error !== null &&
+          "response" in error &&
+          (error as { response?: { data?: unknown } }).response?.data
+          ? (error as { response?: { data?: { message?: string; code?: number } } })
+            .response!.data
           : undefined;
 
       if (errorResponse?.code === 1000) {
@@ -141,11 +133,10 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
       console.error("Forgot password failed:", error);
       const errorResponse =
         typeof error === "object" &&
-        error !== null &&
-        "response" in error &&
-        (error as { response?: { data?: { message?: string } } }).response?.data
-          ? (error as { response?: { data?: { message?: string } } }).response!
-              .data
+          error !== null &&
+          "response" in error &&
+          (error as { response?: { data?: { message?: string } } }).response?.data
+          ? (error as { response?: { data?: { message?: string } } }).response!.data
           : undefined;
       setErrorMessage(
         errorResponse?.message ||
@@ -213,7 +204,8 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
         setIsLoading(false);
       }
     },
-    onError: () => setErrorMessage("Đăng nhập Google bị hủy hoặc thất bại."),
+    onError: () =>
+      setErrorMessage("Đăng nhập Google bị hủy hoặc thất bại."),
   });
 
   if (!isOpen) return null;
@@ -249,9 +241,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
             />
             <div className="absolute inset-0 bg-black/40" />
 
-            <div
-              className={`absolute bottom-4 text-white hidden md:block ${isRegisterMode ? "right-4 text-right" : "left-4 text-left"}`}
-            >
+            <div className={`absolute bottom-4 text-white hidden md:block ${isRegisterMode ? "right-4 text-right" : "left-4 text-left"}`}>
               <div className="text-lg font-semibold">EduRoom</div>
               <div className="text-sm text-white/90">
                 Tìm phòng nhanh, quản lý dễ dàng.
@@ -269,9 +259,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
 
                   if (isForgotPasswordMode) {
                     // Ở màn quên mật khẩu thì chỉ snap về mode hiện tại
-                    void animatePanelToMode(
-                      isRegisterMode ? "register" : "login",
-                    );
+                    void animatePanelToMode(isRegisterMode ? "register" : "login");
                     return;
                   }
 
@@ -290,9 +278,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                     void animatePanelToMode("login");
                   } else {
                     // Không kéo (chỉ click) -> giữ nguyên trạng thái hiện tại
-                    void animatePanelToMode(
-                      isRegisterMode ? "register" : "login",
-                    );
+                    void animatePanelToMode(isRegisterMode ? "register" : "login");
                   }
                 }}
                 className="w-full max-w-sm h-full bg-transparent backdrop-blur-md rounded-2xl shadow-2xl border-2 border-white flex flex-col overflow-hidden overflow-x-hidden"
@@ -315,28 +301,20 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                     </button>
                   )}
 
-                  <div
-                    className={`flex justify-center transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "mb-0" : "mb-0"}`}
-                  >
-                    <div
-                      className={`rounded-xl flex items-center justify-center overflow-hidden bg-white/90 shadow-md shadow-black/20 transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "w-13 h-11" : "w-24 h-14"}`}
-                    >
+                  <div className={`flex justify-center transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "mb-0" : "mb-0"}`}>
+                    <div className={`rounded-xl flex items-center justify-center overflow-hidden bg-white/90 shadow-md shadow-black/20 transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "w-13 h-11" : "w-24 h-14"}`}>
                       {/* Logo tạm bỏ, chỉ để khối màu trắng */}
                     </div>
                   </div>
 
-                  <h2
-                    className={`${errorMessage || successMessage ? "text-lg" : "text-xl"} font-bold text-center text-white transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "mb-0" : "mb-0.5"}`}
-                  >
+                  <h2 className={`${errorMessage || successMessage ? "text-lg" : "text-xl"} font-bold text-center text-white transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "mb-0" : "mb-0.5"}`}>
                     {isRegisterMode
                       ? "Tạo Tài Khoản"
                       : isForgotPasswordMode
                         ? "Khôi Phục Mật Khẩu"
                         : "Chào Mừng Trở Lại!"}
                   </h2>
-                  <p
-                    className={`text-center text-white/90 transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "text-xs" : "text-sm"}`}
-                  >
+                  <p className={`text-center text-white/90 transition-all duration-200 ease-in-out ${errorMessage || successMessage ? "text-xs" : "text-sm"}`}>
                     {isRegisterMode
                       ? "Đăng ký ngay để bắt đầu"
                       : isForgotPasswordMode
@@ -359,11 +337,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                           initial={{ opacity: 0, y: -8, scale: 0.96 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                          transition={{
-                            duration: 0.2,
-                            delay: 0.12,
-                            ease: [0.4, 0, 0.2, 1],
-                          }}
+                          transition={{ duration: 0.2, delay: 0.12, ease: [0.4, 0, 0.2, 1] }}
                           className="w-full px-2 py-1 bg-red-50 border border-red-200 text-red-600 text-xs leading-snug rounded-md text-center font-semibold"
                         >
                           {errorMessage}
@@ -374,11 +348,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                           initial={{ opacity: 0, y: -8, scale: 0.96 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                          transition={{
-                            duration: 0.2,
-                            delay: 0.12,
-                            ease: [0.4, 0, 0.2, 1],
-                          }}
+                          transition={{ duration: 0.2, delay: 0.12, ease: [0.4, 0, 0.2, 1] }}
                           className="w-full px-2 py-1 bg-green-50 border border-green-200 text-green-600 text-xs leading-snug rounded-md text-center font-semibold"
                         >
                           {successMessage}
@@ -437,7 +407,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                             setIsForgotPasswordMode(false);
                             resetForm();
                           }}
-                          className="text-sm text-white/80 hover:text-white font-medium"
+                            className="text-sm text-white/80 hover:text-white font-medium"
                         >
                           "Quay lại đăng nhập"
                         </button>
@@ -451,16 +421,16 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                             <div className="absolute left-2.5 top-1/2 transform -translate-y-1/2">
                               <FaEnvelope className="w-4 h-4 text-blue-600/70" />
                             </div>
-                            <input
-                              type="email"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              placeholder=" "
-                              className="peer w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-9 pr-3 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
-                              required
-                              disabled={isLoading}
-                            />
-                            <label className="pointer-events-none absolute left-9 top-1/2 -translate-y-1/2 rounded-full bg-white px-1 text-sm text-gray-600 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:border-gray-300 peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-[0.65rem] peer-not-placeholder-shown:text-blue-700 peer-not-placeholder-shown:font-semibold">
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder=" "
+                            className="peer w-full rounded-lg border-2 border-gray-300 bg-white text-gray-900 text-sm pl-9 pr-3 py-2.5 transition-all duration-150 focus:outline-none focus:border-blue-600 focus:bg-white"
+                            required
+                            disabled={isLoading}
+                          />
+                          <label className="pointer-events-none absolute left-9 top-1/2 -translate-y-1/2 rounded-full bg-white px-1 text-sm text-gray-600 border-2 border-transparent z-10 transition-all duration-150 peer-focus:bg-white peer-not-placeholder-shown:bg-white peer-not-placeholder-shown:border-gray-300 peer-focus:border-blue-600 peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-[0.65rem] peer-focus:text-blue-700 peer-focus:font-semibold peer-not-placeholder-shown:top-0 peer-not-placeholder-shown:-translate-y-1/2 peer-not-placeholder-shown:text-[0.65rem] peer-not-placeholder-shown:text-blue-700 peer-not-placeholder-shown:font-semibold">
                               Email
                             </label>
                           </div>
@@ -484,9 +454,9 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
                               Mật khẩu
                             </label>
                             <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-blue-600/80 hover:text-blue-700 focus:outline-none"
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-blue-600/80 hover:text-blue-700 focus:outline-none"
                             >
                               {showPassword ? (
                                 <FaEyeSlash className="w-4 h-4" />
@@ -588,3 +558,4 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
 };
 
 export default LoginPage;
+
