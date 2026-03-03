@@ -1,0 +1,94 @@
+import React, { useMemo } from "react";
+import { Button, Card, Tag, Typography } from "antd";
+import { EnvironmentOutlined, TeamOutlined } from "@ant-design/icons";
+import type { RoomCardItem } from "./types";
+
+const { Text } = Typography;
+
+const formatVND = (value?: number | null) => {
+  if (value == null) return "";
+  return value.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
+};
+
+type Props = {
+  item: RoomCardItem;
+  onView: (postId: string) => void;
+};
+
+const RoomCard: React.FC<Props> = ({ item, onView }) => {
+  const priceLabel = useMemo(() => formatVND(item.price), [item.price]);
+
+  return (
+    <Card
+      hoverable
+      className="shadow-sm rounded-xl overflow-hidden"
+      cover={
+        <div className="relative h-44 w-full bg-gray-100 overflow-hidden">
+          {item.coverImageUrl ? (
+            <img
+              src={item.coverImageUrl}
+              alt={item.title}
+              className="h-44 w-full object-cover"
+            />
+          ) : (
+            <div className="h-44 w-full flex items-center justify-center text-gray-400">
+              No Image
+            </div>
+          )}
+
+          {item.price != null ? (
+            <Tag
+              className="absolute top-2 right-2 border-0"
+              style={{
+                background: "#4da6ff",
+                color: "white",
+                fontWeight: 600,
+                borderRadius: 8,
+                padding: "2px 8px",
+              }}
+            >
+              {priceLabel}/giờ
+            </Tag>
+          ) : null}
+        </div>
+      }
+      bodyStyle={{ padding: 14 }}
+    >
+      <div className="min-h-[84px]">
+        <div className="font-semibold text-gray-800 line-clamp-2">
+          {item.title}
+        </div>
+
+        <div className="mt-1 flex items-center gap-2 text-gray-500 text-sm">
+          <EnvironmentOutlined />
+          <Text className="text-gray-500">
+            {item.city || item.rentalAreaName || "—"}
+          </Text>
+        </div>
+
+        <div className="mt-2 flex items-center gap-2 text-gray-600 text-sm">
+          <TeamOutlined />
+          <span>
+            {item.capacity != null ? `${item.capacity} người` : "Chưa cập nhật"}
+          </span>
+        </div>
+      </div>
+
+      <Button
+        block
+        className="mt-3"
+        style={{
+          borderColor: "#4da6ff",
+          color: "#4da6ff",
+          fontWeight: 600,
+          borderRadius: 10,
+        }}
+        onClick={() => onView(item.postId)}
+      >
+        View Details
+      </Button>
+    </Card>
+  );
+};
+
+export default RoomCard;

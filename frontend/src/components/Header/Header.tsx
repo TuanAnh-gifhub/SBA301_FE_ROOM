@@ -54,10 +54,13 @@ const Header = () => {
   const { unreadCount } = useUnreadMessages();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isHeaderTransparent, setIsHeaderTransparent] = useState<boolean>(false);
+  const [isHeaderTransparent, setIsHeaderTransparent] =
+    useState<boolean>(false);
 
   // --- 2. CÁC STATE UI (Giao diện) ---
-  const [headerHeight, setHeaderHeight] = useState<number>(HEADER_CONFIG.MIN_HEIGHT);
+  const [headerHeight, setHeaderHeight] = useState<number>(
+    HEADER_CONFIG.MIN_HEIGHT,
+  );
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -111,19 +114,22 @@ const Header = () => {
 
   // Chuẩn bị dữ liệu hiển thị cho UserMenu
   // UserResponse currently exposes userName (no fullName)
-  const displayUser = user ? {
-    name: user.userName || "User",
-    // avatar: user.avatar // Nếu sau này có avatar thì thêm vào
-  } : null;
+  const displayUser = user
+    ? {
+        name: user.userName || "User",
+        // avatar: user.avatar // Nếu sau này có avatar thì thêm vào
+      }
+    : null;
 
   return (
     <>
       <header
         ref={headerRef}
-        className={`w-full fixed top-0 left-0 right-0 z-50 text-[#0e0e0e] text-base leading-[1.4] transition-colors duration-300 ${isHeaderTransparent
-          ? "border-b-0 shadow-none bg-transparent"
-          : "border-b-2 border-[#4da6ff] shadow-sm bg-[rgba(228,228,228,0.82)] backdrop-blur-[2px]"
-          }`}
+        className={`w-full fixed top-0 left-0 right-0 z-50 text-[#0e0e0e] text-base leading-[1.4] transition-colors duration-300 ${
+          isHeaderTransparent
+            ? "border-b-0 shadow-none bg-transparent"
+            : "border-b-2 border-[#4da6ff] shadow-sm bg-[rgba(228,228,228,0.82)] backdrop-blur-[2px]"
+        }`}
         style={{ minHeight: `${HEADER_CONFIG.MIN_HEIGHT}px` }}
       >
         <div
@@ -215,7 +221,10 @@ const Header = () => {
                       onClick={() => {
                         setIsDarkMode((prev) => {
                           const newValue = !prev;
-                          localStorage.setItem("landing_dark_mode", String(newValue));
+                          localStorage.setItem(
+                            "landing_dark_mode",
+                            String(newValue),
+                          );
                           window.dispatchEvent(
                             new CustomEvent("darkModeChanged", {
                               detail: { isDarkMode: newValue },
@@ -224,12 +233,13 @@ const Header = () => {
                           return newValue;
                         });
                       }}
-                      className={`relative inline-flex items-center h-7 w-14 rounded-full transition-colors duration-300 focus:outline-none ${isHeaderTransparent
-                        ? "bg-white/10 hover:bg-white/15"
-                        : isDarkMode
-                          ? "bg-slate-700"
-                          : "bg-gray-300"
-                        }`}
+                      className={`relative inline-flex items-center h-7 w-14 rounded-full transition-colors duration-300 focus:outline-none ${
+                        isHeaderTransparent
+                          ? "bg-white/10 hover:bg-white/15"
+                          : isDarkMode
+                            ? "bg-slate-700"
+                            : "bg-gray-300"
+                      }`}
                     >
                       <span
                         className={`inline-flex items-center justify-center h-6 w-6 rounded-full bg-white shadow-lg transform transition-transform duration-300 ${isDarkMode ? "translate-x-7" : "translate-x-1"}`}
@@ -277,11 +287,17 @@ const Header = () => {
 
                     {/* Đăng phòng */}
                     <button
-                      onClick={() => requireAuth(() => navigate("/post-item"))}
+                      onClick={() =>
+                        requireAuth(() => navigate("/manage-posts"))
+                      }
                       className={`${PRIMARY_BUTTON_CLASS} inline-flex items-center justify-center h-10 md:h-11 px-3 md:px-5 py-2 md:py-2.5 bg-[#4da6ff]/70 hover:bg-[#4da6ff]/90 text-white border-[#4da6ff]/50 hover:border-[#4da6ff]`}
                       title="Đăng tin"
                     >
-                      <span className={`${BUTTON_TEXT_HOVER_CLASS} leading-none`}>Đăng phòng</span>
+                      <span
+                        className={`${BUTTON_TEXT_HOVER_CLASS} leading-none`}
+                      >
+                        Đăng phòng
+                      </span>
                     </button>
 
                     {/* --- 5. USER MENU MỚI --- */}

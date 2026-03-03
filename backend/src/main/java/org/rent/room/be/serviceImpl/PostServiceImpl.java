@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.constant.PostStatus;
 import org.rent.room.be.dto.request.post.CreatePostRequest;
 import org.rent.room.be.dto.request.post.UpdatePostRequest;
@@ -17,7 +18,11 @@ import org.rent.room.be.dto.response.room.RoomResponse;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.repository.*;
 import org.rent.room.be.service.PostService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Pageable;
+
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -75,9 +80,41 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public List<PostSummaryResponse> getAllPosts() {
-        List<Post> posts = postRepository.findAllByPostStatus(PostStatus.PUBLISHED);
-        return posts.stream().map(this::mapToSummary).toList();
+    public PageResponse<PostSummaryResponse> getPublicFeed(
+            int page,
+            int size,
+            UUID cityId,
+            Long categoryId,
+            List<Long> amenityIds
+    ) {
+        int safePage = Math.max(page, 1);
+        int safeSize = Math.min(Math.max(size, 1), 50);
+
+        Pageable pageable = PageRequest.of(safePage - 1, safeSize);
+
+        List<Long> amenityParam =
+                (amenityIds == null || amenityIds.isEmpty()) ? null : amenityIds;
+
+        Page<Post> postPage = postRepository.findPublicFeed(
+                PostStatus.PUBLISHED,
+                cityId,
+                categoryId,
+                amenityParam,
+                pageable
+        );
+
+        List<PostSummaryResponse> data = postPage.getContent()
+                .stream()
+                .map(this::mapToSummary)
+                .toList();
+
+        return PageResponse.<PostSummaryResponse>builder()
+                .currentPage(safePage)
+                .totalPages(postPage.getTotalPages())
+                .pageSize(safeSize)
+                .totalElements(postPage.getTotalElements())
+                .data(data)
+                .build();
     }
 
     @Override
@@ -340,5 +377,58 @@ public class PostServiceImpl implements PostService {
                 .status(rentalArea.getStatus() != null ? rentalArea.getStatus().name() : null)
                 .images(images)
                 .build();
+    }
+
+    @Override
+    public List<PostSummaryResponse> adminGetPosts(String status) {
+        List<Post> posts;
+
+        if (status == null || status.isBlank()) {
+            posts = postRepository.findAllByPostStatusIn(
+                    List.of(PostStatus.PENDING, PostStatus.PUBLISHED, PostStatus.HIDDEN)
+            );
+        } else {
+            PostStatus s = PostStatus.valueOf(status.trim().toUpperCase());
+            if (s != PostStatus.PENDING && s != PostStatus.PUBLISHED && s != PostStatus.HIDDEN) {
+                throw new IllegalArgumentException("Invalid status filter");
+            }
+            posts = postRepository.findAllByPostStatus(s);
+        }
+
+        return posts.stream().map(this::mapToSummary).toList();
+    }
+
+    @Override
+    @Transactional
+    public PostResponse adminUpdatePostStatus(UUID postId, String status) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NoSuchElementException("Post not found"));
+
+        PostStatus next = PostStatus.valueOf(status.trim().toUpperCase());
+
+        if (next != PostStatus.PENDING && next != PostStatus.PUBLISHED && next != PostStatus.HIDDEN) {
+            throw new IllegalArgumentException("Status not allowed");
+        }
+
+        post.setPostStatus(next);
+        post = postRepository.save(post);
+
+        return PostResponse.builder()
+                .postId(post.getPostId())
+                .roomId(post.getRoom() != null ? post.getRoom().getRoomId() : null)
+                .userId(post.getUser() != null ? post.getUser().getUserId() : null)
+                .title(post.getTitle())
+                .content(post.getContent())
+                .postStatus(post.getPostStatus() != null ? post.getPostStatus().name() : null)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void adminDeletePost(UUID postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NoSuchElementException("Post not found"));
+         post.setPostStatus(PostStatus.DELETED);
+         postRepository.save(post);
     }
 }

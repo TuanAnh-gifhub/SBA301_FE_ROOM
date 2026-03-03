@@ -10,6 +10,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   StarOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import type { UserResponse } from "../../services/usersService";
 
@@ -85,14 +86,21 @@ const Sidebar: React.FC<SidebarProps> = ({
       <ShopOutlined />,
     ),
 
-    // 4. Khách hàng
+    // 4. Quản lý tin đăng
+    getItem(
+      <Link to="/admin/posts">Quản lý tin đăng</Link>,
+      "/admin/posts",
+      <FileTextOutlined />,
+    ),
+
+    // 5. Khách hàng
     getItem(
       <Link to="/admin/customers">Khách hàng</Link>,
       "/admin/customers",
       <TeamOutlined />,
     ),
 
-    // 5. Tài chính
+    // 6. Tài chính
     getItem("Tài chính & Hóa đơn", "sub_finance", <DollarOutlined />, [
       getItem(
         <Link to="/admin/invoices">Hóa đơn dịch vụ</Link>,
@@ -104,14 +112,14 @@ const Sidebar: React.FC<SidebarProps> = ({
       ),
     ]),
 
-    // 6. Đánh giá & Phản hồi
+    // 7. Đánh giá & Phản hồi
     getItem(
       <Link to="/admin/reviews">Đánh giá từ khách</Link>,
       "/admin/reviews",
       <StarOutlined />,
     ),
 
-    // 7. Cài đặt hệ thống -> THÊM CHILD
+    // 8. Cài đặt hệ thống -> THÊM CHILD
     getItem("Cài đặt hệ thống", "sub_settings", <SettingOutlined />, [
       getItem(
         <Link to="/admin/room-types">Loại phòng</Link>,

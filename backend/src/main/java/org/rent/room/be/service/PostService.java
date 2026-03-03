@@ -1,5 +1,6 @@
 package org.rent.room.be.service;
 
+import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.dto.request.post.CreatePostRequest;
 import org.rent.room.be.dto.request.post.UpdatePostRequest;
 import org.rent.room.be.dto.response.post.PostDetailResponse;
@@ -14,7 +15,13 @@ public interface PostService {
     PostResponse createPost(CreatePostRequest request, UUID currentUserId);
 
     // public
-    List<PostSummaryResponse> getAllPosts();
+    PageResponse<PostSummaryResponse> getPublicFeed(
+            int page,
+            int size,
+            UUID cityId,
+            Long categoryId,
+            List<Long> amenityIds
+    );
 
     PostDetailResponse getPostDetail(UUID postId);
 
@@ -31,4 +38,9 @@ public interface PostService {
 
     // check theo room
     PostResponse getMyPostByRoom(UUID roomId, UUID currentUserId);
+
+    // Admin
+    List<PostSummaryResponse> adminGetPosts(String status);
+    PostResponse adminUpdatePostStatus(UUID postId, String status);
+    void adminDeletePost(UUID postId);
 }

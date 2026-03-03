@@ -19,6 +19,8 @@ import ManagePage from "../pages/Customer/ManagePage/ManagePage";
 import ConfirmRegister from "../pages/Customer/LoginPage/ConfirmRegister";
 import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManagementPage";
 import CategoryManagementPage from "../pages/Admin/CategoryManagement/CategoryManagementPage";
+import PostManagementPage from "../pages/Admin/PostManagement/PostManagementPage";
+import ProductPage from "../pages/Customer/ProductPage/ProductPage";
 
 export const router = createBrowserRouter([
   {
@@ -101,6 +103,10 @@ export const router = createBrowserRouter([
         element: <ReportForm />,
         handle: { breadcrumb: "Báo cáo vi phạm" },
       },
+      {
+        path: "products",
+        element: <ProductPage />,
+      },
     ],
   },
   // Admin routes
@@ -147,6 +153,10 @@ export const router = createBrowserRouter([
       {
         path: "room-types",
         element: <CategoryManagementPage />,
+      },
+      {
+        path: "posts",
+        element: <PostManagementPage />,
       },
     ],
   },

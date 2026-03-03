@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.base.ApiResponse;
+import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.dto.request.post.CreatePostRequest;
 import org.rent.room.be.dto.request.post.UpdatePostRequest;
 import org.rent.room.be.dto.response.post.PostDetailResponse;
@@ -14,6 +15,7 @@ import org.rent.room.be.dto.response.post.PostSummaryResponse;
 import org.rent.room.be.security.CustomUserDetails;
 import org.rent.room.be.service.PostService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -50,14 +52,22 @@ public class PostController {
 
     // Public feed
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PostSummaryResponse>>> getAllPosts() {
-        List<PostSummaryResponse> result = postService.getAllPosts();
+    public ResponseEntity<ApiResponse<List<PostSummaryResponse>>> getAllPosts(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(required = false) UUID cityId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) List<Long> amenityIds
+    ) {
+        PageResponse<PostSummaryResponse> result =
+                postService.getPublicFeed(page, size, cityId, categoryId, amenityIds);
 
-        ApiResponse<List<PostSummaryResponse>> response = ApiResponse.<List<PostSummaryResponse>>builder()
-                .code(200)
-                .message("Get all posts successfully")
-                .result(result)
-                .build();
+        ApiResponse<PageResponse<PostSummaryResponse>> response =
+                ApiResponse.<PageResponse<PostSummaryResponse>>builder()
+                        .code(200)
+                        .message("Get public posts successfully")
+                        .result(result)
+                        .build();
 
         return ResponseEntity.ok(response);
     }
@@ -211,4 +221,46 @@ public class PostController {
 
         return currentUserId;
     }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<PostSummaryResponse>>> adminGetPosts(
+            @RequestParam(required = false) String status
+    ) {
+        List<PostSummaryResponse> result = postService.adminGetPosts(status);
+
+        return ResponseEntity.ok(ApiResponse.<List<PostSummaryResponse>>builder()
+                .code(200)
+                .message("Admin get posts successfully")
+                .result(result)
+                .build());
+    }
+
+    @PatchMapping("/admin/{postId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PostResponse>> adminUpdateStatus(
+            @PathVariable UUID postId,
+            @RequestParam String status
+    ) {
+        PostResponse result = postService.adminUpdatePostStatus(postId, status);
+
+        return ResponseEntity.ok(ApiResponse.<PostResponse>builder()
+                .code(200)
+                .message("Admin update post status successfully")
+                .result(result)
+                .build());
+    }
+
+    @DeleteMapping("/admin/{postId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> adminDeletePost(@PathVariable UUID postId) {
+        postService.adminDeletePost(postId);
+
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .code(200)
+                .message("Admin delete post successfully")
+                .result(null)
+                .build());
+    }
 }
+
