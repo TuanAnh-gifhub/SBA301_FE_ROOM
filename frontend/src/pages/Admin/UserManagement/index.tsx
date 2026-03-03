@@ -21,6 +21,8 @@ const UserManagement: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
 
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+
   const [filters, setFilters] = useState({
     role: undefined as string | undefined,
     active: true as boolean | undefined,
@@ -79,6 +81,38 @@ const UserManagement: React.FC = () => {
   }, []);
 
   // --- HANDLERS LOGIC ---
+
+  const handleCreateSubmit = async (values: any) => {
+    setLoading(true);
+    try {
+      const requestData = {
+        ...values,
+        dateOfBirth: values.dateOfBirth
+          ? values.dateOfBirth.format("YYYY-MM-DD")
+          : null,
+      };
+
+      const response: any = await (userService as any).adminCreateUser(
+        requestData,
+      );
+
+      if (response?.code === 201 || response?.data?.code === 201) {
+        message.success("Thêm mới người dùng thành công!");
+        setIsCreateModalOpen(false);
+        fetchUsers(1, pagination.pageSize || 10, filters); // Reset về trang 1 để xem user mới
+      } else {
+        message.error(response?.message || "Thêm mới thất bại");
+      }
+    } catch (error: any) {
+      console.error("Create error:", error);
+      // Xử lý hiển thị lỗi từ Validation hoặc Logic Backend
+      const errorMsg =
+        error.response?.data?.message || "Đã xảy ra lỗi khi thêm mới";
+      message.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFilterChange = (key: string, value: any) => {
     const newFilters = { ...filters, [key]: value };
@@ -213,7 +247,11 @@ const UserManagement: React.FC = () => {
           </Button>
         }
       >
-        <UserFilter filters={filters} onFilterChange={handleFilterChange} />
+        <UserFilter
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onCreate={() => setIsCreateModalOpen(true)}
+        />
 
         <UserTable
           data={data}
@@ -236,11 +274,21 @@ const UserManagement: React.FC = () => {
         open={isEditModalOpen}
         user={editingUser}
         loading={loading}
+        mode="edit" // Xác định chế độ edit
         onCancel={handleCloseEditModal}
         onSubmit={handleUpdateSubmit}
       />
+
+      <UserEditModal
+        open={isCreateModalOpen}
+        user={null} // Không có dữ liệu cũ
+        loading={loading}
+        mode="create" // Xác định chế độ create
+        onCancel={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateSubmit}
+      />
     </>
-    
+
     // </div>
   );
 };

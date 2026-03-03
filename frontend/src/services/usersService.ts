@@ -53,6 +53,11 @@ export interface UpdateUserStatusRequest {
 }
 
 export const userService = {
+
+  adminCreateUser: (data: CreateUsersRequest) => {
+    return api.post<any, ApiResponse<UserResponse>>("/users", data);
+},
+
   getMe: () => {
     return api.get<any, ApiResponse<UserResponse>>("/users/me");
   },

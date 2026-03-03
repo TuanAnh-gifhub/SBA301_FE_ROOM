@@ -21,6 +21,8 @@ public class RentalAreaResponse {
     String status;
     Long cityId;
     String cityName;
+    UUID ownerId;
+    String ownerName;
     List<RentalAreaImageResponse> images;
     List<RoomResponse> rooms;
 }

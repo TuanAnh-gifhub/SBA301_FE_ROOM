@@ -2,6 +2,7 @@ package org.rent.room.be.dto.request.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -13,5 +14,7 @@ import lombok.experimental.FieldDefaults;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UpdateUserStatusRequest {
+
+    @NotNull(message = "STATUS_REQUIRED")
     Boolean status;
 }

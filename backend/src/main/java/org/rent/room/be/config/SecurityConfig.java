@@ -36,9 +36,10 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/auth/**",
             "/ws/**",
-            "/reports/**"
-            ,"/bookings/**",
-             "/posts/**",
+            "/reports/**",
+            "/chat/send-test",
+            "/bookings/**",
+            "/posts/**",
 
     };
 
@@ -50,8 +51,7 @@ public class SecurityConfig {
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {
-                })
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
 
