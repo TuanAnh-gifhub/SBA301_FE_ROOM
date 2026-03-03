@@ -1,4 +1,23 @@
+import {toast} from "react-toastify"
+
+
 export default function BookingSearchBar({ filter, setFilter }) {
+const handleAddTime = () => {
+  if (!filter.date || !filter.start || !filter.end) {
+    toast.error("Vui lòng chọn đầy đủ ngày và thời gian");
+    return;
+  }
+
+  if (filter.start >= filter.end) {
+    toast.error("Thời gian kết thúc phải lớn hơn thời gian bắt đầu");
+    return;
+  }
+
+ 
+
+  toast.success("Thêm khung giờ thành công! Hãy thêm phòng và đặt lịch.");
+};
+
   return (
     <div className="mb-8 " >
       <div className="flex items-center gap-4 bg-white shadow-md rounded-2xl px-6 py-4">
@@ -38,7 +57,7 @@ export default function BookingSearchBar({ filter, setFilter }) {
           />
         </div>
 
-        {/* End */}
+       
         <div className="flex flex-col">
           <label className="text-xs text-gray-500 mb-1">
             Kết thúc
@@ -57,7 +76,7 @@ export default function BookingSearchBar({ filter, setFilter }) {
         </div>
 
         
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl h-[42px] mt-5 transition">
+        <button onClick={handleAddTime} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl h-[42px] mt-5 transition">
           Thêm khung giờ
         </button>
 

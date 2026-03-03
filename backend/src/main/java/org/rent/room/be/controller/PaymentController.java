@@ -1,5 +1,7 @@
 package org.rent.room.be.controller;
 
+import com.beust.ah.A;
+import jakarta.validation.Valid;
 import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.dto.request.payment.CheckoutRequest;
 import org.rent.room.be.service.PaymentService;
@@ -18,11 +20,17 @@ public class PaymentController {
 
 
     @PostMapping("/checkout")
-    public ApiResponse<?> checkout(
+    public ApiResponse<?> checkout(@Valid
             @RequestBody CheckoutRequest request
     ) {
-        return ApiResponse.success(
-                paymentService.checkout(request)
-        );
+        try{
+            return ApiResponse.success(201,
+                    "Payment Checkout successful",
+                    paymentService.checkout(request)
+            );
+        }catch(Exception e){
+            return ApiResponse.error(500,e.getMessage());
+        }
+
     }
 }

@@ -39,8 +39,9 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = Payment.builder()
                 .bookingIntent(intent)
                 .amount(intent.getPreviewPrice())
-                .paymentMethod(PaymentMethod.valueOf(checkoutRequest.getPaymentMethod()))
+                .paymentMethod(checkoutRequest.getPaymentMethod())
                 .paymentStatus(PaymentStatus.SUCCESS)
+                .transactionDate(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
                 .build();
 

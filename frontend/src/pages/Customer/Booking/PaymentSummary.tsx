@@ -1,6 +1,7 @@
-import { Card, Button, message } from "antd";
+import { Card, Button } from "antd";
 import { useState } from "react";
-import axios from "axios";
+import { toast } from "react-toastify";
+import createPayment from "../../../services/payment/paymentService";
 import { useNavigate } from "react-router-dom";
 export default function PaymentSummary({ intent }: any) {
   const [paymentMethod, setPaymentMethod] = useState("BANK");
@@ -11,16 +12,19 @@ export default function PaymentSummary({ intent }: any) {
     try {
       setLoading(true);
 
-      const res = await axios.post("/api/payments/checkout", {
+      const res = await createPayment({
         bookingIntentId: intent.bookingIntentId,
         paymentMethod,
       });
-
-      navigate(`/payment/success/${res.data.result.bookingId}`);
-
-      message.success("Thanh toán thành công");
+      if (res.data.code === 201) {
+        toast.success("Thanh toán thành công");
+        navigate(`/payment/success/${res.data.result.bookingId}`);
+      }
+      if (res.data.code !== 201) {
+        toast.error(res.data.message);
+      }
     } catch (err) {
-      message.error("Thanh toán thất bại");
+      toast.error("Thanh toán thất bại");
     } finally {
       setLoading(false);
     }
@@ -52,15 +56,16 @@ export default function PaymentSummary({ intent }: any) {
         <span>{intent.totalAmount} VNĐ</span>
       </div>
 
-      
       <div className="mt-6">
         <p className="font-semibold mb-3">Phương thức thanh toán</p>
 
         <div className="flex gap-3">
           <button
-            onClick={() => setPaymentMethod("BANK")}
+            onClick={() => setPaymentMethod("BANK_TRANSFER")}
             className={`p-3 border rounded-xl w-full ${
-              paymentMethod === "BANK" ? "border-teal-500 bg-teal-50" : ""
+              paymentMethod === "BANK_TRANSFER"
+                ? "border-teal-500 bg-teal-50"
+                : ""
             }`}
           >
             Bank Transfer
@@ -76,9 +81,9 @@ export default function PaymentSummary({ intent }: any) {
           </button>
 
           <button
-            onClick={() => setPaymentMethod("VNPAY")}
+            onClick={() => setPaymentMethod("VN_PAY")}
             className={`p-3 border rounded-xl w-full ${
-              paymentMethod === "VNPAY" ? "border-teal-500 bg-teal-50" : ""
+              paymentMethod === "VN_PAY" ? "border-teal-500 bg-teal-50" : ""
             }`}
           >
             VNPay

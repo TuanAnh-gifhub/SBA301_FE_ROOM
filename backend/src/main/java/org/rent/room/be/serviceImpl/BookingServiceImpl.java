@@ -310,9 +310,10 @@ public class BookingServiceImpl implements BookingService {
                 .startTime(bookingIntent.getSlots().getFirst().getStartTime())
                 .endTime(bookingIntent.getSlots().getFirst().getEndTime())
                 .createdAt(LocalDateTime.now())
+                .rentalArea(bookingIntent.getRentalArea())
                 .build();
 
-
+        bookingRepository.save(booking);
         List<SlotResponse> slotResponses = null;
         for (IntentSlot intentSlot : bookingIntent.getSlots()) {
 
@@ -361,7 +362,7 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        bookingRepository.save(booking);
+
 
         bookingQRService.createBookingQR(booking, QRType.CHECK_IN);
         bookingQRService.createBookingQR(booking, QRType.CHECK_OUT);
@@ -454,19 +455,30 @@ public class BookingServiceImpl implements BookingService {
                     .roomCopy(roomCopyResponse)
                     .build();
         }).toList();
+        RentalAreaResponse rentalAreaResponse = RentalAreaResponse.builder()
+                .rentalAreaName(booking.getRentalArea().getRentalAreaName())
+                .address(booking.getRentalArea().getAddress())
+                .cityName(booking.getRentalArea().getCity().getCityName())
+                .contactPhone(booking.getRentalArea().getContactPhone())
+                .build();
 
         return BookingResponse.builder()
-                .bookingId(bookingId)
+                .bookingId(booking.getBookingId())
                 .userName(booking.getRenter().getUserName())
                 .phoneNumber(booking.getRenter().getPhone() != null ? booking.getRenter().getPhone() : "")
-                .slots(slotResponses)
+                .bookingType(booking.getBookingType())
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
+                .status(BookingStatus.BOOKED)
+//                .numberOfMonths(Math.max(request.getNumberOfMonths(), 0))
+                .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
-                .bookingType(booking.getBookingType())
+                .statusPayment("")
+                .slots(slotResponses)
                 .createdAt(booking.getCreatedAt())
-                .checkIn(booking.getCheckIn())
-                .checkOut(booking.getCheckOut())
+                .rentalArea(rentalAreaResponse)
+                .qrCodeUrl(null)
+                .invoicePdfUrl(null)
                 .build();
     }
 
