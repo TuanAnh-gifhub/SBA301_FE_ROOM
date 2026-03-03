@@ -6,11 +6,17 @@ import org.rent.room.be.constant.*;
 import org.rent.room.be.dto.request.booking.BookingRequest;
 import org.rent.room.be.dto.request.booking.SlotRequest;
 import org.rent.room.be.dto.response.UserResponse;
+import org.rent.room.be.dto.response.booking.BookingIntentResponse;
 import org.rent.room.be.dto.response.booking.BookingResponse;
+import org.rent.room.be.dto.response.booking.IntentSlotResponse;
 import org.rent.room.be.dto.response.qr.ScanQRResponse;
+import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
+import org.rent.room.be.dto.response.room.RoomImageResponse;
+import org.rent.room.be.dto.response.room.RoomResponse;
 import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
 import org.rent.room.be.dto.response.slot.SlotResponse;
 import org.rent.room.be.entity.*;
+import org.rent.room.be.entity.BookingIntent;
 import org.rent.room.be.repository.*;
 import org.rent.room.be.service.*;
 import org.rent.room.be.specification.BookingSpecification;
@@ -29,7 +35,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class BookingServiceImpl implements BookingService {
@@ -49,26 +57,144 @@ public class BookingServiceImpl implements BookingService {
     @Autowired
     private BookingQRRepository bookingQRRepository;
 
-    @Transactional
-    public BookingResponse createBooking(BookingRequest request) {
-        User user = userRepository.findById(request.getUserId()).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
-        validateBookingTime(request);
+    @Autowired
+    private BookingIntentRepository bookingIntentRepository;
 
-        Booking booking = Booking.builder()
-                .bookingTitle("Đặt phòng theo " + request.getBookingType())
-                .bookingStatus(BookingStatus.BOOKED)
-                .bookingType(request.getBookingType())
-                .renter(user)
-                .startTime(request.getSlotRequests().getFirst().getStartTime())
-                .endTime(request.getSlotRequests().getLast().getEndTime())
-                .createdAt(LocalDateTime.now())
+    @Autowired
+    private RentalAreaRepository rentalAreaRepository;
+
+    @Transactional
+    public void releaseExpiredHolds() {
+
+        List<RoomCopy> heldRooms =
+                roomCopyRepository.findExpiredHeldRooms(LocalDateTime.now());
+
+        for (RoomCopy rc : heldRooms) {
+            rc.setRoomCopyStatus(RoomCopyStatus.AVAILABLE);
+            rc.setHeldUntil(null);
+        }
+    }
+
+    @Override
+    public BookingIntentResponse getBookingIntentById(UUID bookingIntentId) {
+
+
+        BookingIntent bookingIntent = bookingIntentRepository.findById(bookingIntentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy mã đặt lịch dự định với id " + bookingIntentId));
+        List<IntentSlotResponse> intentSlotResponses =
+                bookingIntent.getSlots().stream().map(intentSlot -> {
+
+
+                    Room room = intentSlot.getRoom();
+                    Set<RoomResponse.AmenityItem> amenities = room.getAmenities().stream()
+                            .map(amenity ->RoomResponse.AmenityItem.builder()
+                                    .amenityId(amenity.getAmenityId())
+                                    .amenityName(amenity.getAmenityName())
+                                    .icon(amenity.getIconKey())
+                                    .build()
+                            ).collect(Collectors.toSet());
+
+                    List<RoomImageResponse> images = room.getImages().stream().map(image ->RoomImageResponse.builder()
+                            .roomImageId(image.getRoomImageId())
+                            .imageUrl(image.getImageUrl())
+                            .build() ).toList();
+                    RoomResponse roomResponse = RoomResponse.builder()
+                            .roomId(room.getRoomId())
+                            .roomName(room.getRoomName())
+                            .amenities(amenities)
+                            .price(room.getPrice())
+                            .capacity(room.getCapacity())
+                            .categoryId(room.getCategory().getCategoryId())
+                            .categoryName(room.getCategory().getCategoryName())
+                            .images(images)
+                            .build();
+                    return IntentSlotResponse.builder()
+                            .intentSlotId(intentSlot.getIntentSlotId())
+                            .startTime(intentSlot.getStartTime())
+                            .endTime(intentSlot.getEndTime())
+                            .room(roomResponse)
+                            .quantity(intentSlot.getQuantity())
+                            .address(room.getRentalArea().getAddress())
+                            .build();
+                }).toList();
+
+        BigDecimal tax  = BigDecimal.ZERO;
+        //hàm tính tax
+        BigDecimal discount  = BigDecimal.ZERO;
+      //hàm tính giảm giá
+      BigDecimal totalPrice = bookingIntent.getPreviewPrice().add(tax).subtract(discount);
+        return BookingIntentResponse.builder()
+                .bookingIntentId(bookingIntent.getBookingIntentId())
+                .tax(tax)
+                .discount(discount)
+                .previewPrice(bookingIntent.getPreviewPrice())
+                .totalAmount(totalPrice)
+                .status(bookingIntent.getStatus())
+                .expiresAt(bookingIntent.getExpiresAt())
+                .slots(intentSlotResponses)
+                .title(bookingIntent.getTitle())
+                .note(bookingIntent.getNote())
+                .userName(bookingIntent.getUser().getUserName())
+                .userPhone(bookingIntent.getUser().getPhone())
+                .bookingType(bookingIntent.getBookingType())
+                .numberOfMonths(bookingIntent.getNumberOfMonths())
+                .startTime(bookingIntent.getStartTime())
+                .endTime(bookingIntent.getEndTime())
+
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public BookingIntentResponse createBookingIntent(
+            BookingRequest bookingRequest
+    ) {
+
+        validateBookingTime(bookingRequest);
+
+        User user = userRepository.findById(
+                bookingRequest.getUserId()
+        ).orElseThrow(() ->
+                new RuntimeException("Không tìm thấy người dùng"));
+
+
+        String title = switch (bookingRequest.getBookingType()) {
+            case HOURLY -> "Đặt phòng theo giờ";
+            case DAILY -> "Đặt phòng theo ngày";
+            case MONTHLY -> "Đặt phòng theo tháng";
+        };
+
+
+        BookingIntent bookingIntent = BookingIntent.builder()
+                .title(title)
+                .note(bookingRequest.getNote())
+                .user(user)
+                .bookingType(bookingRequest.getBookingType())
+                .status(BookingIntentStatus.ACTIVE)
+                .expiresAt(LocalDateTime.now().plusMinutes(5))
                 .build();
 
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        List<IntentSlot> intentSlots = new ArrayList<>();
+        RentalArea rentalArea = null;
 
-        System.err.println("Bắt đầu tạo slot");
-        List<SlotResponse> slotResponses = null;
-        for (SlotRequest slotReq : request.getSlotRequests()) {
-            Room room = roomRepository.findById(slotReq.getRoomId()).orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với id " + slotReq.getRoomId()));
+        for (SlotRequest slotReq : bookingRequest.getSlotRequests()) {
+
+            Room room = roomRepository.findById(
+                    slotReq.getRoomId()
+            ).orElseThrow(() ->
+                    new RuntimeException("Không tìm thấy phòng"));
+            if (rentalArea == null) {
+                rentalArea = room.getRentalArea();
+            }
+            else if (!rentalArea.getRentalAreaId()
+                    .equals(room.getRentalArea().getRentalAreaId())) {
+
+                throw new RuntimeException(
+                        "Tất cả phòng phải thuộc cùng một khu vực"
+                );
+            }
+
 
             List<RoomCopy> availableRooms =
                     roomCopyRepository.findAvailableRoomCopies(
@@ -77,89 +203,199 @@ public class BookingServiceImpl implements BookingService {
                             slotReq.getEndTime()
                     );
 
-
             if (availableRooms.size() < slotReq.getQuantity()) {
-                throw new RuntimeException("Phòng " + room.getRoomName() + " không đủ phòng trống cho thuê ,còn " + availableRooms.size() + "phòng");
-
+                throw new RuntimeException(
+                        "Phòng " + room.getRoomName()
+                                + " chỉ còn "
+                                + availableRooms.size()
+                );
             }
 
+            IntentSlot intentSlot = IntentSlot.builder()
+                    .bookingIntent(bookingIntent)
+                    .room(room)
+                    .quantity(slotReq.getQuantity())
+                    .startTime(slotReq.getStartTime())
+                    .endTime(slotReq.getEndTime())
+                    .build();
 
-            List<RoomCopy> selectedRooms =
-                    availableRooms.subList(0, slotReq.getQuantity());
-            slotResponses = new ArrayList<>();
+            intentSlots.add(intentSlot);
 
-            for (RoomCopy rc : selectedRooms) {
+            totalPrice = totalPrice.add(
+                    room.getPrice()
+                            .multiply(BigDecimal.valueOf(slotReq.getQuantity()))
+            );
+        }
+
+        RentalAreaResponse rentalAreaResponse = RentalAreaResponse.builder()
+                .rentalAreaName(rentalArea.getRentalAreaName())
+                .address(rentalArea.getAddress())
+                .cityName(rentalArea.getCity().getCityName())
+                .contactPhone(rentalArea.getContactPhone())
+                .build();
+
+
+       bookingIntent.setRentalArea(rentalArea);
+        bookingIntent.setStartTime(bookingRequest.getSlotRequests().getFirst().getStartTime());
+        bookingIntent.setEndTime(bookingRequest.getSlotRequests().getLast().getEndTime());
+        bookingIntent.setSlots(intentSlots);
+        bookingIntent.setPreviewPrice(totalPrice);
+
+
+        bookingIntentRepository.save(bookingIntent);
+
+
+        List<IntentSlotResponse> intentSlotResponses =
+                intentSlots.stream().map(intentSlot -> {
+
+                    Room room = intentSlot.getRoom();
+
+                    RoomResponse roomResponse = RoomResponse.builder()
+                            .roomId(room.getRoomId())
+                            .roomName(room.getRoomName())
+                            .build();
+                    return IntentSlotResponse.builder()
+                            .intentSlotId(intentSlot.getIntentSlotId())
+                            .startTime(intentSlot.getStartTime())
+                            .endTime(intentSlot.getEndTime())
+                            .room(roomResponse)
+                            .quantity(intentSlot.getQuantity())
+                            .address(room.getRentalArea().getAddress())
+                            .build();
+                }).toList();
+
+
+
+        return BookingIntentResponse.builder()
+                .bookingIntentId(bookingIntent.getBookingIntentId())
+                .previewPrice(totalPrice)
+                .status(bookingIntent.getStatus())
+                .expiresAt(bookingIntent.getExpiresAt())
+                .slots(intentSlotResponses)
+                .title(bookingIntent.getTitle())
+                .note(bookingIntent.getNote())
+                .userName(bookingIntent.getUser().getUserName())
+                .userPhone(bookingIntent.getUser().getPhone())
+                .bookingType(bookingIntent.getBookingType())
+                .numberOfMonths(bookingIntent.getNumberOfMonths())
+                .startTime(bookingIntent.getStartTime())
+                .endTime(bookingIntent.getEndTime())
+                .rentalAreaResponse(rentalAreaResponse)
+                .build();
+    }
+    @Override
+    @Transactional
+    public BookingIntentResponse updateBookingIntent(
+            UUID bookingIntentId,
+            BookingRequest bookingRequest
+    ) {
+
+     return  null;
+    }
+    @Transactional
+    public BookingResponse createBooking(UUID bookingIntentId) {
+        BookingIntent bookingIntent = bookingIntentRepository.findById(bookingIntentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy mã đặt lịch dự định với id " + bookingIntentId));
+
+        if (bookingIntent.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Thông tin đặt lịch  đã hết hạn trong thời gian giữ,vui lòng đặt lại");
+        }
+
+        Booking booking = Booking.builder()
+                .bookingTitle(bookingIntent.getTitle())
+                .bookingStatus(BookingStatus.BOOKED)
+                .bookingType(bookingIntent.getBookingType())
+                .renter(bookingIntent.getUser())
+                .totalPrice(bookingIntent.getPreviewPrice())
+                .startTime(bookingIntent.getSlots().getFirst().getStartTime())
+                .endTime(bookingIntent.getSlots().getFirst().getEndTime())
+                .createdAt(LocalDateTime.now())
+                .rentalArea(bookingIntent.getRentalArea())
+                .build();
+
+        bookingRepository.save(booking);
+        List<SlotResponse> slotResponses = null;
+        for (IntentSlot intentSlot : bookingIntent.getSlots()) {
+
+            List<RoomCopy> availableRooms =
+                    roomCopyRepository.findAvailableRoomCopiesForUpdate(
+                            intentSlot.getRoom().getRoomId(),
+                            intentSlot.getStartTime(),
+                            intentSlot.getEndTime()
+                    );
+            if (availableRooms.size() < intentSlot.getQuantity()) {
+                throw new RuntimeException(
+                        "Phòng đã được đặt. Chỉ còn "
+                                + availableRooms.size()
+                );
+            }
+
+            List<RoomCopy> selected =
+                    availableRooms.subList(0, intentSlot.getQuantity());
+
+            for (RoomCopy rc : selected) {
+
                 Slot slot = Slot.builder()
                         .booking(booking)
                         .roomCopy(rc)
-                        .startTime(slotReq.getStartTime())
-                        .endTime(slotReq.getEndTime())
-                        .availabilityStatus(SlotStatus.BOOKED)
-                        .build();
-                slotRepository.save(slot);
-
-                rc.setRoomCopyStatus(RoomCopyStatus.BOOKED);
-                roomCopyRepository.save(rc);
-
-                if (booking.getSlots() == null) {
-                    booking.setSlots(new ArrayList<>());
-                }
-
-                booking.getSlots().add(slot);
-
-                RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
-                        .roomCopyId(rc.getRoomCopyId())
-                        .roomCode(rc.getRoomCode())
+                        .startTime(intentSlot.getStartTime())
+                        .endTime(intentSlot.getEndTime())
+                        .slotStatus(SlotStatus.BOOKED)
                         .build();
 
                 SlotResponse slotResponse = SlotResponse.builder()
                         .slotId(slot.getSlotId())
-                        .startTime(slotReq.getStartTime())
-                        .endTime(slotReq.getEndTime())
-                        .roomCopy(roomCopyResponse)
-                        .status(slot.getAvailabilityStatus())
-                        .address(room.getRentalArea().getAddress())
+                        .startTime(slot.getStartTime())
+                        .endTime(slot.getEndTime())
+                        .roomCopy(RoomCopyResponse.builder()
+                                .roomCopyId(rc.getRoomCopyId())
+                                .roomCode(rc.getRoomCode())
+                                .build())
+                        .status(slot.getSlotStatus())
                         .build();
 
+                slotRepository.save(slot);
+                if(slotResponses == null) {
+                    slotResponses = new ArrayList<>();
+                }
                 slotResponses.add(slotResponse);
             }
-
-
-        }
-        BigDecimal totalPrice = BigDecimal.ZERO;
-
-        for (SlotRequest sr : request.getSlotRequests()) {
-            Room room = roomRepository.findById(sr.getRoomId()).orElse(null);
-            BigDecimal slotPrice = room.getPrice()
-                    .multiply(BigDecimal.valueOf(sr.getQuantity()));
-
-            totalPrice = totalPrice.add(slotPrice);
         }
 
-        booking.setTotalPrice(totalPrice);
-        System.err.println("Tạo thành công slot và booking");
+
+
         bookingQRService.createBookingQR(booking, QRType.CHECK_IN);
         bookingQRService.createBookingQR(booking, QRType.CHECK_OUT);
 
-        bookingRepository.save(booking);
 
+        RentalAreaResponse rentalAreaResponse = RentalAreaResponse.builder()
+                .rentalAreaName(bookingIntent.getRentalArea().getRentalAreaName())
+                .address(bookingIntent.getRentalArea().getAddress())
+                .cityName(bookingIntent.getRentalArea().getCity().getCityName())
+                .contactPhone(bookingIntent.getRentalArea().getContactPhone())
+                .build();
 
         return BookingResponse.builder()
                 .bookingId(booking.getBookingId())
-                .userName(user.getUserName())
-                .phoneNumber(user.getPhone() != null ? user.getPhone() : "")
+                .userName(booking.getRenter().getUserName())
+                .phoneNumber(booking.getRenter().getPhone() != null ? booking.getRenter().getPhone() : "")
                 .bookingType(booking.getBookingType())
-                .startTime(request.getSlotRequests().getFirst().getStartTime())
-                .endTime(request.getSlotRequests().getLast().getEndTime())
+                .startTime(booking.getStartTime())
+                .endTime(booking.getEndTime())
                 .status(BookingStatus.BOOKED)
-                .numberOfMonths(Math.max(request.getNumberOfMonths(), 0))
-                .note(request.getNote())
-                .totalPrice(totalPrice)
+//                .numberOfMonths(Math.max(request.getNumberOfMonths(), 0))
+                .note(booking.getNote())
+                .totalPrice(booking.getTotalPrice())
                 .statusPayment("")
                 .slots(slotResponses)
                 .createdAt(booking.getCreatedAt())
+                .rentalArea(rentalAreaResponse)
+                .qrCodeUrl(null)
+                .invoicePdfUrl(null)
                 .build();
     }
+
+
 
     private void validateBookingTime(BookingRequest request) {
         LocalDateTime now = LocalDateTime.now();
@@ -177,10 +413,6 @@ public class BookingServiceImpl implements BookingService {
 
             if (minutes < 60) {
                 throw new RuntimeException("Booking ngắn hạn tối thiểu 1 giờ");
-            }
-
-            if (minutes > 24 * 60) {
-                throw new RuntimeException("Vui lòng đặt dài hạn cho booking trên 1 ngày");
             }
 
             if (start.isAfter(now.plusDays(30))) {
@@ -206,38 +438,47 @@ public class BookingServiceImpl implements BookingService {
                 new RuntimeException("Không tìm thấy booking với id " + bookingId));
 
 
+        List<SlotResponse> slotResponses = booking.getSlots().stream().map(slot -> {
 
-       List<SlotResponse> slotResponses = booking.getSlots().stream().map(slot ->{
-
-           RoomCopy rc = slot.getRoomCopy();
-           RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
-                   .roomCopyId(rc.getRoomCopyId())
-                   .roomCode(rc.getRoomCode())
-                   .roomCopyStatus(rc.getRoomCopyStatus())
-                   .build();
+            RoomCopy rc = slot.getRoomCopy();
+            RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
+                    .roomCopyId(rc.getRoomCopyId())
+                    .roomCode(rc.getRoomCode())
+                    .roomCopyStatus(rc.getRoomCopyStatus())
+                    .build();
 
 
-           return SlotResponse.builder()
-                   .slotId(slot.getSlotId())
-                   .startTime(slot.getStartTime())
-                   .endTime(slot.getEndTime())
-                   .address(slot.getRoomCopy().getRoom().getRentalArea().getAddress())
-                   .roomCopy(roomCopyResponse)
-                   .build();
-       }).toList();
+            return SlotResponse.builder()
+                    .slotId(slot.getSlotId())
+                    .startTime(slot.getStartTime())
+                    .endTime(slot.getEndTime())
+                    .roomCopy(roomCopyResponse)
+                    .build();
+        }).toList();
+        RentalAreaResponse rentalAreaResponse = RentalAreaResponse.builder()
+                .rentalAreaName(booking.getRentalArea().getRentalAreaName())
+                .address(booking.getRentalArea().getAddress())
+                .cityName(booking.getRentalArea().getCity().getCityName())
+                .contactPhone(booking.getRentalArea().getContactPhone())
+                .build();
 
-        return  BookingResponse.builder()
-                .bookingId(bookingId)
+        return BookingResponse.builder()
+                .bookingId(booking.getBookingId())
                 .userName(booking.getRenter().getUserName())
                 .phoneNumber(booking.getRenter().getPhone() != null ? booking.getRenter().getPhone() : "")
-                .slots(slotResponses)
+                .bookingType(booking.getBookingType())
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
+                .status(BookingStatus.BOOKED)
+//                .numberOfMonths(Math.max(request.getNumberOfMonths(), 0))
+                .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
-                .bookingType(booking.getBookingType())
+                .statusPayment("")
+                .slots(slotResponses)
                 .createdAt(booking.getCreatedAt())
-                .checkIn(booking.getCheckIn())
-                .checkOut(booking.getCheckOut())
+                .rentalArea(rentalAreaResponse)
+                .qrCodeUrl(null)
+                .invoicePdfUrl(null)
                 .build();
     }
 
@@ -279,8 +520,8 @@ public class BookingServiceImpl implements BookingService {
                                                 .startTime(slot.getStartTime())
                                                 .endTime(slot.getEndTime())
                                                 .roomCopy(roomCopyResponse)
-                                                .status(slot.getAvailabilityStatus())
-                                                .address(room.getRentalArea().getAddress())
+                                                .status(slot.getSlotStatus())
+
                                                 .build();
                                     })
                                     .toList();

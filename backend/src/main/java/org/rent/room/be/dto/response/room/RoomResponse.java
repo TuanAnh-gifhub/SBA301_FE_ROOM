@@ -39,5 +39,6 @@ public class RoomResponse {
     public static class AmenityItem {
         Long amenityId;
         String amenityName;
+        String icon;
     }
 }

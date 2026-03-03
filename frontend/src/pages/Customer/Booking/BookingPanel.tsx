@@ -1,66 +1,57 @@
-import { Card, Segmented } from "antd";
-import { useState } from "react";
-
-import HourlyForm from "./HourlyForm";
-import DailyForm from "./DailyForm";
-import MonthlyForm from "./MonthlyForm";
-
-import type { Room } from "../../../types/room";
-import type { BookingType } from "../../../types/booking";
-
-interface Props {
-  room?: Room | null;
-  quantity: number;
-  userId: string;
-}
-
-export default function BookingPanel({ room, quantity, userId }: Props) {
-  const [type, setType] = useState<BookingType>("HOURLY");
-
-  const renderForm = () => {
-    switch (type) {
-      case "HOURLY":
-        return <HourlyForm room={room} quantity={quantity}  userId={userId} />;
-
-      case "DAILY":
-        return <DailyForm room={room}  quantity={quantity} userId={userId} />;
-
-      case "MONTHLY":
-        return <MonthlyForm room={room} quantity={quantity}  userId={userId} />;
-
-      default:
-        return null;
-    }
+type Props = {
+  cart: CartItem[];
+  increase: (index: number) => void;
+  decrease: (index: number) => void;
+  filter: BookingFilter;
+};
+import { toast } from "react-toastify";
+export default function BookingPanel({
+  cart,
+  increase,
+  decrease,
+  onSubmit,
+}: Props) {
+  const handleBookingNow = () => {
+    toast.info("Thêm khung giờ để đặt phòng");
   };
-
   return (
-    <Card
-      title="Đặt phòng"
-      style={{
-        position: "sticky",
-        top: 20,
-      }}
-    >
-      {/* chọn loại booking */}
-      <Segmented
-        block
-        value={type}
-        onChange={(v) => setType(v as BookingType)}
-        options={[
-          { label: "Theo giờ", value: "HOURLY" },
-          { label: "Theo ngày", value: "DAILY" },
-          { label: "Theo tháng", value: "MONTHLY" },
-        ]}
-        style={{ marginBottom: 20 }}
-      />
-
-      {!room || quantity === 0 ? (
-        <div style={{ textAlign: "center", color: "#999" }}>
-          <p>Vui lòng chọn số lượng phòng để đặt</p>
-        </div>
+    <>
+      {cart.length === 0 ? (
+        <p className="text-center text-gray-500 py-6">
+          Chưa có phòng nào được chọn.
+          <span
+            onClick={handleBookingNow}
+            className="text-blue-600 font-semibold ml-2 cursor-pointer hover:underline"
+          >
+            Đặt ngay
+          </span>
+        </p>
       ) : (
-        renderForm()
+        <div className="border rounded-xl p-5">
+          <h2>Tóm tắt đặt phòng</h2>
+
+          {cart.map((item, index) => (
+            <div key={index}>
+              <h4>{item.room.roomName}</h4>
+
+              <p>
+                {item.date} | {item.startTime} - {item.endTime}
+              </p>
+
+              <button onClick={() => decrease(index)}>-</button>
+              {item.quantity}
+              <button onClick={() => increase(index)}>+</button>
+            </div>
+          ))}
+
+          <button
+            onClick={onSubmit}
+            className="bg-blue-500 text-white px-4 py-2 rounded mt-4"
+          >
+            Đặt Phòng
+          </button>
+        </div>
       )}
-    </Card>
+    </>
   );
 }

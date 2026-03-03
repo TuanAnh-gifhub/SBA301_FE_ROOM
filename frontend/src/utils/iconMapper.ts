@@ -1,0 +1,31 @@
+import {
+  FaWifi,
+  FaSnowflake,
+  FaPlug,
+  FaChalkboard,
+  FaVideo,
+  FaTv,
+  FaMicrophone,
+  FaVolumeUp,
+  FaDesktop,
+  FaPrint,
+  FaServer,
+  FaFan,
+  FaTint,
+} from "react-icons/fa";
+
+export const iconMap: Record<string, any> = {
+  FaWifi,
+  FaSnowflake,
+  FaPlug,
+  FaChalkboard,
+  FaVideo,
+  FaTv,
+  FaMicrophone,
+  FaVolumeUp,
+  FaDesktop,
+  FaPrint,
+  FaServer,
+  FaFan,
+  FaTint,
+};

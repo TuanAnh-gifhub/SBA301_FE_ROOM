@@ -45,4 +45,7 @@ public class Payment extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "wallet_id")
     Wallet wallet;
+
+    @OneToOne
+    private BookingIntent bookingIntent;
 }
