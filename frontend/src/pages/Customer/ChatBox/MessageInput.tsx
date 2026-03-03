@@ -15,7 +15,7 @@ interface FileItem {
 interface MessageInputProps {
   newMessage: string;
   setNewMessage: (message: string | ((prev: string) => string)) => void;
-  onSendMessage: () => void;
+  handleSendMessage: () => void;
   selectedFiles: FileItem[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
   imagePreview: string | null;
@@ -40,7 +40,7 @@ const quickReplies = [
 const MessageInput = ({
   newMessage,
   setNewMessage,
-  onSendMessage,
+  handleSendMessage,
   selectedFiles,
   imagePreview,
   onFileSelect,
@@ -78,7 +78,7 @@ const MessageInput = ({
       e.preventDefault();
       // Chỉ gửi khi có nội dung hoặc có file được chọn
       if (newMessage.trim() || selectedFiles.length > 0) {
-        onSendMessage();
+        handleSendMessage();
       }
     }
   };
@@ -161,7 +161,7 @@ const MessageInput = ({
         </button>
 
         <button
-          onClick={onSendMessage}
+          onClick={handleSendMessage}
           className="p-2 bg-[#4da6ff] hover:bg-[#4da6ff]/90 text-white rounded-full transition-colors"
         >
           <FaPaperPlane className="w-4 h-4" />

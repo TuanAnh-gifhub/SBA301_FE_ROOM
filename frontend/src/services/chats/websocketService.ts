@@ -35,7 +35,6 @@ class WebSocketService {
       });
 
       this.stompClient.subscribe("/user/queue/read-receipt", (message: any) => {
-        console.log("👁️ ĐỐI PHƯƠNG ĐÃ ĐỌC TIN NHẮN!");
         if (message.body) {
           const data = JSON.parse(message.body);
           this.readReceiptListeners.forEach((callback) => callback(data));
@@ -50,7 +49,6 @@ class WebSocketService {
     }
   }
 
-  // Đăng ký và trả về hàm để hủy đăng ký (Tránh rò rỉ bộ nhớ)
   onNewMessage(callback: (data: any) => void) {
     this.newMessageListeners.push(callback);
     return () => {

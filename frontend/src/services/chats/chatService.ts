@@ -6,6 +6,12 @@ export interface ApiResponse<T> {
   result: T;
 }
 
+export interface UserChatResponse {
+  userId: string;
+  userName: string;
+  avatar?: string;
+}
+
 export interface MessageResponse {
   messageId: string;
   conversationId: string;
@@ -18,12 +24,6 @@ export interface MessageResponse {
   imageUrl: string | null;
 }
 
-export interface UserChatResponse {
-  userId: string;
-  userName: string;
-  avatar?: string;
-}
-
 export interface ConversationResponse {
   conversationId: string | null;
   lastMessage: string;
@@ -31,6 +31,7 @@ export interface ConversationResponse {
   user1: UserChatResponse;
   user2: UserChatResponse;
   updatedAt: string;
+  isRead?: boolean;
 }
 
 const chatService = {

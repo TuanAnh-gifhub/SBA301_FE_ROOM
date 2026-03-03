@@ -1,31 +1,20 @@
 import { FaSearch, FaSpinner } from "react-icons/fa";
 import { parseMessageContent } from "../../../services/upload/uploadService";
 import { useAuth } from "../../../context/AuthContext";
+import type {
+  UserChatResponse,
+  ConversationResponse,
+} from "../../../services/chats/chatService";
 
 // ============ TYPE DEFINITIONS ============
 
-export interface UserResponse {
-  id: string;
-  username: string;
-}
-
-export interface ConversationResponse {
+export interface Chat extends Omit<ConversationResponse, "conversationId"> {
   conversationId: string;
-  conversationTitle: string;
-  lastMessage: string;
-  lastSenderName: string;
-  user1: UserResponse;
-  user2: UserResponse;
-  updatedAt: string;
-  isRead?: boolean;
-}
-
-export interface Chat extends ConversationResponse {
   id: string;
   name: string;
   time: string;
   avatar: string;
-  otherPerson: UserResponse;
+  otherPerson: UserChatResponse;
 }
 
 interface ChatListProps {
@@ -33,12 +22,14 @@ interface ChatListProps {
   setSearchQuery: (query: string) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  selectedChat: any; // Dùng any hoặc Union type để linh hoạt khi click
-  onChatSelect: (chat: any) => void;
+
+  selectedChat: Chat | null;
+  onChatSelect: (chat: Chat) => void;
+
   showSettingsMenu: boolean;
   setShowSettingsMenu: (show: boolean) => void;
   settingsMenuRef: React.RefObject<HTMLDivElement | null>;
-  conversations: any[];
+  conversations: ConversationResponse[];
   loading: boolean;
   error: string | null;
   isFullWidth?: boolean;
@@ -98,10 +89,12 @@ const ChatList = ({
       const otherPerson =
         conv.user1?.userId === currentUserId ? conv.user2 : conv.user1;
       const displayUserName = otherPerson?.userName || "Người dùng hệ thống";
+      const validConversationId = conv.conversationId || ""; // Fallback nếu null
 
       return {
         ...conv,
-        id: conv.conversationId,
+        conversationId: validConversationId,
+        id: validConversationId,
         name: displayUserName,
         time: conv.updatedAt
           ? new Date(conv.updatedAt).toLocaleTimeString("vi-VN", {
