@@ -21,5 +21,5 @@ public class SlotResponse {
     private SlotStatus status;
     private LocalDate specificDate;
     private  RoomCopyResponse roomCopy;
-    private String address;
+
 }

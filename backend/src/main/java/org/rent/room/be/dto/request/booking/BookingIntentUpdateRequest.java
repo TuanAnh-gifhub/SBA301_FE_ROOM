@@ -1,12 +1,9 @@
 package org.rent.room.be.dto.request.booking;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.rent.room.be.constant.BookingType;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,8 +12,7 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class BookingRequest {
-//    @NotNull(message = "User id không được bỏ trống")
+public class BookingIntentUpdateRequest {
     private UUID userId;
     private String userName;
     private String userPhone;
@@ -26,4 +22,3 @@ public class BookingRequest {
     private BookingType bookingType;
 
 }
-

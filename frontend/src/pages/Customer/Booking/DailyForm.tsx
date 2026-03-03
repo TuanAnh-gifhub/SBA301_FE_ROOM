@@ -1,179 +1,80 @@
 import { useState } from "react";
-import type { Room } from "../../../types/room";
-import type { BookingRequest, SlotDraft } from "../../../types/booking";
-import { toSlotRequest } from "../../../utils/bookingMapper";
-import { InputNumber, Space } from "antd";
 import axios from "axios";
+import type { Room } from "../../../types/room";
+import RoomDailyEditor from "./RoomDailyEditor";
 
-interface DailyFormProps {
-  room: Room;
+interface Props {
+  selectedRooms: Record<string, { room: Room; quantity: number }>;
   userId: string;
 }
 
-export default function DailyForm({ room, userId }: DailyFormProps) {
-  const [slots, setSlots] = useState<SlotDraft[]>([]);
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState({
-    start: "08:00",
-    end: "10:00",
-  });
+interface Slot {
+  roomId: string;
+  date: string;
+  start: string;
+  end: string;
+  quantity: number;
+}
 
-  const [draftQuantity, setDraftQuantity] = useState(1);
-
-  const addSlot = () => {
-    if (!date) {
-      alert("Vui lòng chọn ngày!");
-      return;
-    }
-
-    const existed = slots.some(
-      (s) =>
-        s.date === date && s.startTime === time.start && s.endTime === time.end,
-    );
-    if (existed) {
-      alert("Khung giờ này đã tồn tại!");
-      return;
-    }
-
-    setSlots([
-      ...slots,
-      {
-        date,
-        startTime: time.start,
-        endTime: time.end,
-        quantity: draftQuantity,
-      },
-    ]);
-  };
-
-  const updateSlot = (index: number, data: Partial<SlotDraft>) => {
-    const next = [...slots];
-    next[index] = { ...next[index], ...data };
-    setSlots(next);
+export default function DailyForm({ selectedRooms, userId }: Props) {
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [loading, setLoading] = useState(false);
+  const addSlot = (slot: Slot) => {
+    setSlots((prev) => [...prev, slot]);
   };
 
   const removeSlot = (index: number) => {
-    setSlots(slots.filter((_, i) => i !== index));
+    setSlots((prev) => prev.filter((_, i) => i !== index));
   };
 
   const onSubmit = async () => {
-    if (slots.length === 0) {
-      alert("Vui lòng thêm ít nhất 1 ngày!");
+    if (!slots.length) {
+      alert("Chưa có slot");
       return;
     }
-   
-    const payload: BookingRequest = {
-      userId: userId,
-      bookingType: "DAILY",
-      numberOfMonths: 0,
-      slotRequests: slots.map((s) =>
-        toSlotRequest(s, room.id),
-      ),
-    };
 
-    console.log("Payload gửi BE:", payload);
-    alert("Đã tạo booking! Kiểm tra console log.");
-    await axios.post("/api/v1/rent-room/bookings", payload);
+    try {
+      setLoading(true);
+
+      const payload = {
+        userId,
+        bookingType: "DAILY",
+        numberOfMonths: 0,
+        slotRequests: slots.map((s) => ({
+          roomId: s.roomId,
+          quantity: s.quantity,
+          startTime: `${s.date}T${s.start}:00`,
+          endTime: `${s.date}T${s.end}:00`,
+        })),
+      };
+
+      console.log(payload);
+
+      await axios.post("/api/v1/rent-room/bookings", payload);
+
+      alert("Giữ phòng thành công!");
+    } catch (error) {
+      console.error(error);
+      alert("Đặt lịch thất bại");
+    } finally {
+      setLoading(false); 
+    }
   };
-
   return (
     <div className="space-y-6">
-      <div className="p-4 border rounded-xl bg-blue-50 space-y-4">
-        <h3 className="font-bold text-blue-700">Chọn ngày & khung giờ</h3>
+      {/* editor từng room */}
+      {Object.values(selectedRooms).map(({ room }) => (
+        <RoomDailyEditor key={room.roomId} room={room} onAddSlot={addSlot} />
+      ))}
 
-        <div className="grid grid-cols-2 gap-4">
-          <input
-            type="date"
-            className="border p-2 rounded"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-
-          <Space>
-            <span className="text-sm font-medium">Số lượng phòng</span>
-            <InputNumber
-              min={1}
-              max={room.quantity}
-              value={draftQuantity}
-              onChange={(v) => setDraftQuantity(v || 1)}
-              className="w-24"
-            />
-            <span className="text-xs text-gray-400">/ {room.quantity}</span>
-          </Space>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="time"
-            value={time.start}
-            onChange={(e) => setTime({ ...time, start: e.target.value })}
-            className="border p-2 rounded w-full"
-          />
-          <span>-</span>
-          <input
-            type="time"
-            value={time.end}
-            onChange={(e) => setTime({ ...time, end: e.target.value })}
-            className="border p-2 rounded w-full"
-          />
-        </div>
-
-        <button
-          onClick={addSlot}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium"
-        >
-          Thêm vào danh sách
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        <h3 className="font-semibold">Danh sách đã chọn ({slots.length})</h3>
+      {/* preview */}
+      <div className="border p-4 rounded">
+        <h3 className="font-bold">Slot đã chọn ({slots.length})</h3>
 
         {slots.map((s, i) => (
-          <div
-            key={i}
-            className="flex flex-wrap items-center gap-4 p-3 border rounded-xl bg-white shadow-sm"
-          >
-            <span className="font-bold w-28">{s.date}</span>
-
-            <div className="flex items-center gap-1">
-              <input
-                type="time"
-                value={s.startTime}
-                onChange={(e) => updateSlot(i, { startTime: e.target.value })}
-                className="border rounded px-1"
-              />
-              <span>→</span>
-              <input
-                type="time"
-                value={s.endTime}
-                onChange={(e) => updateSlot(i, { endTime: e.target.value })}
-                className="border rounded px-1"
-              />
-            </div>
-
-            <Space>
-              <span className="text-sm">Số lượng</span>
-              <InputNumber
-                min={1}
-                max={room.quantity}
-                value={s.quantity}
-                onChange={(v) => updateSlot(i, { quantity: v || 1 })}
-                className="w-24"
-              />
-            </Space>
-
-            <button
-              className="text-xs text-blue-600"
-              onClick={() => setDraftQuantity(s.quantity)}
-            >
-              Dùng số lượng này cho slot mới
-            </button>
-
-            <button
-              onClick={() => removeSlot(i)}
-              className="text-red-500 text-sm font-medium ml-auto"
-            >
+          <div key={i}>
+            {s.date} |{s.start}-{s.end} |{s.quantity} phòng
+            <button onClick={() => removeSlot(i)} className="ml-3 text-red-500">
               Xóa
             </button>
           </div>
@@ -182,9 +83,34 @@ export default function DailyForm({ room, userId }: DailyFormProps) {
 
       <button
         onClick={onSubmit}
-        className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition"
+        disabled={loading}
+        className={`
+    w-full
+    py-4
+    rounded-2xl
+    font-bold
+    text-white
+    flex items-center
+    justify-center
+    gap-2
+
+    transition-all duration-200 ease-in-out
+
+    ${
+      loading
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-blue-600 hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.97]"
+    }
+  `}
       >
-         ĐẶT LỊCH
+        {loading ? (
+          <>
+            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            ĐANG GIỮ PHÒNG...
+          </>
+        ) : (
+          "ĐẶT LỊCH"
+        )}
       </button>
     </div>
   );
