@@ -48,8 +48,10 @@ jobs:
           context: ./frontend
           push: ${{ github.event_name == 'push' }}
           tags: ${{ secrets.DOCKER_USERNAME }}/rent-room-frontend:latest
+          build-args: |
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+            VITE_GOOGLE_ID=${{ secrets.VITE_GOOGLE_ID }}
           # Image frontend sẽ được push với tag latest
-
 
   # deploy:
   #   # Chỉ chạy khi job build-and-push thành công
