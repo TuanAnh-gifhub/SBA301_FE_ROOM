@@ -5,9 +5,12 @@ import type { RoomCardItem } from "./types";
 
 const { Text } = Typography;
 
-const formatVND = (value?: number | null) => {
+const formatVND = (value?: number | string | null) => {
   if (value == null) return "";
-  return value.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
+  const n = typeof value === "number" ? value : Number(value);
+  if (Number.isNaN(n)) return "";
+
+  return n.toLocaleString("vi-VN") + " VNĐ";
 };
 
 type Props = {
@@ -72,6 +75,15 @@ const RoomCard: React.FC<Props> = ({ item, onView }) => {
             {item.capacity != null ? `${item.capacity} người` : "Chưa cập nhật"}
           </span>
         </div>
+
+        {item.price != null && (
+          <div className="mt-2 flex items-end justify-end gap-1">
+            <span className="text-lg font-bold" style={{ color: "#4da6ff" }}>
+              {priceLabel}
+            </span>
+            <span className="text-gray-500 text-sm">/giờ</span>
+          </div>
+        )}
       </div>
 
       <Button
@@ -85,7 +97,7 @@ const RoomCard: React.FC<Props> = ({ item, onView }) => {
         }}
         onClick={() => onView(item.postId)}
       >
-        View Details
+        Xem chi tiết
       </Button>
     </Card>
   );

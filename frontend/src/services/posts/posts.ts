@@ -84,7 +84,7 @@ export interface PublicPostQuery {
   page?: number;
   size?: number;
 
-  city?: string;
+  city?: number;
   categoryId?: number;
   amenityIds?: number[]; 
 
@@ -150,28 +150,39 @@ const postsService = {
     return res.data;
   },
 
-  getPublicPosts: async (
-    query: PublicPostQuery = {},
-  ): Promise<ApiResponse<PageResponse<PostSummaryResponse>>> => {
-    const params: any = {};
+  getPublicPosts: async (params: {
+  page: number;
+  size: number;
+  cityId?: number;
+  categoryId?: number;
+  amenityIds?: number[];
+}) => {
+  const cleanParams: any = {};
+  Object.entries(params || {}).forEach(([k, v]) => {
+    if (v === undefined || v === null) return;
+    if (Array.isArray(v) && v.length === 0) return;
+    cleanParams[k] = v;
+  });
 
-    if (query.page != null) params.page = Math.max(query.page - 1, 0);
-    if (query.size != null) params.size = query.size;
+  const res = await api.get<ApiResponse<PageResponse<PostSummaryResponse>>>(
+    "/posts",
+    {
+      params: cleanParams,
+      paramsSerializer: {
+        serialize: (p) => {
+          const sp = new URLSearchParams();
+          Object.entries(p).forEach(([k, v]) => {
+            if (Array.isArray(v)) v.forEach((x) => sp.append(k, String(x)));
+            else sp.append(k, String(v));
+          });
+          return sp.toString();
+        },
+      },
+    },
+  );
 
-    if (query.city) params.city = query.city;
-    if (query.categoryId != null) params.categoryId = query.categoryId;
-
-    if (query.amenityIds?.length) params.amenityIds = query.amenityIds;
-
-    if (query.keyword) params.keyword = query.keyword;
-    if (query.sort) params.sort = query.sort;
-
-    const res = await api.get<ApiResponse<PageResponse<PostSummaryResponse>>>(
-      "/posts",
-      { params },
-    );
-    return res.data;
-  },
+  return res.data;
+},
 };
 
 export default postsService;

@@ -83,7 +83,7 @@ public class PostServiceImpl implements PostService {
     public PageResponse<PostSummaryResponse> getPublicFeed(
             int page,
             int size,
-            UUID cityId,
+            Long cityId,
             Long categoryId,
             List<Long> amenityIds
     ) {
@@ -95,11 +95,14 @@ public class PostServiceImpl implements PostService {
         List<Long> amenityParam =
                 (amenityIds == null || amenityIds.isEmpty()) ? null : amenityIds;
 
+        long amenityCount = (amenityParam == null) ? 0L : amenityParam.size();
+
         Page<Post> postPage = postRepository.findPublicFeed(
                 PostStatus.PUBLISHED,
                 cityId,
                 categoryId,
                 amenityParam,
+                amenityCount,
                 pageable
         );
 

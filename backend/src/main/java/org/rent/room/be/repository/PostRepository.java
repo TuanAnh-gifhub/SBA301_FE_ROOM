@@ -36,21 +36,30 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     List<Post> findAllByPostStatusIn(Collection<PostStatus> statuses);
 
     @Query("""
-    select distinct p
+    select p
     from Post p
     join p.room r
     join r.rentalArea ra
-    left join r.amenities a
     where p.postStatus = :status
       and (:cityId is null or ra.city.cityId = :cityId)
       and (:categoryId is null or r.category.categoryId = :categoryId)
-      and (:amenityIds is null or a.amenityId in :amenityIds)
+      and (
+            :amenityIds is null
+            or :amenityCount = (
+                select count(distinct a2.amenityId)
+                from Room r2
+                join r2.amenities a2
+                where r2 = r
+                  and a2.amenityId in :amenityIds
+            )
+      )
 """)
     Page<Post> findPublicFeed(
             @Param("status") PostStatus status,
-            @Param("cityId") UUID cityId,
+            @Param("cityId") Long cityId,
             @Param("categoryId") Long categoryId,
             @Param("amenityIds") List<Long> amenityIds,
+            @Param("amenityCount") long amenityCount,
             Pageable pageable
     );
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, Pagination, message } from "antd";
 import dayjs from "dayjs";
 
@@ -16,9 +16,7 @@ import citiesService, {
   type CityResponse,
 } from "../../../services/cities/cities";
 
-type Option =
-  | { label: string; value: number }
-  | { label: string; value: string };
+type NumberOption = { label: string; value: number };
 
 const toSortParam = (sort: SortValue): string | undefined => {
   switch (sort) {
@@ -37,7 +35,7 @@ const mapPostToCard = (p: PostSummaryResponse): RoomCardItem => ({
   postId: p.postId,
   title: p.title,
   roomName: p.roomName,
-  price: p.price ?? null,
+  price: p.price != null ? Number(p.price) : null,
   capacity: p.capacity ?? null,
   rentalAreaName: p.rentalAreaName ?? null,
   city: null,
@@ -46,7 +44,7 @@ const mapPostToCard = (p: PostSummaryResponse): RoomCardItem => ({
 
 const ProductsPage: React.FC = () => {
   // Filters
-  const [city, setCity] = useState<string | undefined>(undefined);
+  const [cityId, setCityId] = useState<number | undefined>(undefined);
   const [date, setDate] = useState<any>(dayjs());
   const [timeRange, setTimeRange] = useState<[number, number]>([8, 18]);
 
@@ -59,15 +57,9 @@ const ProductsPage: React.FC = () => {
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
 
   // options (from API)
-  const [cityOptions, setCityOptions] = useState<
-    { label: string; value: string }[]
-  >([]);
-  const [categoryOptions, setCategoryOptions] = useState<
-    { label: string; value: number }[]
-  >([]);
-  const [amenityOptions, setAmenityOptions] = useState<
-    { label: string; value: number }[]
-  >([]);
+  const [cityOptions, setCityOptions] = useState<NumberOption[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<NumberOption[]>([]);
+  const [amenityOptions, setAmenityOptions] = useState<NumberOption[]>([]);
 
   // Sort + paging
   const [sort, setSort] = useState<SortValue>("POPULARITY");
@@ -76,7 +68,7 @@ const ProductsPage: React.FC = () => {
 
   // API state
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<RoomCardItem[]>([]);
+  const [rawPosts, setRawPosts] = useState<PostSummaryResponse[]>([]);
   const [total, setTotal] = useState(0);
 
   // fetch filter options
@@ -122,46 +114,67 @@ const ProductsPage: React.FC = () => {
     fetchOptions();
   }, []);
 
-  const fetchPublic = async () => {
+  const fetchPublic = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await postsService.getPublicPosts({
+      const query: any = {
         page,
         size: pageSize,
-        city: city || undefined,
-        categoryId: categoryId ?? undefined,
-        amenityIds: amenityIds.length ? amenityIds : undefined,
-        capacityMin: capacityRange[0],
-        capacityMax: capacityRange[1],
-        sort: toSortParam(sort),
-      });
+      };
+
+      if (cityId != null) query.cityId = cityId;
+      if (categoryId != null) query.categoryId = categoryId;
+      if (amenityIds.length) query.amenityIds = amenityIds;
+
+      const res = await postsService.getPublicPosts(query);
 
       if (res.code !== 200) {
         message.error(res.message || "Tải danh sách phòng thất bại");
-        setItems([]);
+        setRawPosts([]);
         setTotal(0);
         return;
       }
 
-      // result dạng PageResponse<PostSummaryResponse>
       const pageData = res.result;
-      setItems((pageData.data || []).map(mapPostToCard));
+
+      setRawPosts(pageData.data || []);
       setTotal(pageData.totalElements || 0);
     } catch (e: any) {
       console.error(e);
       message.error(
         e?.response?.data?.message || "Đã xảy ra lỗi khi tải dữ liệu",
       );
-      setItems([]);
+      setRawPosts([]);
       setTotal(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize, cityId, categoryId, amenityIds]);
 
   useEffect(() => {
     fetchPublic();
-  }, [page, pageSize, city, categoryId, amenityIds, capacityRange, sort]);
+  }, [fetchPublic]);
+
+  // ✅ Lọc sức chứa ở FE (vì BE feed chưa có capacityMin/Max trong signature bạn gửi)
+  const items = useMemo(() => {
+    const [minCap, maxCap] = capacityRange;
+
+    return (
+      rawPosts
+        .filter((p) => {
+          const cap = p.capacity ?? 0;
+          return cap >= minCap && cap <= maxCap;
+        })
+        // nếu bạn muốn sort FE tạm thời:
+        .slice()
+        .sort((a, b) => {
+          if (sort === "PRICE_ASC") return (a.price ?? 0) - (b.price ?? 0);
+          if (sort === "PRICE_DESC") return (b.price ?? 0) - (a.price ?? 0);
+          return 0;
+        })
+        .map(mapPostToCard)
+    );
+  }, [rawPosts, capacityRange, sort]);
 
   const onView = (postId: string) => {
     console.log("view", postId);
@@ -173,10 +186,10 @@ const ProductsPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div className="lg:col-span-4 xl:col-span-3">
             <FilterSidebar
-              city={city}
+              cityId={cityId}
               cityOptions={cityOptions}
               onCityChange={(v) => {
-                setCity(v);
+                setCityId(v);
                 setPage(1);
               }}
               date={date}
@@ -226,7 +239,6 @@ const ProductsPage: React.FC = () => {
             />
 
             <RoomGrid data={items} loading={loading} onView={onView} />
-
             <Card className="mt-4 shadow-sm rounded-xl">
               <div className="flex justify-center">
                 <Pagination
@@ -235,7 +247,7 @@ const ProductsPage: React.FC = () => {
                   total={total}
                   onChange={(p, s) => {
                     setPage(p);
-                    setPageSize(s);
+                    if (typeof s === "number") setPageSize(s);
                   }}
                   showSizeChanger
                   pageSizeOptions={["6", "9", "12", "18"]}

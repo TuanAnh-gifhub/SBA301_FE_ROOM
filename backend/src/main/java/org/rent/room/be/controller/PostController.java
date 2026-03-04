@@ -52,10 +52,10 @@ public class PostController {
 
     // Public feed
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PostSummaryResponse>>> getAllPosts(
+    public ResponseEntity<ApiResponse<PageResponse<PostSummaryResponse>>> getAllPosts(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "12") int size,
-            @RequestParam(required = false) UUID cityId,
+            @RequestParam(required = false) Long cityId,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) List<Long> amenityIds
     ) {

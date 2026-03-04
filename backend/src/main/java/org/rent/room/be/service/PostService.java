@@ -18,7 +18,7 @@ public interface PostService {
     PageResponse<PostSummaryResponse> getPublicFeed(
             int page,
             int size,
-            UUID cityId,
+            Long cityId,
             Long categoryId,
             List<Long> amenityIds
     );
