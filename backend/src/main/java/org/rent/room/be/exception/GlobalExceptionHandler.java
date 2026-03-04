@@ -76,13 +76,13 @@ public class GlobalExceptionHandler {
         // Ghi log lỗi ra console server để Developer sửa
         log.error("Uncaught Exception: ", e);
 
-        ErrorCode errorCode = ErrorCode.USER_NOT_AUTHENTICATED;
-
+        // Không dùng USER_NOT_AUTHENTICATED cho mọi lỗi còn lại,
+        // trả về 500 Internal Server Error chung.
         return ResponseEntity
-                .status(errorCode.getHttpStatusCode())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.builder()
-                        .code(errorCode.getCode())
-                        .message(errorCode.getMessage())
+                        .code(500)
+                        .message("Internal server error")
                         .build());
     }
 

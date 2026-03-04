@@ -16,6 +16,7 @@ import org.rent.room.be.mapper.UserMapper;
 import org.rent.room.be.repository.RoleRepository;
 import org.rent.room.be.repository.UserRepository;
 import org.rent.room.be.repository.mongo.PasswordResetTokenRepository;
+import org.rent.room.be.security.CustomUserDetails;
 import org.rent.room.be.service.EmailService;
 import org.rent.room.be.service.UserService;
 import org.rent.room.be.specification.UserSpecification;
@@ -78,14 +79,7 @@ class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse getProfileUser() {
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AppException(ErrorCode.USER_NOT_AUTHENTICATED);
-        }
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
+        User user = getCurrentUserEntity();
         return userMapper.toUserResponse(user);
     }
 
@@ -197,7 +191,20 @@ class UserServiceImpl implements UserService {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AppException(ErrorCode.USER_NOT_AUTHENTICATED);
         }
-        return userRepository.findByEmail(authentication.getName())
+
+        Object principal = authentication.getPrincipal();
+        String email;
+
+        if (principal instanceof CustomUserDetails customUserDetails) {
+            email = customUserDetails.getUsername();
+        } else if (principal instanceof String s) {
+            // Thông thường getName() sẽ là email do JwtAuthenticationFilter set
+            email = authentication.getName();
+        } else {
+            throw new AppException(ErrorCode.USER_NOT_AUTHENTICATED);
+        }
+
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 
