@@ -75,7 +75,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleUnwantedException(Exception e) {
         // Ghi log lỗi ra console server để Developer sửa
         log.error("Uncaught Exception: ", e);
-
         ErrorCode errorCode = ErrorCode.USER_NOT_AUTHENTICATED;
 
         return ResponseEntity
@@ -108,7 +107,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(apiResponse);
+                .body(apiResponse );
     }
 
     @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)

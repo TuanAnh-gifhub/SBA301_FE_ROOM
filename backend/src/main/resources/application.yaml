@@ -79,3 +79,6 @@ cloudinary:
   folder: ${CLOUDINARY_FOLDER:springboot_uploads}
 
 token_reset_password_expire_seconds: 900
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}

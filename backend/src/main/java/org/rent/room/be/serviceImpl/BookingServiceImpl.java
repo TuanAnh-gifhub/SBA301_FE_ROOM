@@ -17,6 +17,8 @@ import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
 import org.rent.room.be.dto.response.slot.SlotResponse;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.entity.BookingIntent;
+import org.rent.room.be.exception.AppException;
+import org.rent.room.be.exception.ErrorCode;
 import org.rent.room.be.repository.*;
 import org.rent.room.be.service.*;
 import org.rent.room.be.specification.BookingSpecification;
@@ -29,6 +31,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -63,6 +66,9 @@ public class BookingServiceImpl implements BookingService {
     @Autowired
     private RentalAreaRepository rentalAreaRepository;
 
+    @Autowired
+    private InvoicePdfService invoicePdfService;
+
     @Transactional
     public void releaseExpiredHolds() {
 
@@ -87,17 +93,17 @@ public class BookingServiceImpl implements BookingService {
 
                     Room room = intentSlot.getRoom();
                     Set<RoomResponse.AmenityItem> amenities = room.getAmenities().stream()
-                            .map(amenity ->RoomResponse.AmenityItem.builder()
+                            .map(amenity -> RoomResponse.AmenityItem.builder()
                                     .amenityId(amenity.getAmenityId())
                                     .amenityName(amenity.getAmenityName())
                                     .icon(amenity.getIconKey())
                                     .build()
                             ).collect(Collectors.toSet());
 
-                    List<RoomImageResponse> images = room.getImages().stream().map(image ->RoomImageResponse.builder()
+                    List<RoomImageResponse> images = room.getImages().stream().map(image -> RoomImageResponse.builder()
                             .roomImageId(image.getRoomImageId())
                             .imageUrl(image.getImageUrl())
-                            .build() ).toList();
+                            .build()).toList();
                     RoomResponse roomResponse = RoomResponse.builder()
                             .roomId(room.getRoomId())
                             .roomName(room.getRoomName())
@@ -118,11 +124,11 @@ public class BookingServiceImpl implements BookingService {
                             .build();
                 }).toList();
 
-        BigDecimal tax  = BigDecimal.ZERO;
+        BigDecimal tax = BigDecimal.ZERO;
         //hàm tính tax
-        BigDecimal discount  = BigDecimal.ZERO;
-      //hàm tính giảm giá
-      BigDecimal totalPrice = bookingIntent.getPreviewPrice().add(tax).subtract(discount);
+        BigDecimal discount = BigDecimal.ZERO;
+        //hàm tính giảm giá
+        BigDecimal totalPrice = bookingIntent.getPreviewPrice().add(tax).subtract(discount);
         return BookingIntentResponse.builder()
                 .bookingIntentId(bookingIntent.getBookingIntentId())
                 .tax(tax)
@@ -154,8 +160,7 @@ public class BookingServiceImpl implements BookingService {
 
         User user = userRepository.findById(
                 bookingRequest.getUserId()
-        ).orElseThrow(() ->
-                new RuntimeException("Không tìm thấy người dùng"));
+        ).orElse(null);
 
 
         String title = switch (bookingRequest.getBookingType()) {
@@ -186,8 +191,7 @@ public class BookingServiceImpl implements BookingService {
                     new RuntimeException("Không tìm thấy phòng"));
             if (rentalArea == null) {
                 rentalArea = room.getRentalArea();
-            }
-            else if (!rentalArea.getRentalAreaId()
+            } else if (!rentalArea.getRentalAreaId()
                     .equals(room.getRentalArea().getRentalAreaId())) {
 
                 throw new RuntimeException(
@@ -205,7 +209,7 @@ public class BookingServiceImpl implements BookingService {
 
             if (availableRooms.size() < slotReq.getQuantity()) {
                 throw new RuntimeException(
-                        "Phòng " + room.getRoomName()
+                        room.getRoomName()
                                 + " chỉ còn "
                                 + availableRooms.size()
                 );
@@ -235,7 +239,7 @@ public class BookingServiceImpl implements BookingService {
                 .build();
 
 
-       bookingIntent.setRentalArea(rentalArea);
+        bookingIntent.setRentalArea(rentalArea);
         bookingIntent.setStartTime(bookingRequest.getSlotRequests().getFirst().getStartTime());
         bookingIntent.setEndTime(bookingRequest.getSlotRequests().getLast().getEndTime());
         bookingIntent.setSlots(intentSlots);
@@ -265,7 +269,6 @@ public class BookingServiceImpl implements BookingService {
                 }).toList();
 
 
-
         return BookingIntentResponse.builder()
                 .bookingIntentId(bookingIntent.getBookingIntentId())
                 .previewPrice(totalPrice)
@@ -283,6 +286,7 @@ public class BookingServiceImpl implements BookingService {
                 .rentalAreaResponse(rentalAreaResponse)
                 .build();
     }
+
     @Override
     @Transactional
     public BookingIntentResponse updateBookingIntent(
@@ -290,16 +294,18 @@ public class BookingServiceImpl implements BookingService {
             BookingRequest bookingRequest
     ) {
 
-     return  null;
+        return null;
     }
+
     @Transactional
-    public BookingResponse createBooking(UUID bookingIntentId) {
+    public BookingResponse createBooking(UUID bookingIntentId, Payment payment) throws IOException {
         BookingIntent bookingIntent = bookingIntentRepository.findById(bookingIntentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy mã đặt lịch dự định với id " + bookingIntentId));
 
         if (bookingIntent.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Thông tin đặt lịch  đã hết hạn trong thời gian giữ,vui lòng đặt lại");
         }
+
 
         Booking booking = Booking.builder()
                 .bookingTitle(bookingIntent.getTitle())
@@ -314,7 +320,8 @@ public class BookingServiceImpl implements BookingService {
                 .build();
 
         bookingRepository.save(booking);
-        List<SlotResponse> slotResponses = null;
+        List<SlotResponse> slotResponses = new ArrayList<>();
+        ;
         for (IntentSlot intentSlot : bookingIntent.getSlots()) {
 
             List<RoomCopy> availableRooms =
@@ -343,6 +350,8 @@ public class BookingServiceImpl implements BookingService {
                         .slotStatus(SlotStatus.BOOKED)
                         .build();
 
+
+                slotRepository.save(slot);
                 SlotResponse slotResponse = SlotResponse.builder()
                         .slotId(slot.getSlotId())
                         .startTime(slot.getStartTime())
@@ -354,20 +363,17 @@ public class BookingServiceImpl implements BookingService {
                         .status(slot.getSlotStatus())
                         .build();
 
-                slotRepository.save(slot);
-                if(slotResponses == null) {
-                    slotResponses = new ArrayList<>();
-                }
                 slotResponses.add(slotResponse);
             }
         }
 
 
+        bookingQRService.createBookingQR(booking, QRType.CHECK_IN, booking.getStartTime());
+        bookingQRService.createBookingQR(booking, QRType.CHECK_OUT, booking.getEndTime());
 
-        bookingQRService.createBookingQR(booking, QRType.CHECK_IN);
-        bookingQRService.createBookingQR(booking, QRType.CHECK_OUT);
-
-
+        String urlPdfInvoice = invoicePdfService.generateInvoice(booking, slotResponses, payment);
+        booking.setInvoiceUrl(urlPdfInvoice);
+        bookingRepository.save(booking);
         RentalAreaResponse rentalAreaResponse = RentalAreaResponse.builder()
                 .rentalAreaName(bookingIntent.getRentalArea().getRentalAreaName())
                 .address(bookingIntent.getRentalArea().getAddress())
@@ -391,10 +397,9 @@ public class BookingServiceImpl implements BookingService {
                 .createdAt(booking.getCreatedAt())
                 .rentalArea(rentalAreaResponse)
                 .qrCodeUrl(null)
-                .invoicePdfUrl(null)
+                .invoicePdfUrl(urlPdfInvoice)
                 .build();
     }
-
 
 
     private void validateBookingTime(BookingRequest request) {
@@ -550,45 +555,6 @@ public class BookingServiceImpl implements BookingService {
                 .pageSize(bookingPage.getSize())
                 .totalElements(bookingPage.getTotalElements())
                 .data(responses)
-                .build();
-    }
-
-    @Override
-    public ScanQRResponse scan(String token) {
-        BookingQR qr = bookingQRRepository.findByQrToken(token)
-                .orElseThrow(() -> new RuntimeException("QR không hợp lệ"));
-
-        if (qr.getUsedAt() != null) {
-            return ScanQRResponse.builder()
-                    .success(false)
-                    .message("QR đã được sử dụng ")
-                    .usedAt(qr.getUsedAt())
-                    .build();
-        }
-
-
-        Booking booking = bookingRepository.findById(qr.getBooking().getBookingId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy mã booking ko scan dc"));
-
-
-        if (qr.getQrType() == QRType.CHECK_IN) {
-            booking.setCheckIn(LocalDateTime.now());
-            booking.setBookingStatus(BookingStatus.CHECKED_IN);
-
-        }
-        if (qr.getQrType() == QRType.CHECK_OUT) {
-            booking.setCheckOut(LocalDateTime.now());
-            booking.setBookingStatus(BookingStatus.COMPLETED);
-
-        }
-        qr.setUsedAt(LocalDateTime.now());
-
-        bookingRepository.save(booking);
-        bookingQRRepository.save(qr);
-        return ScanQRResponse.builder()
-                .success(true)
-                .message("Quét mã " + qr.getQrType() + " thành công")
-                .status(booking.getBookingStatus())
                 .build();
     }
 

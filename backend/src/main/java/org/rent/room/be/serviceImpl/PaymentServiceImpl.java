@@ -4,17 +4,21 @@ import org.rent.room.be.constant.PaymentMethod;
 import org.rent.room.be.constant.PaymentStatus;
 import org.rent.room.be.dto.request.payment.CheckoutRequest;
 import org.rent.room.be.dto.response.booking.BookingResponse;
+import org.rent.room.be.entity.Booking;
 import org.rent.room.be.entity.BookingIntent;
 import org.rent.room.be.entity.Payment;
 import org.rent.room.be.repository.BookingIntentRepository;
 
+import org.rent.room.be.repository.BookingRepository;
 import org.rent.room.be.repository.PaymentRepository;
 import org.rent.room.be.service.BookingService;
+import org.rent.room.be.service.InvoicePdfService;
 import org.rent.room.be.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Service
@@ -25,10 +29,14 @@ public class PaymentServiceImpl implements PaymentService {
     private BookingIntentRepository bookingIntentRepository;
     @Autowired
     private PaymentRepository paymentRepository;
+    @Autowired
+    private BookingRepository bookingRepository;
+    @Autowired
+    private InvoicePdfService invoicePdfService;
 
     @Override
     @Transactional
-    public BookingResponse checkout(CheckoutRequest checkoutRequest) {
+    public BookingResponse checkout(CheckoutRequest checkoutRequest) throws IOException {
         BookingIntent intent =
                 bookingIntentRepository
                         .findById(checkoutRequest.getBookingIntentId())
@@ -47,9 +55,6 @@ public class PaymentServiceImpl implements PaymentService {
 
         paymentRepository.save(payment);
 
-
-        return bookingService.createBooking(
-                checkoutRequest.getBookingIntentId()
-        );
+        return  bookingService.createBooking(checkoutRequest.getBookingIntentId(), payment);
     }
 }
