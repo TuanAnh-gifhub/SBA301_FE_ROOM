@@ -1,9 +1,14 @@
 package org.rent.room.be.serviceImpl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.rent.room.be.dto.request.role.CreateRoleRequest;
+import org.rent.room.be.dto.request.role.UpdateRoleRequest;
+import org.rent.room.be.dto.response.RoleResponse;
 import org.rent.room.be.entity.Role;
 import org.rent.room.be.exception.AppException;
 import org.rent.room.be.exception.ErrorCode;
+import org.rent.room.be.mapper.RoleMapper;
 import org.rent.room.be.repository.RoleRepository;
 import org.rent.room.be.service.RoleService;
 import org.springframework.stereotype.Service;
@@ -15,36 +20,39 @@ import java.util.List;
 public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
+    private final RoleMapper roleMapper;
 
     @Override
-    public List<Role> getAllActiveRoles() {
-        return roleRepository.findAllByActiveTrue();
+    @Transactional
+    public List<RoleResponse> getAllRoles() {
+        return roleMapper.toRoleResponseList(roleRepository.findAll());
     }
 
     @Override
-    public Role getRoleById(Long id) {
-        return roleRepository.findById(id)
+    @Transactional
+    public RoleResponse createRole(CreateRoleRequest createRoleRequest) {
+        Role role = Role.builder()
+                .roleName(createRoleRequest.getRoleName())
+                .description(createRoleRequest.getDescription())
+                .build();
+        return roleMapper.toRoleResponse(roleRepository.save(role));
+    }
+
+    @Override
+    @Transactional
+    public RoleResponse updateRole(Long id, UpdateRoleRequest roleDetails) {
+        Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
-    }
-
-    @Override
-    public Role createRole(Role role) {
-        role.setActive(true);
-        return roleRepository.save(role);
-    }
-
-    @Override
-    public Role updateRole(Long id, Role roleDetails) {
-        Role role = getRoleById(id);
         role.setRoleName(roleDetails.getRoleName());
         role.setDescription(roleDetails.getDescription());
-        return roleRepository.save(role);
+        return roleMapper.toRoleResponse(roleRepository.save(role));
     }
 
     @Override
-    public void softDeleteRole(Long id) {
-        Role role = getRoleById(id);
-        role.setActive(false);
+    public void updateRoleStatus(Long id, boolean active) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+        role.setActive(active);
         roleRepository.save(role);
     }
 }

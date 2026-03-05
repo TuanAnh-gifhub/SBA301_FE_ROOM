@@ -19,7 +19,10 @@ public class CreateUsersRequest {
 
     @NotBlank(message = "USERNAME_REQUIRED")
     @Size(min = 3, max = 50, message = "USERNAME_INVALID_SIZE")
-    @Pattern(regexp = "^[a-zA-Z0-9._]+$", message = "USERNAME_INVALID_CHARACTERS")
+    @Pattern(
+            regexp = "^[\\p{L}0-9._ ]+$",
+            message = "USERNAME_INVALID_CHARACTERS"
+    )
     String userName;
 
     @Pattern(regexp = "^(MALE|FEMALE|OTHER)$", message = "GENDER_INVALID")

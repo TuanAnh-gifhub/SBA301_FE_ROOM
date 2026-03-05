@@ -929,7 +929,7 @@ const LandingPage = () => {
               </button>
             </div>
           )}
-
+          
           {visibleStoreCount > 6 && (
             <div className="flex justify-center mt-4">
               <button

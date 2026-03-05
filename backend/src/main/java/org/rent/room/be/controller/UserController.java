@@ -1,6 +1,7 @@
 package org.rent.room.be.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,7 +29,9 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<ApiResponse<UserResponse>> adminCreateUser(@RequestBody CreateUsersRequest user) {
+    public ResponseEntity<ApiResponse<UserResponse>> adminCreateUser(
+            @Valid @RequestBody CreateUsersRequest user
+    ) {
         UserResponse users = userService.createUser(user);
         return ResponseEntity.ok(
                 ApiResponse.<UserResponse>builder()
@@ -72,7 +75,7 @@ public class UserController {
     @PatchMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> updateStatus(
             @PathVariable UUID id,
-            @RequestBody UpdateUserStatusRequest statusRequest) {
+            @Valid @RequestBody UpdateUserStatusRequest statusRequest) {
         userService.updateStatus(id, statusRequest.getStatus());
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()
@@ -85,7 +88,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable UUID id,
-            @RequestBody UpdateUserRequest request) {
+            @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(
                 ApiResponse.<UserResponse>builder()
                         .code(200)

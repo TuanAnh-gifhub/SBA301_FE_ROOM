@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -61,7 +62,7 @@ class UserServiceImpl implements UserService {
 
         User user = User.builder()
                 .userName(createUser.getUserName())
-                .email(createUser.getEmail())
+                .email(createUser.getEmail().toLowerCase())
                 .gender(createUser.getGender())
                 .passwordHash(passwordEncoder.encode(createUser.getPassword()))
                 .phone(createUser.getPhone())
@@ -111,21 +112,26 @@ class UserServiceImpl implements UserService {
 
     @Override
     public User findByEmail(String email) {
-        return userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        System.out.println(email);
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 
     @Override
     public User findByUserId(UUID id) {
-        return userRepository.findByUserId(id);
+        return userRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 
     @Override
     public void processForgotPassword(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_FOUND));
-        String token = createTokenResetPassword(email);
-        String resetLink = "http://localhost:5173/reset-password?token=" + token;
-        emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
+        Optional<User> userOpt = userRepository.findByEmail(email);
+
+        if (userOpt.isPresent()) {
+            String token = createTokenResetPassword(email);
+            String resetLink = "http://localhost:5173/reset-password?token=" + token;
+            emailService.sendResetPasswordEmail(email, resetLink);
+        }
     }
 
     @Transactional
@@ -148,7 +154,13 @@ class UserServiceImpl implements UserService {
 
     @Override
     public void updateStatus(UUID id, Boolean active) {
-        User user = userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if ("ADMIN".equals(user.getRole().getRoleName())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
         user.setActive(active);
         userRepository.save(user);
     }
@@ -185,7 +197,7 @@ class UserServiceImpl implements UserService {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new AppException(ErrorCode.USER_NOT_AUTHENTICATED);
         }
-       return userRepository.findByEmail(authentication.getName())
+        return userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     }
 

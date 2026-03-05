@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.*;
 import org.rent.room.be.base.BaseEntity;
+import org.rent.room.be.constant.MessageStatus;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -22,8 +24,17 @@ public class Message extends BaseEntity {
     @Column(name = "message_id")
     UUID messageId;
 
-    @Column(name = "message_body", columnDefinition = "TEXT", nullable = false)
+    @Column(name = "message_body", columnDefinition = "TEXT")
     String messageBody;
+
+    @Column(name = "image_url", length = 500)
+    String imageUrl;
+
+    @Column(name = "status", nullable = false)
+    MessageStatus status;
+
+    @Column(name = "read_at")
+    LocalDateTime readAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)

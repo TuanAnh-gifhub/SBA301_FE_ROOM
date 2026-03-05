@@ -39,7 +39,11 @@ public class SecurityConfig {
             "/reports/**"
             ,"/bookings/**",
              "/posts/**",
-            "/rental-areas/{rentalId}"
+            "/rental-areas/{rentalId}",
+            "/reports/**",
+            "/chat/send-test",
+            "/bookings/**",
+            "/posts/**",
 
     };
 
@@ -51,8 +55,7 @@ public class SecurityConfig {
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {
-                })
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
 

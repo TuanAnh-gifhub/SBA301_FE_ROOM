@@ -22,7 +22,7 @@ public class UserSpecification {
             }
 
             if (StringUtils.hasText(role)) {
-                predicates.add(criteriaBuilder.equal(root.get("role"), role));
+                predicates.add(criteriaBuilder.equal(root.join("role").get("roleName"), role));
             }
 
             if (active != null) {
