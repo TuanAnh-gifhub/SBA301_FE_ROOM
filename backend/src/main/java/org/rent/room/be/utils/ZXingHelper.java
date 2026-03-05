@@ -9,16 +9,16 @@ import java.io.ByteArrayOutputStream;
 
 public class ZXingHelper {
 
-
-    public static byte[] getQRCodeImage(String text,int width,int height){
-        try{
+    public static byte[] getQRCodeImage(String text, int width, int height) {
+        try {
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
-            BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE,width,height);
-            ByteArrayOutputStream byteArrayOutputStram = new ByteArrayOutputStream();
-            MatrixToImageWriter.writeToStream(bitMatrix, "png", byteArrayOutputStram);
-            return byteArrayOutputStram.toByteArray();
-        }catch (Exception e){
-            return  null;
+            BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height);
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "png", byteArrayOutputStream);
+            return byteArrayOutputStream.toByteArray();
+        } catch (Exception e) {
+            return null;
         }
     }
 }
+

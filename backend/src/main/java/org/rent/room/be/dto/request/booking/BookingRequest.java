@@ -16,7 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BookingRequest {
-//    @NotNull(message = "User id không được bỏ trống")
+    @NotNull(message = "User id không được bỏ trống")
     private UUID userId;
     private String userName;
     private String userPhone;

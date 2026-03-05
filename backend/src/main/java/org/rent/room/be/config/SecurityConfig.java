@@ -39,6 +39,7 @@ public class SecurityConfig {
             "/reports/**"
             ,"/bookings/**",
              "/posts/**",
+            "/rental-areas/{rentalId}"
 
     };
 

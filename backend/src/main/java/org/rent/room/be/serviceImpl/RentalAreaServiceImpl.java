@@ -4,30 +4,28 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.base.PageResponse;
+import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.constant.RentalAreaStatus;
 import org.rent.room.be.constant.RoomCopyStatus;
 import org.rent.room.be.dto.internal.CloudinaryUploadResult;
 import org.rent.room.be.dto.request.rental_area.CreateRentalAreaRequest;
 import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaRequest;
 import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaStatusRequest;
+import org.rent.room.be.dto.response.booking.BookingResponse;
 import org.rent.room.be.dto.response.rental_area.RentalAreaImageResponse;
 import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.dto.response.report.ReportResponse;
 import org.rent.room.be.dto.response.room.RoomImageResponse;
 import org.rent.room.be.dto.response.room.RoomResponse;
 import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
-import org.rent.room.be.entity.City;
-import org.rent.room.be.entity.RentalArea;
-import org.rent.room.be.entity.RentalAreaImage;
-import org.rent.room.be.entity.User;
+import org.rent.room.be.dto.response.slot.SlotResponse;
+import org.rent.room.be.entity.*;
 import org.rent.room.be.exception.AppException;
 import org.rent.room.be.exception.ErrorCode;
-import org.rent.room.be.repository.CityRepository;
-import org.rent.room.be.repository.RentalAreaImageRepository;
-import org.rent.room.be.repository.RentalAreaRepository;
-import org.rent.room.be.repository.UserRepository;
+import org.rent.room.be.repository.*;
 import org.rent.room.be.service.CloudinaryService;
 import org.rent.room.be.service.RentalAreaService;
+import org.rent.room.be.specification.BookingSpecification;
 import org.rent.room.be.specification.RentalAreaSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -53,7 +51,7 @@ public class RentalAreaServiceImpl implements RentalAreaService {
     CityRepository cityRepository;
     UserRepository userRepository;
     CloudinaryService cloudinaryService;
-
+    BookingRepository bookingRepository;
     @Override
     @Transactional
     public RentalAreaResponse createRentalArea(CreateRentalAreaRequest req, List<MultipartFile> images, UUID currentUserId) {
@@ -120,6 +118,80 @@ public class RentalAreaServiceImpl implements RentalAreaService {
                 .contactPhone(rentalArea.getContactPhone())
                 .status(rentalArea.getStatus().name())
                 .images(imageResponses)
+                .build();
+    }
+
+    @Override
+    public PageResponse<BookingResponse> getBookingsByRentalAreaId(
+            UUID rentalAreaId,
+            BookingStatus bookingStatus,
+            LocalDate fromDate,
+            LocalDate toDate,
+            int page,
+            int size
+    ) {
+
+        Pageable pageable =
+                PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Specification<Booking> spec =
+                BookingSpecification.filterBookings(
+                        rentalAreaId,
+                        bookingStatus,
+                        fromDate,
+                        toDate
+                );
+
+        Page<Booking> bookingPage = bookingRepository.findAll(spec, pageable);
+
+        List<BookingResponse> responses =
+                bookingPage.getContent().stream()
+                        .map(booking -> {
+
+                            List<SlotResponse> slotResponses = booking.getSlots().stream()
+                                    .map(slot -> {
+                                        RoomCopy roomCopy = slot.getRoomCopy();
+                                        Room room = roomCopy.getRoom();
+                                        RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
+                                                .roomCopyId(roomCopy.getRoomCopyId())
+                                                .roomCode(roomCopy.getRoomCode())
+                                                .build();
+
+                                        return SlotResponse.builder()
+                                                .slotId(slot.getSlotId())
+                                                .startTime(slot.getStartTime())
+                                                .endTime(slot.getEndTime())
+                                                .roomCopy(roomCopyResponse)
+                                                .status(slot.getSlotStatus())
+
+                                                .build();
+                                    })
+                                    .toList();
+
+
+                            return BookingResponse.builder()
+                                    .bookingId(booking.getBookingId())
+                                    .userName(booking.getRenter().getUserName())
+                                    .phoneNumber(booking.getRenter().getPhone())
+                                    .startTime(booking.getStartTime())
+                                    .endTime(booking.getEndTime())
+                                    .totalPrice(booking.getTotalPrice())
+                                    .note(booking.getNote())
+                                    .createdAt(booking.getCreatedAt())
+                                    .status(booking.getBookingStatus())
+                                    .bookingType(booking.getBookingType())
+                                    .statusPayment("")
+                                    .slots(slotResponses)
+                                    .build();
+                        })
+                        .toList();
+
+        return PageResponse.<BookingResponse>builder()
+                .currentPage(bookingPage.getNumber() + 1)
+                .totalPages(bookingPage.getTotalPages())
+                .pageSize(bookingPage.getSize())
+                .totalElements(bookingPage.getTotalElements())
+                .data(responses)
                 .build();
     }
 

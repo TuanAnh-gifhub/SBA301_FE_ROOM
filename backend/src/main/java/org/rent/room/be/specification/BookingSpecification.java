@@ -6,12 +6,59 @@ import org.rent.room.be.entity.Booking;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 
 public class BookingSpecification {
+
+    public static Specification<Booking> filterBookings(
+            UUID rentalAreaId,
+            BookingStatus bookingStatus,
+            LocalDate fromDate,
+            LocalDate toDate
+    ) {
+        return (root, query, cb) -> {
+
+            List<Predicate> predicates = new ArrayList<>();
+
+
+            if (rentalAreaId != null) {
+                predicates.add(
+                        cb.equal(
+                                root.get("rentalArea").get("rentalAreaId"),
+                                rentalAreaId
+                        )
+                );
+            }
+
+
+            if (bookingStatus != null) {
+                predicates.add(
+                        cb.equal(root.get("bookingStatus"), bookingStatus)
+                );
+            }
+
+
+            if (fromDate != null && toDate != null) {
+
+                LocalDateTime from = fromDate.atStartOfDay();
+                LocalDateTime to = toDate.atTime(23, 59, 59);
+
+                predicates.add(
+                        cb.and(
+                                cb.lessThanOrEqualTo(root.get("checkIn"), to),
+                                cb.greaterThanOrEqualTo(root.get("checkOut"), from)
+                        )
+                );
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
 
     public static Specification<Booking> filter(
             BookingStatus bookingStatus,
