@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.*;
 import org.rent.room.be.base.BaseEntity;
+import org.rent.room.be.constant.NotificationType;
 
 import java.util.UUID;
 
@@ -29,16 +30,18 @@ public class Notification extends BaseEntity {
     String notificationBody;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sender_id")
-    User sender;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recipient_id", nullable = false)
     User recipient;
 
+    @Column(name = "type")
+    NotificationType type;
+
+    @Column(name = "link")
+    String link;
+
     @Column(name = "is_read")
-    boolean read;
+    boolean isRead;
 
     @Column(name = "is_deleted")
-    boolean deleted;
+    boolean isDeleted;
 }

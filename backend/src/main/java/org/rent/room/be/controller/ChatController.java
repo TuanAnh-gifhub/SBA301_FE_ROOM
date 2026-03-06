@@ -13,7 +13,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
@@ -41,9 +40,14 @@ public class ChatController {
     }
 
     @GetMapping("/history/{conversationId}")
-    public ResponseEntity<ApiResponse<List<MessageResponse>>> getHistory(@PathVariable UUID conversationId) {
+    public ResponseEntity<ApiResponse<List<MessageResponse>>> getHistory(
+            @PathVariable UUID conversationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Principal principal) {
+
         return ResponseEntity.ok(ApiResponse.<List<MessageResponse>>builder()
-                .result(chatService.getMessagesByConversation(conversationId))
+                .result(chatService.getMessagesByConversation(conversationId, principal.getName(), page, size))
                 .build());
     }
 
@@ -69,9 +73,8 @@ public class ChatController {
     public ResponseEntity<ApiResponse<MessageResponse>> sendMessageWithImage(
             @RequestPart("data") MessageRequest request,
             @RequestPart(value = "file", required = false) MultipartFile file,
-            Principal principal) throws IOException {
+            Principal principal) {
 
-        // Gọi service xử lý lưu tin nhắn và upload ảnh
         MessageResponse response = chatService.saveMessageWithFile(request, principal.getName(), file);
         return ResponseEntity.ok(ApiResponse.<MessageResponse>builder().result(response).build());
     }

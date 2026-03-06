@@ -37,7 +37,6 @@ public class SecurityConfig {
             "/auth/**",
             "/ws/**",
             "/reports/**",
-            "/chat/send-test",
             "/bookings/**",
             "/posts/**",
 

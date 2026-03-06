@@ -14,7 +14,7 @@ import AboutUs from "../pages/Customer/AboutUs/AboutUs";
 import ReportPage from "../pages/Admin/ReportAdmin/ReportPage";
 import ReportForm from "../pages/Customer/ReportPage/ReportForm";
 import ResetPassword from "../pages/Customer/LoginPage/ResetPassword";
-import UserManagement from "../pages/Admin/UserManagement";
+import UserManagement from "../pages/Admin/UserManagement/UserManagement";
 import ManagePage from "../pages/Customer/ManagePage/ManagePage";
 import ConfirmRegister from "../pages/Customer/LoginPage/ConfirmRegister";
 import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManagementPage";
@@ -25,8 +25,8 @@ import PackagePage from "../pages/Customer/PackagePage";
 import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManagementPage";
 
 import BookingDetail from "../pages/Customer/Booking/BookingDetail";
-import LoginPage from "../pages/Customer/LoginPage/LoginPage";
 import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
+import NotificationPage from "../pages/Customer/NotificationPage/NotificationPage";
 
 export const router = createBrowserRouter([
   {
@@ -131,6 +131,11 @@ export const router = createBrowserRouter([
         element: <ReportForm />,
         handle: { breadcrumb: "Báo cáo vi phạm" },
       },
+      {
+        path: "notifications",
+        element: <NotificationPage />,
+        handle: { breadcrumb: "Thông báo mới" },
+      }
     ],
   },
   // Admin routes

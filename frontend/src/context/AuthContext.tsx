@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { userService, type UserResponse } from "../services/usersService";
 // 1. Import websocketService và tokenService
-import websocketService from "../services/chats/websocketService";
+import websocketService from "../services/websocketService";
 import { tokenService } from "../services/auth/tokenService";
 
 interface AuthContextType {

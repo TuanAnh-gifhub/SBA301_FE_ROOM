@@ -23,6 +23,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(2002, "User not found", HttpStatus.NOT_FOUND),
     USER_NOT_AUTHENTICATED(2003, "User not authenticated", HttpStatus.UNAUTHORIZED),
     EMAIL_NOT_FOUND(2004, "Email not found", HttpStatus.NOT_FOUND),
+    USER_LOCKED(2005, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.", HttpStatus.FORBIDDEN),
 
     //Role
     ROLE_NOT_FOUND(3001, "Role not found", HttpStatus.NOT_FOUND),

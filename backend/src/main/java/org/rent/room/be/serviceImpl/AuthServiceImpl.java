@@ -19,9 +19,7 @@ import org.rent.room.be.security.CustomUserDetails;
 import org.rent.room.be.security.CustomUserDetailsService;
 import org.rent.room.be.security.JwtService;
 import org.rent.room.be.service.AuthService;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -58,10 +56,15 @@ public class AuthServiceImpl implements AuthService {
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword().toLowerCase())
             );
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            assert userDetails != null;
             return generateAndSaveTokens(userDetails);
         } catch (BadCredentialsException e) {
             throw new AppException(ErrorCode.LOGIN_FAILED);
+        } catch (LockedException e) {
+            // Trả về lỗi khi user.isActive() == false (từ isAccountNonLocked)
+            throw new AppException(ErrorCode.USER_LOCKED);
+        } catch (DisabledException e) {
+            // Trả về lỗi nếu bạn dùng isEnabled() trả về false
+            throw new AppException(ErrorCode.USER_LOCKED);
         }
     }
 
@@ -86,6 +89,9 @@ public class AuthServiceImpl implements AuthService {
 
             userRepository.save(user);
         } else {
+            if (!user.isActive()) {
+                throw new AppException(ErrorCode.USER_LOCKED);
+            }
             user.setGoogleId(googleId);
             user.setUserName(name);
 

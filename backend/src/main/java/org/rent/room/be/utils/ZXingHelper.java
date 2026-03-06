@@ -9,7 +9,6 @@ import java.io.ByteArrayOutputStream;
 
 public class ZXingHelper {
 
-
     public static byte[] getQRCodeImage(String text,int width,int height){
         try{
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
