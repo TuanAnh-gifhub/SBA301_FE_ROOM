@@ -35,5 +35,5 @@ public class Order extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "package_id")
-    ServicePackage servicePackage;
+    RentPackage rentPackage;
 }

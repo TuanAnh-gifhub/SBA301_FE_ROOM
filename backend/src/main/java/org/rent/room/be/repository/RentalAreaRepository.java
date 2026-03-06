@@ -2,6 +2,7 @@ package org.rent.room.be.repository;
 
 import org.rent.room.be.entity.RentalArea;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,7 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface RentalAreaRepository extends JpaRepository<RentalArea, UUID> {
+public interface RentalAreaRepository extends JpaRepository<RentalArea, UUID> , JpaSpecificationExecutor<RentalArea> {
     @Query("SELECT r FROM RentalArea r WHERE r.deletedAt IS NULL ORDER BY r.createdAt DESC")
     List<RentalArea> findAllActive();
 

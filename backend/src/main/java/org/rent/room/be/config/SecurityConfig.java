@@ -37,6 +37,14 @@ public class SecurityConfig {
             "/auth/**",
             "/ws/**",
             "/reports/**"
+            ,"/bookings/**",
+             "/posts/**",
+            "/rental-areas/{rentalId}",
+            "/reports/**",
+            "/chat/send-test",
+            "/bookings/**",
+            "/posts/**",
+
     };
 
     JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -47,8 +55,7 @@ public class SecurityConfig {
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {
-                })
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
 

@@ -21,6 +21,19 @@ import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManag
 import CategoryManagementPage from "../pages/Admin/CategoryManagement/CategoryManagementPage";
 import PostManagementPage from "../pages/Admin/PostManagement/PostManagementPage";
 import ProductPage from "../pages/Customer/ProductPage/ProductPage";
+import PostManagePage from "../pages/Admin/PostManagement/PostManagePage";
+import RentalDetailPage from "../pages/Customer/LandingPage/RentalDetailPage";
+import PackagePage from "../pages/Customer/PackagePage";
+import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManagementPage";
+
+import BookingDetail from "../pages/Customer/Booking/BookingDetail";
+import LoginPage from "../pages/Customer/LoginPage/LoginPage";
+import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
+import OwnerPage from "../pages/Owner/OwnerPage";
+import ManageRoomPage from "../pages/Customer/ManageRoomPage/ManageRoomPage";
+import ManageBookingPage from "../pages/Owner/ManageBookingPage/ManageBookingPage";
+import ManageSchedulePage from "../pages/Owner/ManageSchedule/ManageSchedulePage";
+import ManagePostPage from "../pages/Customer/ManagePostPage/ManagePostPage";
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +46,7 @@ export const router = createBrowserRouter([
         element: <LandingPage />,
         handle: { breadcrumb: "Trang chủ" },
       },
+
       {
         path: "home",
         element: <LandingPage />,
@@ -42,6 +56,22 @@ export const router = createBrowserRouter([
         path: "landing",
         element: <LandingPage />,
         handle: { breadcrumb: "Trang chủ" },
+      },
+      {
+        //  <Route path="/rentals/:id" element={<RentalDetailPage />} />
+        path: "rentals/:id",
+        element: <RentalDetailPage />,
+      },
+      {
+        //    navigate(`/customer/bookings/${res.data.bookingIntentId}`);
+        path: "customer/bookings/:bookingId",
+        element: <BookingDetail />,
+        handle: { breadcrumb: "Chi tiết booking" },
+      },
+      {
+        path: "payment/success/:bookingId",
+        element: <PaymentSuccessPage />,
+        handle: { breadcrumb: "Thanh toán thành công" },
       },
       {
         path: "product/:id",
@@ -73,6 +103,7 @@ export const router = createBrowserRouter([
         element: <ResetPassword />,
         handle: { breadcrumb: "Đặt lại mật khẩu" },
       },
+
       {
         path: "manage-posts",
         element: <ManagePage />,
@@ -97,6 +128,11 @@ export const router = createBrowserRouter([
         path: "about-us",
         element: <AboutUs />,
         handle: { breadcrumb: "Về chúng tôi" },
+      },
+      {
+        path: "packages",
+        element: <PackagePage />,
+        handle: { breadcrumb: "Gói Premium" },
       },
       {
         path: "report-form",
@@ -143,6 +179,11 @@ export const router = createBrowserRouter([
         element: <UserManagement />,
       },
       {
+        path: "posts",
+        element: <PostManagePage />,
+      },
+
+      {
         path: "reports",
         element: <ReportPage />,
       },
@@ -158,6 +199,55 @@ export const router = createBrowserRouter([
         path: "posts",
         element: <PostManagementPage />,
       },
+      {
+        path: "packages",
+        element: <PackageManagementPage />,
+      },
     ],
+  },
+
+  //Owner
+  {
+    path: "/owner",
+    element: (
+      // <ProtectedAdminRoute>
+      <OwnerPage />
+      // </ProtectedAdminRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: (
+          <div className="p-6">
+            <h1
+              className="text-2xl font-bold mb-4"
+              style={{ color: "inherit" }}
+            >
+              Dashboard
+            </h1>
+            <p style={{ color: "inherit" }}>
+              Chào mừng đến với trang quản trị!
+            </p>
+          </div>
+        ),
+      },
+      {
+        path: "manage-posts",
+        element: <ManagePostPage />,
+      },
+      {
+        path: "rooms",
+        element: <ManageRoomPage />,
+      },
+      {
+        path: "bookings",
+        element: <ManageBookingPage />,
+      },
+      {
+        path: "schedules",
+        element: <ManageSchedulePage />,
+      },
+    ],
+
   },
 ]);

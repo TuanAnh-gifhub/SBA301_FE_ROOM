@@ -47,7 +47,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new AppException(ErrorCode.LOGIN_FAILED));
 
         if (user.getPasswordHash() == null) {
             throw new AppException(ErrorCode.SOCIAL_ACCOUNT_REQUIRED);
@@ -55,7 +55,7 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword().toLowerCase())
             );
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             assert userDetails != null;

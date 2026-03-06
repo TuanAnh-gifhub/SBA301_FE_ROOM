@@ -17,7 +17,6 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
     @ExceptionHandler(value = AppException.class)
     ResponseEntity<ApiResponse<?>> handleRuntimeException(AppException e) {
 
@@ -41,7 +40,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(
                 ApiResponse.<Map<String, String>>builder()
-                        .code(ErrorCode.INVALID_KEY.getCode())
+                        .code(ErrorCode.USER_NOT_AUTHENTICATED.getCode())
                         .message("Validation failed")
                         .result(errors)
                         .build()
@@ -64,8 +63,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleJsonError(HttpMessageNotReadableException e) {
         return ResponseEntity.badRequest().body(
                 ApiResponse.builder()
-                        .code(ErrorCode.INVALID_KEY.getCode())
-                        .message("Malformed JSON request")
+                        .code(ErrorCode.USER_NOT_AUTHENTICATED.getCode())
+                        .message("Malformed JSON request "+e.getMessage())
                         .build()
         );
     }
@@ -76,8 +75,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleUnwantedException(Exception e) {
         // Ghi log lỗi ra console server để Developer sửa
         log.error("Uncaught Exception: ", e);
-
-        ErrorCode errorCode = ErrorCode.UNCATEGORIZED_EXCEPTION;
+        ErrorCode errorCode = ErrorCode.USER_NOT_AUTHENTICATED;
 
         return ResponseEntity
                 .status(errorCode.getHttpStatusCode())
@@ -109,6 +107,16 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(apiResponse);
+                .body(apiResponse );
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<?>> handleMethodNotSupported(org.springframework.web.HttpRequestMethodNotSupportedException e) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(
+                ApiResponse.builder()
+                        .code(405)
+                        .message("Phương thức " + e.getMethod() + " không được hỗ trợ cho URL này")
+                        .build()
+        );
     }
 }

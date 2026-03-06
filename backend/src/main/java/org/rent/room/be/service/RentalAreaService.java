@@ -1,19 +1,32 @@
 package org.rent.room.be.service;
 
+import org.rent.room.be.base.PageResponse;
+import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.dto.request.rental_area.CreateRentalAreaRequest;
+import org.rent.room.be.dto.response.booking.BookingResponse;
 import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaRequest;
 import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaStatusRequest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 public interface RentalAreaService {
     RentalAreaResponse createRentalArea(CreateRentalAreaRequest req, List<MultipartFile> images, UUID currentUserId);
 
-    List<RentalAreaResponse> getAllRentalAreas();
-
+    PageResponse<BookingResponse>  getBookingsByRentalAreaId(UUID rentalAreaId, BookingStatus bookingStatus, LocalDate fromDate,
+                                                             LocalDate toDate, int page, int size);
+    PageResponse<RentalAreaResponse> getAllRentalAreas(int page,
+                                                       int size,
+                                                       String address,
+                                                       String renterAreaName,
+                                                       LocalDate from,
+                                                       LocalDate to
+                                                       );
+   //
     List<RentalAreaResponse> getRentalAreasByUserId(UUID userId);
 
     RentalAreaResponse getRentalAreaById(UUID rentalAreaId);

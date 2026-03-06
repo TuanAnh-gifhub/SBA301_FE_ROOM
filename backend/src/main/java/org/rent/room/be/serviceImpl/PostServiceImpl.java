@@ -8,6 +8,8 @@ import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.constant.PostStatus;
 import org.rent.room.be.dto.request.post.CreatePostRequest;
 import org.rent.room.be.dto.request.post.UpdatePostRequest;
+import org.rent.room.be.dto.response.amenity.AmenityResponse;
+import org.rent.room.be.dto.response.post.PostDTOResponse;
 import org.rent.room.be.dto.response.post.PostDetailResponse;
 import org.rent.room.be.dto.response.post.PostResponse;
 import org.rent.room.be.dto.response.post.PostSummaryResponse;
@@ -20,10 +22,16 @@ import org.rent.room.be.repository.*;
 import org.rent.room.be.service.PostService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.rent.room.be.specification.PostSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Pageable;
 
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -76,6 +84,75 @@ public class PostServiceImpl implements PostService {
                 .title(post.getTitle())
                 .content(post.getContent())
                 .postStatus(post.getPostStatus() != null ? post.getPostStatus().name() : null)
+                .build();
+    }
+
+    @Override
+    public PageResponse<PostDTOResponse> getAllPostsForCustomer(int page, int size, String title, String content, LocalDate fromDate, LocalDate toDate) {
+        Pageable pageable = PageRequest.of(page -1, size);
+        Specification<Post> spec = PostSpecification.filter(title, content, fromDate, toDate);
+
+        Page<Post> posts = postRepository.findAll(spec, pageable);
+
+        List<PostDTOResponse> data = posts.stream().map(post -> {
+            List<RoomResponse> roomResponses = post.getRentalArea().getRoom().stream().map(room -> {
+                List<RoomImageResponse> roomImageResponses =  room.getImages().stream().map( img -> RoomImageResponse.builder()
+                        .roomImageId(img.getRoomImageId())
+                        .imageUrl(img.getImageUrl())
+                        .isCover(img.getIsCover())
+                        .sortOrder(img.getSortOrder())
+                        .build()).toList();
+
+                Set<RoomResponse.AmenityItem> amenityItems = (room.getAmenities() == null ? Set.<Amenity>of() : room.getAmenities())
+                        .stream()
+                        .map(a -> RoomResponse.AmenityItem.builder()
+                                .amenityId(a.getAmenityId())
+                                .amenityName(a.getAmenityName())
+                                .build())
+                        .collect(Collectors.toSet());
+
+                return RoomResponse.builder()
+                        .roomId(room.getRoomId())
+                        .roomName(room.getRoomName())
+                        .price(room.getPrice())
+                        .capacity(room.getCapacity())
+                        .roomStatus(room.getRoomStatus())
+                        .area(room.getArea())
+                        .description(room.getDescription())
+                        .categoryId(room.getCategory().getCategoryId())
+                        .categoryName(room.getCategory().getCategoryName())
+                        .images(roomImageResponses)
+                        .amenities(amenityItems)
+                        .build();
+            }).toList();
+
+            RentalAreaResponse rentalAreaResponse = RentalAreaResponse
+                    .builder()
+                    .rentalAreaId(post.getRentalArea().getRentalAreaId())
+                    .rentalAreaName(post.getRentalArea().getRentalAreaName())
+                    .cityName(post.getRentalArea().getCity().getCityName())
+                    .address(post.getRentalArea().getAddress())
+                    .rooms(roomResponses)
+                    .build();
+
+            return PostDTOResponse.builder()
+                    .postId(post.getPostId())
+                    .title(post.getTitle())
+                    .content(post.getContent())
+                    .postStatus(post.getPostStatus())
+                    .rentalArea(rentalAreaResponse)
+                    .userId(post.getUser().getUserId())
+                    .ownerName(post.getUser().getUserName())
+                    .ownerPhone(post.getUser().getPhone())
+                    .build();
+        }).toList();
+
+        return PageResponse.<PostDTOResponse>builder()
+                .currentPage(posts.getNumber() + 1)
+                .totalPages(posts.getTotalPages())
+                .pageSize(posts.getSize())
+                .totalElements(posts.getTotalElements())
+                .data(data)
                 .build();
     }
 

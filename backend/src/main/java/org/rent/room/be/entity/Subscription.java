@@ -29,7 +29,7 @@ public class Subscription extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "package_id", nullable = false)
-    ServicePackage servicePackage;
+    RentPackage rentPackage;
 
     @Column(name = "start_date", nullable = false)
     LocalDateTime startDate;
@@ -39,4 +39,8 @@ public class Subscription extends BaseEntity {
 
     @Column(name = "status")
     boolean active;
+
+    @OneToOne
+    @JoinColumn(name = "order_id")
+    Order order;  // ← traceability
 }

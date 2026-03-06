@@ -6,12 +6,16 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.base.ApiResponse;
+import org.rent.room.be.base.PageResponse;
+import org.rent.room.be.constant.BookingStatus;
+
 import org.rent.room.be.dto.request.rental_area.CreateRentalAreaRequest;
 import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaRequest;
 import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaStatusRequest;
 import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.security.CustomUserDetails;
 import org.rent.room.be.service.RentalAreaService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +23,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,6 +36,35 @@ import java.util.UUID;
 public class RentalAreaController {
 
     RentalAreaService rentalAreaService;
+
+    @GetMapping("/{rentalAreaId}/bookings")
+    public ApiResponse<?> getBookingsByRentalAreaId(
+            @PathVariable UUID rentalAreaId,
+            @RequestParam(required = false) BookingStatus bookingStatus,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDate fromDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDate toDate,
+            @RequestParam(defaultValue = "1", required = false) int page,
+            @RequestParam(defaultValue = "10", required = false) int size
+    ) {
+        PageResponse<?> result = rentalAreaService.getBookingsByRentalAreaId(
+                rentalAreaId, bookingStatus, fromDate, toDate, page, size
+        );
+
+        return ApiResponse.success(200, "Get bookings by rental area id successfully", result);
+    }
+//    @GetMapping("/{rentalAreaId}/bookings/statistics")
+//    public ApiResponse<?> getBookingStatisticsByRentalAreaId(){
+//
+//        return null;
+//    }
+
+//    @GetMapping("/{rentalAreaId}/bookings/report")
+
+
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<RentalAreaResponse>> createRentalArea(
@@ -65,14 +99,22 @@ public class RentalAreaController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<RentalAreaResponse>>> getAllRentalAreas() {
-        List<RentalAreaResponse> result = rentalAreaService.getAllRentalAreas();
-        ApiResponse<List<RentalAreaResponse>> response = ApiResponse.<List<RentalAreaResponse>>builder()
-                .code(200)
-                .message("Get all rental areas successfully")
-                .result(result)
-                .build();
-        return ResponseEntity.ok(response);
+    public ApiResponse<?> getAllRentalAreas(
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false)String renterAreaName,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDate fromDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDate toDate,
+            @RequestParam(defaultValue = "1", required = false) int page,
+            @RequestParam(defaultValue = "10", required = false) int size
+    ) {
+        PageResponse<RentalAreaResponse> result = rentalAreaService.getAllRentalAreas(page,size,address,renterAreaName,fromDate,toDate);
+
+
+        return ApiResponse.success(200,"Get all rental areas successfully", result);
     }
 
     @GetMapping("/my-rental-areas")

@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
-import { FaPaperPlane, FaCommentDots, FaEdit, FaTrash, FaStar } from "react-icons/fa";
-
+import {
+  FaPaperPlane,
+  FaCommentDots,
+  FaEdit,
+  FaTrash,
+  FaStar,
+} from "react-icons/fa";
 // ================== Helper ==================
 function timeAgo(date: string | Date): string {
   const d = typeof date === "string" ? new Date(date) : date;
@@ -76,8 +81,8 @@ function CommentItem({
       ? "bg-gray-700"
       : "bg-gray-800"
     : isReply
-    ? "bg-gray-100"
-    : "bg-gray-50";
+      ? "bg-gray-100"
+      : "bg-gray-50";
 
   return (
     <li className={`flex gap-3 ${isReply ? "ml-8" : ""}`}>
@@ -85,12 +90,16 @@ function CommentItem({
       <div className="flex-1">
         <div className={`rounded-xl px-3 py-2 ${bg}`}>
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`font-semibold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+            <span
+              className={`font-semibold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}
+            >
               {comment.reviewerName || "Ẩn danh"}
             </span>
             {comment.isSeller && <SellerBadge />}
             {comment.createdAt && (
-              <span className="text-xs text-gray-400">· {timeAgo(comment.createdAt)}</span>
+              <span className="text-xs text-gray-400">
+                · {timeAgo(comment.createdAt)}
+              </span>
             )}
           </div>
 
@@ -122,7 +131,9 @@ function CommentItem({
               </div>
             </div>
           ) : (
-            <div className={`mt-1 whitespace-pre-line ${isDarkMode ? "text-gray-200" : "text-gray-800"}`}>
+            <div
+              className={`mt-1 whitespace-pre-line ${isDarkMode ? "text-gray-200" : "text-gray-800"}`}
+            >
               {comment.comment}
             </div>
           )}
@@ -140,7 +151,9 @@ function CommentItem({
               </button>
               {comment.reputationReviewId && (
                 <button
-                  onClick={() => onDelete && onDelete(comment.reputationReviewId!)}
+                  onClick={() =>
+                    onDelete && onDelete(comment.reputationReviewId!)
+                  }
                   className="inline-flex items-center gap-1 hover:text-red-500"
                 >
                   <FaTrash size={12} /> Xóa
@@ -184,7 +197,9 @@ function Composer({ onSubmit, isDarkMode = false }: ComposerProps) {
   return (
     <div
       className={`border-t px-4 py-3 space-y-3 mb-2 transition-colors duration-500 ${
-        isDarkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200"
+        isDarkMode
+          ? "bg-gray-800 border-gray-700"
+          : "bg-gray-50 border-gray-200"
       }`}
     >
       <div
@@ -236,8 +251,12 @@ function LoginPrompt({ requireAuth, isDarkMode = false }: LoginPromptProps) {
       }`}
     >
       <div className="flex flex-col items-center justify-center py-4">
-        <FaCommentDots className={`text-3xl mb-3 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`} />
-        <p className={`font-medium mb-2 ${isDarkMode ? "text-gray-200" : "text-gray-700"}`}>
+        <FaCommentDots
+          className={`text-3xl mb-3 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}
+        />
+        <p
+          className={`font-medium mb-2 ${isDarkMode ? "text-gray-200" : "text-gray-700"}`}
+        >
           Đăng nhập để có thể bình luận
         </p>
         <button
@@ -285,7 +304,7 @@ function RatingDisplay({
     ratingDistribution.four,
     ratingDistribution.three,
     ratingDistribution.two,
-    ratingDistribution.one
+    ratingDistribution.one,
   );
 
   const renderStarRating = (value: number) => {
@@ -296,7 +315,10 @@ function RatingDisplay({
     return (
       <div className="flex items-center gap-1">
         {Array.from({ length: fullStars }).map((_, i) => (
-          <FaStar key={`full-${i}`} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+          <FaStar
+            key={`full-${i}`}
+            className="w-5 h-5 text-yellow-400 fill-yellow-400"
+          />
         ))}
         {hasHalfStar && (
           <div className="relative w-5 h-5">
@@ -317,16 +339,22 @@ function RatingDisplay({
     const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
     return (
       <div className="flex items-center gap-3">
-        <span className={`text-sm w-12 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+        <span
+          className={`text-sm w-12 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+        >
           {label}
         </span>
-        <div className={`flex-1 h-2 rounded-full overflow-hidden ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}>
+        <div
+          className={`flex-1 h-2 rounded-full overflow-hidden ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}
+        >
           <div
             className="h-full bg-[#4da6ff] transition-all duration-500"
             style={{ width: `${percentage}%` }}
           />
         </div>
-        <span className={`text-sm font-medium w-8 text-right ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+        <span
+          className={`text-sm font-medium w-8 text-right ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}
+        >
           {count}
         </span>
       </div>
@@ -334,14 +362,20 @@ function RatingDisplay({
   };
 
   return (
-    <div className={`px-4 pt-4 pb-3 border-b ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
+    <div
+      className={`px-4 pt-4 pb-3 border-b ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}
+    >
       <div className="flex items-start gap-8">
         <div className="text-center">
-          <div className={`text-5xl font-bold mb-2 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+          <div
+            className={`text-5xl font-bold mb-2 ${isDarkMode ? "text-white" : "text-gray-900"}`}
+          >
             {rating.toFixed(1)}
           </div>
           {renderStarRating(rating)}
-          <div className={`text-sm mt-2 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+          <div
+            className={`text-sm mt-2 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}
+          >
             {reviewCount} đánh giá
           </div>
         </div>
@@ -377,10 +411,10 @@ interface CommentsSectionProps {
   isDarkMode?: boolean;
   requireAuth?: (callback: () => void) => void;
 }
-
+import { useAuth } from "../../../context/AuthContext";
 export default function CommentsSection({
   listingId,
-  currentUser,
+  // currentUser,
   rating = 4.8,
   reviewCount = 96,
   ratingDistribution = { five: 65, four: 30, three: 1, two: 0, one: 0 },
@@ -389,16 +423,23 @@ export default function CommentsSection({
 }: CommentsSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(10); // 👈 số bình luận hiển thị ban đầu
+  const [visibleCount, setVisibleCount] = useState(10);
 
+  const { user, isAuthenticated } = useAuth();
+  const currentUser = isAuthenticated
+    ? {
+        id: user?.userId,
+        name: user?.fullName || user?.userName,
+      }
+    : undefined;
   useEffect(() => {
     if (!listingId) return;
     const fetchComments = async () => {
       setLoading(true);
       try {
-        // TODO: Implement API call when reviewService is available
-        // const res = await reviewService.getReviewsByListing(listingId);
-        // if (res?.success && Array.isArray(res.data)) setComments(res.data);
+       
+        const res = await reviewService.getReviewsByListing(listingId);
+        if (res?.success && Array.isArray(res.data)) setComments(res.data);
         setComments([]); // Placeholder
       } catch (err) {
         console.error("❌ Lỗi khi tải bình luận:", err);
@@ -411,18 +452,18 @@ export default function CommentsSection({
 
   const handleAddComment = async (text: string) => {
     try {
-      // TODO: Implement API call when reviewService is available
-      // const payload = {
-      //   reviewerId: currentUser?.id,
-      //   revieweeId: sellerInfo?.id,
-      //   listingId,
-      //   comment: text,
-      // };
-      // const res = await reviewService.createReviewOrComment(payload);
-      // if (res?.success) {
-      //   const newCmt = Array.isArray(res.data) ? res.data[0] : res.data;
-      //   setComments((prev) => [newCmt, ...prev]);
-      // }
+     
+      const payload = {
+        reviewerId:  user?.userId,
+      
+        listingId,
+        comment: text,
+      };
+      const res = await reviewService.createReviewOrComment(payload);
+      if (res?.success) {
+        const newCmt = Array.isArray(res.data) ? res.data[0] : res.data;
+        setComments((prev) => [newCmt, ...prev]);
+      }
       console.log("Add comment:", text);
     } catch (err) {
       console.error("❌ Lỗi khi gửi bình luận:", err);
@@ -483,8 +524,7 @@ export default function CommentsSection({
         ratingDistribution={ratingDistribution}
         isDarkMode={isDarkMode}
       />
-
-      {currentUser?.id ? (
+      {isAuthenticated ? (
         <Composer onSubmit={handleAddComment} isDarkMode={isDarkMode} />
       ) : (
         <LoginPrompt requireAuth={requireAuth} isDarkMode={isDarkMode} />
@@ -501,7 +541,9 @@ export default function CommentsSection({
           >
             <FaCommentDots className="text-3xl text-gray-400" />
             <p className="mt-3 font-medium">Chưa có bình luận nào.</p>
-            <p className="text-gray-500 text-sm">Hãy để lại bình luận cho người cho thuê.</p>
+            <p className="text-gray-500 text-sm">
+              Hãy để lại bình luận cho người cho thuê.
+            </p>
           </div>
         </div>
       ) : (

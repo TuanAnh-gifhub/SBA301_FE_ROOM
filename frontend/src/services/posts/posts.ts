@@ -6,7 +6,12 @@ export interface ApiResponse<T> {
   result: T;
 }
 
-export type PostStatus = "PENDING" | "PUBLISHED" | "HIDDEN" | "DELETED" | string;
+export type PostStatus =
+  | "PENDING"
+  | "PUBLISHED"
+  | "HIDDEN"
+  | "DELETED"
+  | string;
 
 export interface PostSummaryResponse {
   postId: string;
@@ -55,6 +60,31 @@ export interface UpdatePostRequest {
   title: string;
   content: string;
 }
+export interface RentalAreaResponse {
+  rentalAreaId: string;
+  rentalAreaName: string;
+  address: string;
+  rentalAreaCoverImageUrl?: string;
+}
+
+export interface PostDTOResponse {
+  postId: string;
+  userId: string;
+  ownerName: string;
+  ownerPhone: string;
+  title: string;
+  content: string;
+  postStatus: PostStatus;
+  rentalArea: RentalAreaResponse;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalPages: number;
+  totalElements: number;
+}
 
 export type CapacityLevel = "SMALL" | "MEDIUM" | "LARGE";
 
@@ -86,46 +116,87 @@ export interface PublicPostQuery {
 
   city?: number;
   categoryId?: number;
-  amenityIds?: number[]; 
+  amenityIds?: number[];
 
- 
+
   keyword?: string;
   sort?: string;
 }
 
 
 const postsService = {
-  createPost: async (payload: CreatePostRequest): Promise<ApiResponse<PostResponse>> => {
-    const response = await api.post<ApiResponse<PostResponse>>("/posts", payload);
+  createPost: async (
+    payload: CreatePostRequest,
+  ): Promise<ApiResponse<PostResponse>> => {
+    const response = await api.post<ApiResponse<PostResponse>>(
+      "/posts",
+      payload,
+    );
     return response.data;
   },
 
-  getMyPosts: async (status?: PostStatus): Promise<ApiResponse<PostSummaryResponse[]>> => {
-    const response = await api.get<ApiResponse<PostSummaryResponse[]>>("/posts/me", {
-      params: status ? { status } : undefined,
-    });
+  getMyPosts: async (
+    status?: PostStatus,
+  ): Promise<ApiResponse<PostSummaryResponse[]>> => {
+    const response = await api.get<ApiResponse<PostSummaryResponse[]>>(
+      "/posts/me",
+      {
+        params: status ? { status } : undefined,
+      },
+    );
     return response.data;
   },
 
-  getMyPostDetail: async (postId: string): Promise<ApiResponse<PostDetailResponse>> => {
-    const response = await api.get<ApiResponse<PostDetailResponse>>(`/posts/me/${postId}`);
+  getMyPostDetail: async (
+    postId: string,
+  ): Promise<ApiResponse<PostDetailResponse>> => {
+    const response = await api.get<ApiResponse<PostDetailResponse>>(
+      `/posts/me/${postId}`,
+    );
     return response.data;
   },
 
-  updateMyPost: async (postId: string, payload: UpdatePostRequest): Promise<ApiResponse<PostResponse>> => {
-    const response = await api.put<ApiResponse<PostResponse>>(`/posts/${postId}`, payload);
+  updateMyPost: async (
+    postId: string,
+    payload: UpdatePostRequest,
+  ): Promise<ApiResponse<PostResponse>> => {
+    const response = await api.put<ApiResponse<PostResponse>>(
+      `/posts/${postId}`,
+      payload,
+    );
     return response.data;
   },
 
-  updateMyPostStatus: async (postId: string, status: PostStatus): Promise<ApiResponse<PostResponse>> => {
-    const response = await api.patch<ApiResponse<PostResponse>>(`/posts/${postId}/status`, null, {
-      params: { status },
-    });
+  updateMyPostStatus: async (
+    postId: string,
+    status: PostStatus,
+  ): Promise<ApiResponse<PostResponse>> => {
+    const response = await api.patch<ApiResponse<PostResponse>>(
+      `/posts/${postId}/status`,
+      null,
+      {
+        params: { status },
+      },
+    );
     return response.data;
   },
 
   deleteMyPost: async (postId: string): Promise<ApiResponse<void>> => {
     const response = await api.delete<ApiResponse<void>>(`/posts/${postId}`);
+    return response.data;
+  },
+
+  getAllPosts: async (
+    page = 1,
+    size = 10,
+  ): Promise<ApiResponse<PageResponse<PostDTOResponse>>> => {
+    const response = await api.get<ApiResponse<PageResponse<PostDTOResponse>>>(
+      "/posts/all/customer",
+      {
+        params: { page, size },
+      },
+    );
+
     return response.data;
   },
 

@@ -3,24 +3,18 @@ package org.rent.room.be.dataInitializer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.rent.room.be.entity.Amenity;
-import org.rent.room.be.entity.Category;
-import org.rent.room.be.entity.City;
-import org.jspecify.annotations.NonNull;
-import org.rent.room.be.entity.Role;
-import org.rent.room.be.entity.User;
-import org.rent.room.be.repository.AmenityRepository;
-import org.rent.room.be.repository.CategoryRepository;
-import org.rent.room.be.repository.CityRepository;
-import org.rent.room.be.repository.RoleRepository;
-import org.rent.room.be.repository.UserRepository;
+import org.rent.room.be.constant.RoomCopyStatus;
+import org.rent.room.be.entity.*;
+import org.rent.room.be.repository.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -33,14 +27,95 @@ public class DataInitializer implements CommandLineRunner {
     CityRepository cityRepository;
     CategoryRepository categoryRepository;
     AmenityRepository amenityRepository;
-
+    RoomCopyRepository roomCopyRepository;
+    RoomRepository roomRepository;
+    RentalAreaRepository rentalAreaRepository;
     @Override
     public void run(String... args) throws Exception {
         seedUsers();
         seedCities();
         seedCategories();
         seedAmenities();
+        seedRooms();
     }
+
+
+    private void seedRooms(){
+        List<City> cities = cityRepository.findAll();
+        List<Amenity> amenities = amenityRepository.findAll();
+        Set<Amenity> amenitySet = new HashSet<>(amenities);
+        List<Category> categories = categoryRepository.findAll();
+        RentalArea rentalArea =RentalArea.builder()
+                .address("90 Phạm Đăng Giảng, phường Bình Hưng Hòa")
+                .contactName("Quang B")
+                .contactPhone("0777964742")
+                .city(cities.getFirst() != null ? cities.getFirst() : City.builder()
+                        .cityName("Thành phố Huế")
+                        .build())
+                .build();
+        rentalAreaRepository.save(rentalArea);
+        RoomCopy roomCopy1 = RoomCopy.builder()
+                .roomCode("Phỏng 301")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .build();
+        RoomCopy roomCopy2 = RoomCopy.builder()
+                .roomCode("Phỏng 302")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .build();
+        RoomCopy roomCopy3 = RoomCopy.builder()
+                .roomCode("Phỏng 303")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .build();
+
+        RoomCopy roomCopy4 = RoomCopy.builder()
+                .roomCode("Phỏng 401")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .build();
+        RoomCopy roomCopy5 = RoomCopy.builder()
+                .roomCode("Phỏng 402")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .build();
+
+
+        roomCopyRepository.save(roomCopy1);
+        roomCopyRepository.save(roomCopy2);
+        roomCopyRepository.save(roomCopy3);
+        roomCopyRepository.save(roomCopy4);
+        roomCopyRepository.save(roomCopy5);
+
+
+        Room room1 = Room.builder()
+                .roomName("Phòng học 30 người")
+                .description("Phòng học")
+                .category(categories.get(0))
+                .amenities(amenitySet)
+                .rentalArea(rentalArea)
+                .capacity(30)
+                .price(BigDecimal.valueOf(50000))
+                .build();
+
+        roomCopy1.setRoom(room1);
+        roomCopy2.setRoom(room1);
+        roomCopy3.setRoom(room1);
+        roomRepository.save(room1);
+        roomCopyRepository.saveAll(List.of(roomCopy1, roomCopy2, roomCopy3));
+
+
+
+        Room room2 = Room.builder()
+                .roomName("Phòng học 40 người")
+                .description("Phòng học")
+                .category(categories.get(0))
+                .amenities(amenitySet)
+                .rentalArea(rentalArea)
+                .capacity(40)
+                .price(BigDecimal.valueOf(60000))
+                .build();
+        roomRepository.save(room1);
+        roomRepository.save(room2);
+
+    }
+
 
     private void seedUsers() {
         Role adminRole = createRoleIfNotExist("ADMIN", "Quản trị hệ thống");
@@ -93,18 +168,80 @@ public class DataInitializer implements CommandLineRunner {
 
 
     private void seedCities() {
+
         List<String> cities = List.of(
-                "TP. Hồ Chí Minh",
                 "Hà Nội",
+                "TP. Hồ Chí Minh",
+                "Hải Phòng",
                 "Đà Nẵng",
-                "Cần Thơ"
+                "Cần Thơ",
+                "An Giang",
+                "Bà Rịa - Vũng Tàu",
+                "Bắc Giang",
+                "Bắc Kạn",
+                "Bạc Liêu",
+                "Bắc Ninh",
+                "Bến Tre",
+                "Bình Định",
+                "Bình Dương",
+                "Bình Phước",
+                "Bình Thuận",
+                "Cà Mau",
+                "Cao Bằng",
+                "Đắk Lắk",
+                "Đắk Nông",
+                "Điện Biên",
+                "Đồng Nai",
+                "Đồng Tháp",
+                "Gia Lai",
+                "Hà Giang",
+                "Hà Nam",
+                "Hà Tĩnh",
+                "Hải Dương",
+                "Hậu Giang",
+                "Hòa Bình",
+                "Hưng Yên",
+                "Khánh Hòa",
+                "Kiên Giang",
+                "Kon Tum",
+                "Lai Châu",
+                "Lâm Đồng",
+                "Lạng Sơn",
+                "Lào Cai",
+                "Long An",
+                "Nam Định",
+                "Nghệ An",
+                "Ninh Bình",
+                "Ninh Thuận",
+                "Phú Thọ",
+                "Phú Yên",
+                "Quảng Bình",
+                "Quảng Nam",
+                "Quảng Ngãi",
+                "Quảng Ninh",
+                "Quảng Trị",
+                "Sóc Trăng",
+                "Sơn La",
+                "Tây Ninh",
+                "Thái Bình",
+                "Thái Nguyên",
+                "Thanh Hóa",
+                "Thừa Thiên Huế",
+                "Tiền Giang",
+                "Trà Vinh",
+                "Tuyên Quang",
+                "Vĩnh Long",
+                "Vĩnh Phúc",
+                "Yên Bái"
         );
 
         for (String name : cities) {
             if (!cityRepository.existsByCityName(name)) {
-                cityRepository.save(City.builder()
-                        .cityName(name)
-                        .build());
+                cityRepository.save(
+                        City.builder()
+                                .cityName(name)
+                                .build()
+                );
             }
         }
     }

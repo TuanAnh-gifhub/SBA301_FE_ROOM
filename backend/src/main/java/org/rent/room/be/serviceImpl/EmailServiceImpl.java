@@ -8,6 +8,9 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.rent.room.be.dto.request.user.CreateUsersRequest;
 import org.rent.room.be.entity.TemporaryRegistration;
+import org.rent.room.be.exception.AppException;
+import org.rent.room.be.exception.ErrorCode;
+import org.rent.room.be.repository.UserRepository;
 import org.rent.room.be.repository.mongo.TemporaryRegistrationRepository;
 import org.rent.room.be.service.EmailService;
 import org.springframework.boot.mail.autoconfigure.MailProperties;
@@ -25,6 +28,7 @@ import java.util.Random;
 @Slf4j
 public class EmailServiceImpl implements EmailService {
 
+    UserRepository userRepository;
     JavaMailSender javaMailSender;
     MailProperties mailProperties;
     TemporaryRegistrationRepository temporaryRegistrationRepository;
@@ -51,9 +55,13 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendOtpRegister(CreateUsersRequest user) {
+
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+
         String otp = String.format("%06d", new Random().nextInt(999999));
 
-        // Lưu vào MongoDB
         TemporaryRegistration temp = TemporaryRegistration.builder()
                 .email(user.getEmail())
                 .userRequest(user)

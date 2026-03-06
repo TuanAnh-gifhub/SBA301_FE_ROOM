@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.*;
 import org.rent.room.be.base.BaseEntity;
 import org.rent.room.be.constant.BookingStatus;
+import org.rent.room.be.constant.BookingType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -26,14 +27,23 @@ public class Booking extends BaseEntity {
     @Column(name = "booking_id")
     UUID bookingId;
 
+    @Column(name = "booking_title")
+    private String bookingTitle;
+
     @Column(name = "booking_status", length = 20)
     BookingStatus bookingStatus;
 
     @Column(name = "total_price", precision = 19, scale = 2)
     BigDecimal totalPrice;
 
-    @Column(length = 500)
+    @Column(name = "note", length = 500)
     String note;
+
+    @Column(name = "start_time_booking")
+    private LocalDateTime startTime;
+
+    @Column(name = "end_time_booking")
+    private LocalDateTime endTime;
 
     @Column(name = "check_in")
     LocalDateTime checkIn;
@@ -53,9 +63,20 @@ public class Booking extends BaseEntity {
     @JoinColumn(name = "review_id")
     Review review;
 
-    @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     List<Slot> slots;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "booking_type")
+     BookingType bookingType;
+
     @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY)
-    List<ScheduleBooking> scheduleBookings;
+    private List<BookingQR> bookingQRs;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rental_area_id")
+    private RentalArea rentalArea;
+
+    @Column(name = "invoice_url")
+    private String invoiceUrl;
 }

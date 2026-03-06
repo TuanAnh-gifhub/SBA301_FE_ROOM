@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-// Đảm bảo đường dẫn import đúng với project của bạn
 import { userService, type UserResponse } from "../services/usersService";
+// 1. Import websocketService và tokenService
+import websocketService from "../services/chats/websocketService";
+import { tokenService } from "../services/auth/tokenService";
 
 interface AuthContextType {
   user: UserResponse | null;
@@ -19,6 +21,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // 2. Thêm useEffect quản lý kết nối WebSocket
+  useEffect(() => {
+    // Nếu có user và chưa kết nối thì tiến hành connect
+    if (user && user.userId) {
+      const token = tokenService.getAccessToken();
+      const wsUrl =
+        import.meta.env.VITE_WS_URL ||
+        "http://localhost:8080/api/v1/rent-room/ws";
+
+      if (!websocketService.isConnected()) {
+        console.log("🚀 AuthProvider: Đang khởi tạo kết nối WebSocket...");
+        websocketService.connect(wsUrl, token);
+      }
+    }
+
+    // Cleanup: Khi unmount hoặc khi user logout (user trở thành null)
+    return () => {
+      if (!user && websocketService.isConnected()) {
+        console.log("🔌 AuthProvider: Đang ngắt kết nối WebSocket...");
+        websocketService.disconnect();
+      }
+    };
+  }, [user]); // Theo dõi sự thay đổi của user
+
   const fetchCurrentUser = async () => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
@@ -26,24 +52,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLoading(false);
       return;
     }
-
     setIsLoading(true);
     try {
       const response: any = await userService.getMe();
       const actualData = response.data ? response.data : response;
-
       if (actualData?.result) {
         setUser(actualData.result);
       }
     } catch (error) {
-      console.error("Fetch user thất bại, chờ interceptor refresh token...");
-      // ❌ KHÔNG setUser(null) ở đây
+      console.error("Fetch user thất bại...");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Chạy 1 lần khi App mount
   useEffect(() => {
     fetchCurrentUser();
   }, []);
@@ -56,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    // 3. Khi setUser(null), useEffect phía trên sẽ tự động gọi disconnect()
     setUser(null);
   };
 
@@ -70,7 +93,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         refreshProfile: fetchCurrentUser,
       }}
     >
-      {/* Chỉ render con khi đã check xong session để tránh nháy giao diện */}
       {!isLoading && children}
     </AuthContext.Provider>
   );

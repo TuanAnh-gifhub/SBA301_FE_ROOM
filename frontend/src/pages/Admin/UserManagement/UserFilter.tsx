@@ -1,5 +1,6 @@
 import React from "react";
-import { Select, Input } from "antd";
+import { Select, Input, Button } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 const { Search } = Input;
@@ -10,11 +11,16 @@ interface UserFilterProps {
     active: boolean | undefined;
   };
   onFilterChange: (key: string, value: any) => void;
+  onCreate: () => void; // Thêm prop để mở Modal tạo mới
 }
 
-const UserFilter: React.FC<UserFilterProps> = ({ filters, onFilterChange }) => {
+const UserFilter: React.FC<UserFilterProps> = ({
+  filters,
+  onFilterChange,
+  onCreate,
+}) => {
   return (
-    <div className="mb-4 flex gap-4 flex-wrap">
+    <div className="mb-4 flex gap-4 flex-wrap items-center">
       <Select
         placeholder="Chọn vai trò"
         style={{ width: 200 }}
@@ -46,6 +52,17 @@ const UserFilter: React.FC<UserFilterProps> = ({ filters, onFilterChange }) => {
         style={{ width: 300 }}
         onSearch={(value) => onFilterChange("keyword", value)}
       />
+
+      {/* Nút Thêm mới đặt ngay sau nút Tìm kiếm */}
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={onCreate}
+        className="bg-green-600 border-green-600 hover:bg-green-700"
+        style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+      >
+        Thêm mới
+      </Button>
     </div>
   );
 };

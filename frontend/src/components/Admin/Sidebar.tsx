@@ -60,10 +60,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   // --- CẤU HÌNH MENU CHO THUÊ PHÒNG ---
   const items: MenuItem[] = [
-    // 1. Tổng quan
     getItem(<Link to="/admin">Dashboard</Link>, "/admin", <AppstoreOutlined />),
 
-    // 2. Nghiệp vụ chính: Quản lý Lịch đặt
     getItem("Quản lý Đặt phòng", "sub_booking", <CalendarOutlined />, [
       getItem(
         <Link to="/admin/bookings/calendar">Lịch phòng (Calendar)</Link>,
@@ -129,6 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <Link to="/admin/amenities">Thiết bị & Tiện ích</Link>,
         "/admin/amenities",
       ),
+      getItem(<Link to="/admin/packages">Gói Premium</Link>, "/admin/packages"),
       getItem(
         <Link to="/admin/settings">Cài đặt chung</Link>,
         "/admin/settings",

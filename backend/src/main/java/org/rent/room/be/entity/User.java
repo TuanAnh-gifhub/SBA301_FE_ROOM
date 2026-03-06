@@ -61,8 +61,11 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "recipient", fetch = FetchType.LAZY)
     List<Notification> notifications;
 
-    @OneToMany(mappedBy = "creator", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<Conversation> conversation;
+    @OneToMany(mappedBy = "user1", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<Conversation> sentConversations;
+
+    @OneToMany(mappedBy = "user2", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<Conversation> receivedConversations;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     List<Subscription> subscriptions;
@@ -75,4 +78,8 @@ public class User extends BaseEntity {
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     List<Report> reports;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private Review review;
+
 }

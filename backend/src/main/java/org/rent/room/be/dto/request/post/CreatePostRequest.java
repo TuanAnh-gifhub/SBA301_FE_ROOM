@@ -19,10 +19,13 @@ public class CreatePostRequest {
     @NotNull
     UUID roomId;
 
+
     @NotBlank
     @Size(max = 150)
     String title;
 
     @NotBlank
     String content;
+
+
 }

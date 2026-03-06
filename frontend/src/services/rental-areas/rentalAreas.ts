@@ -74,6 +74,10 @@ const rentalAreasService = {
     return response.data;
   },
 
+  getDetail(id: string) {
+    return api.get(`/rental-areas/${id}`);
+  },
+
   getMyRentalAreas: async (): Promise<ApiResponse<RentalAreaResponse[]>> => {
     const response = await api.get<ApiResponse<RentalAreaResponse[]>>(
       "/rental-areas/my-rental-areas",
