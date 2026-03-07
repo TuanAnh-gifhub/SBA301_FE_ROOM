@@ -246,4 +246,45 @@ public class PostController {
         }
 
     }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<PostSummaryResponse>>> adminGetPosts(
+            @RequestParam(required = false) String status
+    ) {
+        List<PostSummaryResponse> result = postService.adminGetPosts(status);
+
+        return ResponseEntity.ok(ApiResponse.<List<PostSummaryResponse>>builder()
+                .code(200)
+                .message("Admin get posts successfully")
+                .result(result)
+                .build());
+    }
+
+    @PatchMapping("/admin/{postId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PostResponse>> adminUpdateStatus(
+            @PathVariable UUID postId,
+            @RequestParam String status
+    ) {
+        PostResponse result = postService.adminUpdatePostStatus(postId, status);
+
+        return ResponseEntity.ok(ApiResponse.<PostResponse>builder()
+                .code(200)
+                .message("Admin update post status successfully")
+                .result(result)
+                .build());
+    }
+
+    @DeleteMapping("/admin/{postId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> adminDeletePost(@PathVariable UUID postId) {
+        postService.adminDeletePost(postId);
+
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .code(200)
+                .message("Admin delete post successfully")
+                .result(null)
+                .build());
+    }
 }

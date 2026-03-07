@@ -31,7 +31,7 @@ public interface PostService {
                                                          LocalDate fromDate,
                                                          LocalDate toDate);
 
-    List<PostSummaryResponse> getAllPosts();
+//    List<PostSummaryResponse> getAllPosts();
 
     PostDetailResponse getPostDetail(UUID postId);
 

@@ -427,7 +427,7 @@ public class PostServiceImpl implements PostService {
                 .roomName(room.getRoomName())
                 .description(room.getDescription())
                 .price(room.getPrice())
-                .roomStatus(room.getRoomStatus() != null ? room.getRoomStatus().name() : null)
+                .roomStatus(room.getRoomStatus() != null ? room.getRoomStatus() : null)
                 .capacity(room.getCapacity())
                 .area(room.getArea())
                 .categoryId(category != null ? category.getCategoryId() : null)
