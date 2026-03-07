@@ -22,3 +22,15 @@ export const updateBookingIntent = async (bookingIntentId: string, payload: any)
   const res = await api.put(`/bookings/booking-intents/${bookingIntentId}`, payload);
   return res.data.result;
 }
+
+
+export const downloadInvoice = async (bookingId: string) => {
+  const res = await api.get(
+    `/bookings/${bookingId}/invoice`,
+    {
+      responseType: "blob",
+    }
+  );
+
+  return res.data;
+};

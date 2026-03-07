@@ -36,6 +36,10 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/auth/**",
             "/ws/**",
+            "/reports/**"
+            ,"/bookings/**",
+             "/posts/**",
+            "/rental-areas/{rentalId}",
             "/reports/**",
             "/bookings/**",
             "/posts/**",

@@ -25,7 +25,13 @@ import PackagePage from "../pages/Customer/PackagePage";
 import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManagementPage";
 
 import BookingDetail from "../pages/Customer/Booking/BookingDetail";
+import LoginPage from "../pages/Customer/LoginPage/LoginPage";
 import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
+import OwnerPage from "../pages/Owner/OwnerPage";
+import ManageRoomPage from "../pages/Customer/ManageRoomPage/ManageRoomPage";
+import ManageBookingPage from "../pages/Owner/ManageBookingPage/ManageBookingPage";
+import ManageSchedulePage from "../pages/Owner/ManageSchedule/ManageSchedulePage";
+import ManagePostPage from "../pages/Customer/ManagePostPage/ManagePostPage";
 import NotificationPage from "../pages/Customer/NotificationPage/NotificationPage";
 
 export const router = createBrowserRouter([
@@ -193,5 +199,50 @@ export const router = createBrowserRouter([
         element: <PackageManagementPage />,
       },
     ],
+  },
+
+  //Owner
+  {
+    path: "/owner",
+    element: (
+      // <ProtectedAdminRoute>
+      <OwnerPage />
+      // </ProtectedAdminRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: (
+          <div className="p-6">
+            <h1
+              className="text-2xl font-bold mb-4"
+              style={{ color: "inherit" }}
+            >
+              Dashboard
+            </h1>
+            <p style={{ color: "inherit" }}>
+              Chào mừng đến với trang quản trị!
+            </p>
+          </div>
+        ),
+      },
+      {
+        path: "manage-posts",
+        element: <ManagePostPage />,
+      },
+      {
+        path: "rooms",
+        element: <ManageRoomPage />,
+      },
+      {
+        path: "bookings",
+        element: <ManageBookingPage />,
+      },
+      {
+        path: "schedules",
+        element: <ManageSchedulePage />,
+      },
+    ],
+
   },
 ]);

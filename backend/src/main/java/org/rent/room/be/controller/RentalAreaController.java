@@ -7,7 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.base.PageResponse;
-import org.rent.room.be.constant.ReportStatus;
+import org.rent.room.be.constant.BookingStatus;
+
 import org.rent.room.be.dto.request.rental_area.CreateRentalAreaRequest;
 import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaRequest;
 import org.rent.room.be.dto.request.rental_area.UpdateRentalAreaStatusRequest;
@@ -35,6 +36,34 @@ import java.util.UUID;
 public class RentalAreaController {
 
     RentalAreaService rentalAreaService;
+
+    @GetMapping("/{rentalAreaId}/bookings")
+    public ApiResponse<?> getBookingsByRentalAreaId(
+            @PathVariable UUID rentalAreaId,
+            @RequestParam(required = false) BookingStatus bookingStatus,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDate fromDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDate toDate,
+            @RequestParam(defaultValue = "1", required = false) int page,
+            @RequestParam(defaultValue = "10", required = false) int size
+    ) {
+        PageResponse<?> result = rentalAreaService.getBookingsByRentalAreaId(
+                rentalAreaId, bookingStatus, fromDate, toDate, page, size
+        );
+
+        return ApiResponse.success(200, "Get bookings by rental area id successfully", result);
+    }
+//    @GetMapping("/{rentalAreaId}/bookings/statistics")
+//    public ApiResponse<?> getBookingStatisticsByRentalAreaId(){
+//
+//        return null;
+//    }
+
+//    @GetMapping("/{rentalAreaId}/bookings/report")
+
 
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
