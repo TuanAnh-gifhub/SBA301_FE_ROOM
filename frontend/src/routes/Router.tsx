@@ -25,8 +25,8 @@ import PackagePage from "../pages/Customer/PackagePage";
 import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManagementPage";
 
 import BookingDetail from "../pages/Customer/Booking/BookingDetail";
-import LoginPage from "../pages/Customer/LoginPage/LoginPage";
 import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
+import WalletDepositResultPage from "../pages/Customer/WalletPage/WalletDepositResultPage";
 
 export const router = createBrowserRouter([
   {
@@ -82,6 +82,11 @@ export const router = createBrowserRouter([
         handle: { breadcrumb: "Ví cá nhân" },
       },
       {
+        path: "wallet/recharge",
+        element: <WalletPage />,
+        handle: { breadcrumb: "Nạp ví" },
+      },
+      {
         path: "wallet/history",
         element: <WalletHistoryPage />,
         handle: { breadcrumb: "Lịch sử giao dịch" },
@@ -90,6 +95,11 @@ export const router = createBrowserRouter([
         path: "wallet/promotion",
         element: <WalletPromotion />,
         handle: { breadcrumb: "Khuyến mãi" },
+      },
+      {
+        path: "wallet/deposit/result",
+        element: <WalletDepositResultPage />,
+        handle: { breadcrumb: "Kết quả nạp ví" },
       },
       {
         path: "reset-password",

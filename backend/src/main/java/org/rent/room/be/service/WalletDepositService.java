@@ -18,7 +18,7 @@ public interface WalletDepositService {
 
     /**
      * Xử lý khi user redirect về từ payment page (mock hoặc thật).
-     * Nếu là mock payment và status=success, tự động complete transaction và cộng tiền.
+     * Việc cộng tiền chỉ thực hiện qua webhook đã verify.
      */
     void handleDepositResult(String orderCode, String status);
 }

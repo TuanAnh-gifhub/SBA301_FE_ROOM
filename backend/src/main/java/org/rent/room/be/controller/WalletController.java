@@ -62,15 +62,11 @@ public class WalletController {
             @RequestParam String status
     ) {
         walletDepositService.handleDepositResult(orderCode, status);
-        
-        String message = "success".equalsIgnoreCase(status) 
-            ? "Deposit completed successfully" 
-            : "Deposit was cancelled or failed";
-        
+
         return ResponseEntity.ok(
                 ApiResponse.<Map<String, String>>builder()
                         .code(200)
-                        .message(message)
+                        .message("Deposit result recorded")
                         .result(Map.of(
                             "orderCode", orderCode,
                             "status", status

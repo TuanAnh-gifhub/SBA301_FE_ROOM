@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.constant.WalletStatus;
 import org.rent.room.be.constant.WalletTxStatus;
 import org.rent.room.be.constant.WalletTxType;
@@ -18,23 +17,20 @@ import org.rent.room.be.repository.WalletRepository;
 import org.rent.room.be.repository.WalletTransactionRepository;
 import org.rent.room.be.service.UserService;
 import org.rent.room.be.service.WalletDepositService;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
+import vn.payos.PayOS;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
+import vn.payos.model.v2.paymentRequests.PaymentLinkItem;
+import vn.payos.model.webhooks.WebhookData;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -47,7 +43,7 @@ public class WalletDepositServiceImpl implements WalletDepositService {
     private final WalletTransactionRepository walletTransactionRepository;
     private final UserService userService;
     private final PayOsProperties payOsProperties;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectProvider<PayOS> payOSProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -71,8 +67,8 @@ public class WalletDepositServiceImpl implements WalletDepositService {
         }
 
         long amount = request.getAmount();
-        long now = System.currentTimeMillis();
-        long orderCode = Long.parseLong(String.valueOf(now).substring(Math.max(0, String.valueOf(now).length() - 8)));
+        long orderCode = generateUniqueOrderCode();
+        PayOS payOS = requirePayOsClient();
 
         WalletTransaction tx = WalletTransaction.builder()
                 .wallet(wallet)
@@ -87,96 +83,68 @@ public class WalletDepositServiceImpl implements WalletDepositService {
 
         walletTransactionRepository.save(tx);
 
-        // Nếu chưa cấu hình PAYOS đầy đủ -> trả về mock paymentUrl để dev có thể test luồng
-        if (isPayOsNotConfigured()) {
-            log.warn("PAYOS is not configured. Using mock payment link for orderCode={}", orderCode);
+        try {
+            PaymentLinkItem item = PaymentLinkItem.builder()
+                    .name("Nap tien vi")
+                    .quantity(1)
+                    .price(amount)
+                    .build();
 
-            String baseReturn = payOsProperties.getReturnUrl();
-            if (baseReturn == null || baseReturn.isBlank()) {
-                baseReturn = "http://localhost:5173/wallet/deposit/result?status=success";
+            CreatePaymentLinkRequest paymentData = CreatePaymentLinkRequest.builder()
+                    .orderCode(orderCode)
+                    .amount(amount)
+                    .description("Nap tien vi")
+                    .item(item)
+                    .returnUrl(withStatusQuery(payOsProperties.getReturnUrl(), "success"))
+                    .cancelUrl(withStatusQuery(payOsProperties.getCancelUrl(), "cancel"))
+                    .build();
+            log.info("Creating PAYOS link orderCode={} returnUrl={} cancelUrl={}",
+                    orderCode, paymentData.getReturnUrl(), paymentData.getCancelUrl());
+
+            CreatePaymentLinkResponse response = payOS.paymentRequests().create(paymentData);
+            String checkoutUrl = response.getCheckoutUrl();
+            if (checkoutUrl == null || checkoutUrl.isBlank()) {
+                throw new RuntimeException("PAYOS did not return checkoutUrl");
             }
-            String mockUrl = baseReturn + "&orderCode=" + orderCode + "&mock=true";
+            tx.setPayosPaymentLinkId(response.getPaymentLinkId());
+            walletTransactionRepository.save(tx);
 
             return DepositLinkResponse.builder()
-                    .paymentUrl(mockUrl)
+                    .paymentUrl(checkoutUrl)
                     .orderCode(String.valueOf(orderCode))
                     .build();
-        }
-
-        // Nếu đã cấu hình PAYOS nhưng gọi thất bại, cũng fallback sang mock để tránh 500 khi dev
-        try {
-            Map<String, Object> paymentData = new HashMap<>();
-            paymentData.put("orderCode", orderCode);
-            paymentData.put("amount", amount);
-            paymentData.put("description", "Nap tien vi");
-            paymentData.put("returnUrl", payOsProperties.getReturnUrl());
-            paymentData.put("cancelUrl", payOsProperties.getCancelUrl());
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("x-client-id", payOsProperties.getClientId());
-            headers.set("x-api-key", payOsProperties.getApiKey());
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(paymentData, headers);
-
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    payOsProperties.getBaseUrl() + "/v2/payment-requests",
-                    HttpMethod.POST,
-                    entity,
-                    Map.class
-            );
-
-            Map<String, Object> body = response.getBody();
-            if (body != null && body.get("data") != null) {
-                Map<String, Object> data = (Map<String, Object>) body.get("data");
-                String checkoutUrl = (String) data.get("checkoutUrl");
-                String paymentLinkId = data.get("paymentLinkId") != null ? data.get("paymentLinkId").toString() : null;
-
-                tx.setPayosPaymentLinkId(paymentLinkId);
-                walletTransactionRepository.save(tx);
-
-                return DepositLinkResponse.builder()
-                        .paymentUrl(checkoutUrl)
-                        .orderCode(String.valueOf(orderCode))
-                        .build();
-            } else {
-                log.error("PAYOS response invalid, body={}", body);
-            }
         } catch (Exception e) {
-            log.error("Error calling PAYOS, falling back to mock link. orderCode={}", orderCode, e);
+            tx.setStatus(WalletTxStatus.FAILED);
+            tx.setMetadata(writeMetadata(Map.of("source", "create_link", "error", e.getMessage())));
+            walletTransactionRepository.save(tx);
+            log.error("Error creating PAYOS payment link. orderCode={}", orderCode, e);
+            throw new RuntimeException("Không thể tạo link thanh toán PAYOS");
         }
-
-        // Fallback mock nếu gọi PAYOS lỗi
-        String baseReturn = payOsProperties.getReturnUrl();
-        if (baseReturn == null || baseReturn.isBlank()) {
-            baseReturn = "http://localhost:5173/wallet/deposit/result?status=success";
-        }
-        String mockUrl = baseReturn + "&orderCode=" + orderCode + "&mock=true&fallback=true";
-
-        return DepositLinkResponse.builder()
-                .paymentUrl(mockUrl)
-                .orderCode(String.valueOf(orderCode))
-                .build();
     }
 
     @Override
     @Transactional
     public ResponseEntity<Map<String, Object>> handlePayOsWebhook(Map<String, Object> payload) {
         try {
-            // Verify signature để đảm bảo request đến từ PAYOS thật
-            if (!verifyPayOsSignature(payload)) {
-                log.warn("⚠️ PAYOS webhook signature verification failed. Payload: {}", payload);
-                // Vẫn trả về 200 để tránh PAYOS retry, nhưng không xử lý
+            WebhookData verifiedData = verifyPayOsWebhook(payload);
+            if (verifiedData == null) {
+                log.warn("PAYOS webhook signature verification failed.");
                 return ResponseEntity.ok(Map.of("code", "00", "message", "signature verification failed"));
             }
-            
-            Map<String, Object> data = (Map<String, Object>) payload.get("data");
+
+            Map<String, Object> data = objectMapper.convertValue(verifiedData, Map.class);
             if (data == null) {
                 return ResponseEntity.ok(Map.of("code", "00", "message", "ignored"));
             }
 
-            String code = String.valueOf(payload.get("code"));
-            String orderCode = String.valueOf(data.get("orderCode"));
+            String code = payload.get("code") == null ? "" : String.valueOf(payload.get("code"));
+            if (code.isBlank() && data.get("code") != null) {
+                code = String.valueOf(data.get("code"));
+            }
+            String orderCode = data.get("orderCode") == null ? "" : String.valueOf(data.get("orderCode"));
+            if (orderCode.isBlank()) {
+                return ResponseEntity.ok(Map.of("code", "00", "message", "orderCode missing"));
+            }
 
             Optional<WalletTransaction> optionalTx = walletTransactionRepository.findByPayosOrderCode(orderCode);
             if (optionalTx.isEmpty()) {
@@ -191,23 +159,27 @@ public class WalletDepositServiceImpl implements WalletDepositService {
             Wallet wallet = tx.getWallet();
 
             if (!"00".equals(code)) {
-                tx.setStatus(WalletTxStatus.FAILED);
+                if (tx.getStatus() == WalletTxStatus.PENDING) {
+                    tx.setStatus(WalletTxStatus.FAILED);
+                }
                 tx.setMetadata(writeMetadata(payload));
                 walletTransactionRepository.save(tx);
                 return ResponseEntity.ok(Map.of("code", "00", "message", "payment failed"));
             }
 
-            BigDecimal before = wallet.getBalance();
-            BigDecimal after = before.add(tx.getAmount());
+            if (tx.getStatus() == WalletTxStatus.PENDING) {
+                BigDecimal before = wallet.getBalance();
+                BigDecimal after = before.add(tx.getAmount());
 
-            wallet.setBalance(after);
-            walletRepository.save(wallet);
+                wallet.setBalance(after);
+                walletRepository.save(wallet);
 
-            tx.setBalanceBefore(before);
-            tx.setBalanceAfter(after);
-            tx.setStatus(WalletTxStatus.COMPLETED);
-            tx.setMetadata(writeMetadata(payload));
-            walletTransactionRepository.save(tx);
+                tx.setBalanceBefore(before);
+                tx.setBalanceAfter(after);
+                tx.setStatus(WalletTxStatus.COMPLETED);
+                tx.setMetadata(writeMetadata(payload));
+                walletTransactionRepository.save(tx);
+            }
 
             return ResponseEntity.ok(Map.of("code", "00", "message", "success"));
 
@@ -232,108 +204,75 @@ public class WalletDepositServiceImpl implements WalletDepositService {
         }
 
         WalletTransaction tx = optionalTx.get();
-        
-        // Nếu đã completed rồi thì không xử lý lại (idempotency)
+
         if (tx.getStatus() == WalletTxStatus.COMPLETED) {
             log.info("handleDepositResult: Transaction already completed for orderCode={}", orderCode);
             return;
         }
 
-        Wallet wallet = tx.getWallet();
+        if (isSuccessStatus(status) && tx.getStatus() == WalletTxStatus.PENDING) {
+            if (tryCompleteByPayOsPaymentStatus(tx)) {
+                log.info("Deposit completed from return result by PAYOS status. orderCode={}", orderCode);
+            } else {
+                log.info("PAYOS return success received for orderCode={}, waiting webhook confirmation.", orderCode);
+            }
+        }
 
-        // Nếu status=success và transaction đang PENDING -> complete và cộng tiền
-        if ("success".equalsIgnoreCase(status) && tx.getStatus() == WalletTxStatus.PENDING) {
-            BigDecimal before = wallet.getBalance();
-            BigDecimal after = before.add(tx.getAmount());
-
-            wallet.setBalance(after);
-            walletRepository.save(wallet);
-
-            tx.setBalanceBefore(before);
-            tx.setBalanceAfter(after);
-            tx.setStatus(WalletTxStatus.COMPLETED);
-            tx.setMetadata("{\"source\":\"deposit_result_page\",\"status\":\"" + status + "\"}");
-            walletTransactionRepository.save(tx);
-
-            log.info("✅ Deposit completed via result page. orderCode={}, amount={}, balance: {} -> {}", 
-                orderCode, tx.getAmount(), before, after);
-        } 
-        // Nếu status=cancel hoặc failed -> mark transaction là FAILED
-        else if ("cancel".equalsIgnoreCase(status) || "failed".equalsIgnoreCase(status)) {
+        if (isFailureStatus(status)
+                && tx.getStatus() == WalletTxStatus.PENDING) {
             tx.setStatus(WalletTxStatus.FAILED);
-            tx.setMetadata("{\"source\":\"deposit_result_page\",\"status\":\"" + status + "\"}");
-            walletTransactionRepository.save(tx);
+        }
+        tx.setMetadata(writeMetadata(new LinkedHashMap<>(Map.of(
+                "source", "deposit_result_page",
+                "status", status == null ? "" : status
+        ))));
+        walletTransactionRepository.save(tx);
 
-            log.info("❌ Deposit cancelled/failed via result page. orderCode={}, status={}", orderCode, status);
+        if (isFailureStatus(status)) {
+            log.info("Deposit cancelled/failed from result page. orderCode={}, status={}", orderCode, status);
         }
     }
 
-    private boolean isPayOsNotConfigured() {
-        boolean notConfigured = payOsProperties.getClientId() == null || payOsProperties.getClientId().isBlank()
+    private PayOS requirePayOsClient() {
+        if (payOsProperties.getClientId() == null || payOsProperties.getClientId().isBlank()
                 || payOsProperties.getApiKey() == null || payOsProperties.getApiKey().isBlank()
-                || payOsProperties.getBaseUrl() == null || payOsProperties.getBaseUrl().isBlank();
-        
-        if (notConfigured) {
-            log.warn("⚠️ PAYOS not fully configured. Missing: clientId={}, apiKey={}, baseUrl={}", 
-                payOsProperties.getClientId() == null || payOsProperties.getClientId().isBlank() ? "MISSING" : "OK",
-                payOsProperties.getApiKey() == null || payOsProperties.getApiKey().isBlank() ? "MISSING" : "OK",
-                payOsProperties.getBaseUrl() == null || payOsProperties.getBaseUrl().isBlank() ? "MISSING" : "OK");
-        } else {
-            log.info("✅ PAYOS is configured. Using real PAYOS API at: {}", payOsProperties.getBaseUrl());
+                || payOsProperties.getChecksumKey() == null || payOsProperties.getChecksumKey().isBlank()
+                || payOsProperties.getReturnUrl() == null || payOsProperties.getReturnUrl().isBlank()
+                || payOsProperties.getCancelUrl() == null || payOsProperties.getCancelUrl().isBlank()) {
+            throw new RuntimeException("PAYOS chưa được cấu hình đầy đủ");
         }
-        
-        return notConfigured;
+        PayOS payOS = payOSProvider.getIfAvailable();
+        if (payOS == null) {
+            throw new RuntimeException("Không khởi tạo được PAYOS client");
+        }
+        return payOS;
     }
 
-    /**
-     * Verify PAYOS webhook signature để đảm bảo request đến từ PAYOS thật.
-     * PAYOS gửi signature trong header hoặc trong payload.
-     * 
-     * Format: HMAC-SHA256(data + checksumKey)
-     */
-    private boolean verifyPayOsSignature(Map<String, Object> payload) {
-        // Nếu chưa config checksum-key, skip verification (chỉ để dev/test)
-        if (payOsProperties.getChecksumKey() == null || payOsProperties.getChecksumKey().isBlank()) {
-            log.warn("⚠️ PAYOS_CHECKSUM_KEY not configured. Skipping signature verification.");
-            return true; // Cho phép trong môi trường dev
+    private WebhookData verifyPayOsWebhook(Map<String, Object> payload) {
+        PayOS payOS = payOSProvider.getIfAvailable();
+        if (payOS == null) {
+            log.error("PAYOS webhook received but PayOS client is not configured.");
+            return null;
         }
-        
         try {
-            // PAYOS thường gửi signature trong header "x-payos-signature" hoặc trong payload
-            // Tùy theo tài liệu PAYOS thực tế, bạn có thể cần điều chỉnh logic này
-            
-            // Tạm thời: nếu có checksum-key thì coi như đã verify (cần cập nhật theo tài liệu PAYOS)
-            // TODO: Implement đúng theo PAYOS webhook signature format
-            // Ví dụ:
-            // String signature = request.getHeader("x-payos-signature");
-            // String dataString = objectMapper.writeValueAsString(payload.get("data"));
-            // String expectedSignature = calculateHMAC(dataString, payOsProperties.getChecksumKey());
-            // return signature != null && signature.equals(expectedSignature);
-            
-            return true; // Tạm thời return true, cần implement đúng theo PAYOS docs
+            return payOS.webhooks().verify(payload);
         } catch (Exception e) {
             log.error("Error verifying PAYOS signature", e);
-            return false;
+            return null;
         }
     }
-    
-    /**
-     * Tính HMAC-SHA256 signature (helper method cho verifyPayOsSignature)
-     */
-    private String calculateHMAC(String data, String secretKey) throws NoSuchAlgorithmException, InvalidKeyException {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-        mac.init(secretKeySpec);
-        byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        return bytesToHex(hash);
-    }
-    
-    private String bytesToHex(byte[] bytes) {
-        StringBuilder result = new StringBuilder();
-        for (byte b : bytes) {
-            result.append(String.format("%02x", b));
+
+    private long generateUniqueOrderCode() {
+        long orderCode = System.currentTimeMillis() / 1000;
+        int attempts = 0;
+        while (walletTransactionRepository.findByPayosOrderCode(String.valueOf(orderCode)).isPresent()) {
+            orderCode++;
+            attempts++;
+            if (attempts > 10_000) {
+                throw new RuntimeException("Không thể sinh orderCode duy nhất cho PAYOS");
+            }
         }
-        return result.toString();
+        return orderCode;
     }
 
     private String writeMetadata(Map<String, Object> payload) {
@@ -342,6 +281,94 @@ public class WalletDepositServiceImpl implements WalletDepositService {
         } catch (JsonProcessingException e) {
             return null;
         }
+    }
+
+    private boolean tryCompleteByPayOsPaymentStatus(WalletTransaction tx) {
+        PayOS payOS = payOSProvider.getIfAvailable();
+        if (payOS == null) {
+            return false;
+        }
+        try {
+            long orderCode = Long.parseLong(tx.getPayosOrderCode());
+            Object paymentLink = payOS.paymentRequests().get(orderCode);
+            Map<String, Object> paymentData = objectMapper.convertValue(paymentLink, Map.class);
+            String paymentStatus = extractPaymentStatus(paymentData);
+            if (!"PAID".equalsIgnoreCase(paymentStatus)) {
+                return false;
+            }
+            completeDepositTransaction(tx, new LinkedHashMap<>(Map.of(
+                    "source", "deposit_result_payos_query",
+                    "status", paymentStatus
+            )));
+            return true;
+        } catch (Exception e) {
+            log.warn("Cannot confirm PAYOS payment status from return result. orderCode={}", tx.getPayosOrderCode(), e);
+            return false;
+        }
+    }
+
+    private String extractPaymentStatus(Map<String, Object> paymentData) {
+        if (paymentData == null) {
+            return "";
+        }
+        List<String> keys = new ArrayList<>(List.of("status", "paymentStatus", "payment_status"));
+        for (String key : keys) {
+            Object value = paymentData.get(key);
+            if (value != null) {
+                return String.valueOf(value);
+            }
+        }
+        return "";
+    }
+
+    private void completeDepositTransaction(WalletTransaction tx, Map<String, Object> metadata) {
+        Wallet wallet = tx.getWallet();
+        BigDecimal before = wallet.getBalance();
+        BigDecimal after = before.add(tx.getAmount());
+
+        wallet.setBalance(after);
+        walletRepository.save(wallet);
+
+        tx.setBalanceBefore(before);
+        tx.setBalanceAfter(after);
+        tx.setStatus(WalletTxStatus.COMPLETED);
+        tx.setMetadata(writeMetadata(metadata));
+        walletTransactionRepository.save(tx);
+    }
+
+    private boolean isSuccessStatus(String status) {
+        if (status == null) {
+            return false;
+        }
+        String normalized = status.trim().toLowerCase();
+        return "success".equals(normalized)
+                || "succes".equals(normalized)
+                || "paid".equals(normalized)
+                || "succeeded".equals(normalized);
+    }
+
+    private boolean isFailureStatus(String status) {
+        if (status == null) {
+            return false;
+        }
+        String normalized = status.trim().toLowerCase();
+        return "cancel".equals(normalized)
+                || "cancelled".equals(normalized)
+                || "canceled".equals(normalized)
+                || "failed".equals(normalized)
+                || "fail".equals(normalized);
+    }
+
+    private String withStatusQuery(String baseUrl, String status) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            return baseUrl;
+        }
+        String normalized = baseUrl.trim();
+        String queryPart = "status=" + status;
+        if (normalized.contains("status=")) {
+            return normalized;
+        }
+        return normalized + (normalized.contains("?") ? "&" : "?") + queryPart;
     }
 }
 

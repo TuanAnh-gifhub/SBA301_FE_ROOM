@@ -5,6 +5,8 @@ import WalletHistory from "./WalletHistory";
 import WalletPromotion from "./WalletPromotion";
 import ParallaxBackground from "../LandingPage/ParallaxBackground";
 import Footer from "../../../components/Footer/Footer";
+import { createDepositLink, getMyWallet } from "../../../services/wallet/walletService";
+import { useAuth } from "../../../context/AuthContext";
 // Import các tính năng khác khi cần
 // import WalletRecharge from "./WalletRecharge";
 // import WalletWithdraw from "./WalletWithdraw";
@@ -17,18 +19,38 @@ import {
 } from "react-icons/fa";
 
 type WalletFeature = "overview" | "history" | "promotion" | "recharge" | "withdraw" | "help";
+type ErrorWithResponse = { response?: { data?: { message?: string } } };
 
 const WalletPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [totalBalance] = useState(0);
-    const [mainAccountBalance] = useState(0);
-    const [userName] = useState("Tran Le Tuan Anh");
-    const [userInfo] = useState("K17 HCM");
+    const { user } = useAuth();
+    const [totalBalance, setTotalBalance] = useState(0);
+    const [walletId, setWalletId] = useState<string>("");
+    const userName = user?.userName ?? user?.email ?? "Người dùng";
+    const userInfo = user?.role ?? "";
     const [isDarkMode, setIsDarkMode] = useState(() => {
         const stored = localStorage.getItem('landing_dark_mode');
         return stored === 'true';
     });
+    const [rechargeAmount, setRechargeAmount] = useState("10000");
+    const [rechargeLoading, setRechargeLoading] = useState(false);
+    const [rechargeError, setRechargeError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchWallet = async () => {
+            try {
+                const wallet = await getMyWallet();
+                const balance = Number(wallet.balance ?? 0);
+                setTotalBalance(balance);
+                setWalletId(wallet.walletId ?? "");
+            } catch (error) {
+                console.error("Không thể tải thông tin ví", error);
+            }
+        };
+
+        fetchWallet();
+    }, []);
 
     useEffect(() => {
         const handleDarkModeChange = (event: Event) => {
@@ -56,7 +78,7 @@ const WalletPage = () => {
     const categories = [
         {
             icon: FaCoins,
-            label: "Nạp Đồng Tốt",
+            label: "Nạp Đồng Room",
             color: "text-yellow-500",
             bgColor: "bg-yellow-50",
             feature: "recharge" as WalletFeature,
@@ -66,12 +88,12 @@ const WalletPage = () => {
         },
         {
             icon: FaMobileAlt,
-            label: "Nạp ĐT giá trị linh hoạt",
+            label: "Rút tiền",
             color: "text-blue-500",
             bgColor: "bg-blue-50",
-            feature: "recharge" as WalletFeature,
+            feature: "withdraw" as WalletFeature,
             onClick: () => {
-                navigate("/wallet/recharge-phone");
+                navigate("/wallet/withdraw");
             },
         },
         {
@@ -110,8 +132,30 @@ const WalletPage = () => {
         navigate("/wallet/recharge");
     };
 
-    const handleViewDetails = () => {
-        navigate("/wallet/details");
+    const handleCreateDepositLink = async () => {
+        const amount = Number(rechargeAmount);
+        if (!Number.isFinite(amount) || amount < 10000) {
+            setRechargeError("Số tiền nạp tối thiểu là 10,000 VNĐ.");
+            return;
+        }
+
+        setRechargeLoading(true);
+        setRechargeError(null);
+        try {
+            const result = await createDepositLink(amount);
+            if (!result?.paymentUrl) {
+                throw new Error("PAYOS checkout URL is missing");
+            }
+            window.location.href = result.paymentUrl;
+        } catch (error: unknown) {
+            const err = error as ErrorWithResponse;
+            setRechargeError(
+                err?.response?.data?.message ??
+                    "Không thể tạo link thanh toán payOS. Vui lòng thử lại.",
+            );
+        } finally {
+            setRechargeLoading(false);
+        }
     };
 
     // Render tính năng dựa trên activeFeature
@@ -130,10 +174,60 @@ const WalletPage = () => {
                 );
             case "recharge":
                 return (
-                    <div className={`${isDarkMode ? 'bg-[#2d7fcb] border-[#4da6ff]/30' : 'bg-white border-gray-200'} rounded-xl border shadow-sm p-8 text-center`}>
-                        <FaCoins className={`${isDarkMode ? 'text-yellow-400' : 'text-yellow-500'} text-5xl mx-auto mb-4`} />
-                        <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Nạp Đồng Tốt</h3>
-                        <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Tính năng đang được phát triển</p>
+                    <div className={`${isDarkMode ? 'bg-[#2d7fcb] border-[#4da6ff]/30' : 'bg-white border-gray-200'} rounded-xl border shadow-sm p-8`}>
+                        <FaCoins className={`${isDarkMode ? 'text-yellow-400' : 'text-yellow-500'} text-4xl mb-4`} />
+                        <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Nạp tiền vào ví</h3>
+                        <p className={`mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            Tạo link thanh toán payOS và chuyển hướng đến trang thanh toán.
+                        </p>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                            {[10000, 20000, 50000, 100000].map((value) => (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    onClick={() => setRechargeAmount(String(value))}
+                                    className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                                        rechargeAmount === String(value)
+                                            ? "bg-blue-600 text-white"
+                                            : isDarkMode
+                                                ? "bg-[#3a8bd8] text-white hover:bg-[#4da6ff]"
+                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    }`}
+                                >
+                                    {value.toLocaleString("vi-VN")} đ
+                                </button>
+                            ))}
+                        </div>
+
+                        <label className={`block text-sm mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                            Số tiền nạp (VNĐ)
+                        </label>
+                        <input
+                            type="number"
+                            min={10000}
+                            step={1000}
+                            value={rechargeAmount}
+                            onChange={(e) => setRechargeAmount(e.target.value)}
+                            className={`w-full rounded-md border px-3 py-2 mb-4 ${
+                                isDarkMode
+                                    ? "bg-[#3a8bd8] border-[#5ab4ff] text-white"
+                                    : "bg-white border-gray-300 text-gray-900"
+                            }`}
+                        />
+
+                        {rechargeError && (
+                            <p className="text-sm text-red-500 mb-4">{rechargeError}</p>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={handleCreateDepositLink}
+                            disabled={rechargeLoading}
+                            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {rechargeLoading ? "Đang tạo link..." : "Nạp tiền với payOS"}
+                        </button>
                     </div>
                 );
             case "withdraw":
@@ -162,10 +256,8 @@ const WalletPage = () => {
                                 <h2 className={`text-xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Chi tiết tài khoản</h2>
                                 <WalletCard
                                     totalBalance={totalBalance}
-                                    mainAccountBalance={mainAccountBalance}
+                                    walletId={walletId}
                                     onRecharge={handleRecharge}
-                                    onViewDetails={handleViewDetails}
-                                    isDarkMode={isDarkMode}
                                 />
                             </div>
 
@@ -200,14 +292,7 @@ const WalletPage = () => {
                             Xin chào, {userName} ({userInfo})
                         </h2>
                     </div>
-                    <div>
-                        <p className="text-sm text-gray-300 mb-1">Tài khoản định danh</p>
-                        <input
-                            type="text"
-                            placeholder="Nhập số tài khoản"
-                            className="bg-white/20 backdrop-blur-sm border border-white/30 rounded px-3 py-2 text-sm text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50 w-48"
-                        />
-                    </div>
+                    
                 </div>
             </div>
 

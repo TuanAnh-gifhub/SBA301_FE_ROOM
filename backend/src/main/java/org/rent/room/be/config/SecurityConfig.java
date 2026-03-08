@@ -40,6 +40,7 @@ public class SecurityConfig {
             "/chat/send-test",
             "/bookings/**",
             "/posts/**",
+            "/wallet/deposit/webhook",
 
     };
 

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaArrowDown, FaArrowUp, FaCoins, FaShoppingCart, FaMobileAlt } from "react-icons/fa";
+import { getMyWalletTransactions } from "../../../services/wallet/walletService";
 
 interface Transaction {
     id: string;
@@ -16,17 +17,56 @@ interface WalletHistoryProps {
 }
 
 const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryProps) => {
-    const [transactions] = useState<Transaction[]>([
-        // Sample data - in real app, this would come from API
-        // {
-        //   id: "1",
-        //   type: "recharge",
-        //   amount: 100000,
-        //   description: "Nạp tiền từ thẻ ngân hàng",
-        //   date: "2024-01-15T10:30:00",
-        //   status: "completed",
-        // },
-    ]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            try {
+                const pageData = await getMyWalletTransactions(1, showFull ? 20 : 5);
+                const mapped: Transaction[] = (pageData.data ?? []).map((item) => ({
+                    id: item.transactionId,
+                    type:
+                        item.type === "DEPOSIT"
+                            ? "recharge"
+                            : item.type === "REFUND"
+                                ? "refund"
+                                : item.type === "PAYMENT"
+                                    ? "payment"
+                                    : "transfer",
+                    amount: Number(item.amount ?? 0),
+                    description: item.description || "Giao dịch ví",
+                    date: item.createdAt,
+                    status:
+                        item.status === "COMPLETED"
+                            ? "completed"
+                            : item.status === "FAILED"
+                                ? "failed"
+                                : "pending",
+                }));
+                setTransactions(mapped);
+            } catch (error) {
+                console.error("Không thể tải lịch sử ví", error);
+                setTransactions([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTransactions();
+    }, [showFull]);
+
+    if (loading) {
+        return (
+            <div className={`${isDarkMode ? 'bg-[#2d7fcb] border-[#4da6ff]/30' : 'bg-white border-gray-200'} rounded-xl border shadow-sm p-8`}>
+                <div className="text-center py-12">
+                    <p className={isDarkMode ? 'text-gray-300 text-sm' : 'text-gray-500 text-sm'}>
+                        Đang tải lịch sử giao dịch...
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     const getTransactionIcon = (type: string) => {
         switch (type) {
