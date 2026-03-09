@@ -24,13 +24,10 @@ export const useChat = (
   const pageSize = 20;
 
   const selectedChatRef = useRef(selectedChat);
+
   useEffect(() => {
     selectedChatRef.current = selectedChat;
   }, [selectedChat]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   const loadConversations = async () => {
     if (!currentUserId) return;
@@ -49,6 +46,7 @@ export const useChat = (
     setLoading(false);
   };
 
+  // Trong useChat.ts - Tìm hàm loadMessages
   const loadMessages = async (id: string, isLoadMore = false) => {
     if (!id || (isLoadMore && (!hasMore || isFetchingMore))) return;
 
@@ -65,14 +63,23 @@ export const useChat = (
         }));
 
         setMessages((prev) => {
-          return isLoadMore ? [...transformed, ...prev] : transformed;
+          // Nếu loadMore (cuộn lên), nối vào ĐẦU. Nếu load lần đầu, lấy hoàn toàn tin nhắn mới
+          const combined = isLoadMore ? [...transformed, ...prev] : transformed;
+
+          // Lọc trùng theo messageId để chắc chắn không bị lặp tin nhắn
+          const map = new Map();
+          combined.forEach((m) => map.set(String(m.messageId), m));
+          return Array.from(map.values()).sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          );
         });
 
         setHasMore(res.result.length === pageSize);
         setPage(currentPage);
       }
     } catch (error) {
-      console.error("Chat pagination error:", error);
+      console.error("Pagination error:", error);
     } finally {
       setIsFetchingMore(false);
     }
@@ -270,5 +277,6 @@ export const useChat = (
     handleChatSelect,
     hasMore,
     loadMoreMessages,
+    isFetchingMore,
   };
 };

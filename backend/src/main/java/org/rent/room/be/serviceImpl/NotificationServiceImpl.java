@@ -8,6 +8,11 @@ import org.rent.room.be.entity.User;
 import org.rent.room.be.mapper.NotificationMapper;
 import org.rent.room.be.repository.NotificationRepository;
 import org.rent.room.be.service.NotificationService;
+import org.rent.room.be.service.UserService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +23,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final UserService userService;
 
     @Transactional
     @Override
@@ -37,13 +43,23 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.save(notification);
 
         NotificationResponse response = notificationMapper.toResponse(notification);
-        System.err.println("da co thong bao: " + response.getNotificationBody() + "");
 
         messagingTemplate.convertAndSendToUser(
                 recipient.getUserId().toString(),
                 "/queue/notifications",
                 response
         );
+    }
+
+    @Override
+    public Page<NotificationResponse> getMyNotification(int page, int size) {
+        User currentUser = userService.getCurrentUserEntity();
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<Notification> notificationPage = notificationRepository.findAllByRecipient(currentUser, pageable);
+
+        return notificationPage.map(notificationMapper::toResponse);
     }
 
     private void setNotificationContent(Notification notification, String senderName, String rawContent) {

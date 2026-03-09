@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect, useState } from "react";
+import React, { useRef, useLayoutEffect, useState, useEffect } from "react";
 import { type MessageResponse } from "../../../services/chats/chatService";
 import { parseMessageContent } from "../../../services/upload/uploadService";
 import { FaUserCircle, FaSpinner } from "react-icons/fa";
@@ -36,21 +36,52 @@ const MessageList = ({
 }: MessageListProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [prevScrollHeight, setPrevScrollHeight] = useState(0);
+  const prevMsgsCount = useRef(messages.length);
 
-  // Logic giữ vị trí cuộn khi load tin nhắn cũ
-  useLayoutEffect(() => {
-    if (isFetchingMore && scrollContainerRef.current) {
-      setPrevScrollHeight(scrollContainerRef.current.scrollHeight);
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container || isFetchingMore || !hasMore) return;
+
+    // Nếu cuộn cách đỉnh 50px thì kích hoạt load thêm
+    if (container.scrollTop <= 50) {
+      // Lưu lại chiều cao hiện tại trước khi load
+      setPrevScrollHeight(container.scrollHeight);
+      loadMoreMessages();
     }
-  }, [isFetchingMore]);
+  };
 
   useLayoutEffect(() => {
-    if (!isFetchingMore && prevScrollHeight > 0 && scrollContainerRef.current) {
-      const newScrollHeight = scrollContainerRef.current.scrollHeight;
-      scrollContainerRef.current.scrollTop = newScrollHeight - prevScrollHeight;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const isLoadMore =
+      messages.length > prevMsgsCount.current && prevScrollHeight > 0;
+    const isNewMessage =
+      messages.length > prevMsgsCount.current && prevScrollHeight === 0;
+
+    if (isLoadMore) {
+      // Giữ vị trí cuộn: Vị trí mới = Chiều cao mới - (Chiều cao cũ - Vị trí cũ)
+      // Ở đây đơn giản hơn vì ta cuộn lên đỉnh:
+      const scrollDiff = container.scrollHeight - prevScrollHeight;
+      container.scrollTop = scrollDiff;
       setPrevScrollHeight(0);
+    } else if (isNewMessage) {
+      // Chỉ cuộn xuống đáy khi có tin nhắn mới thực sự
+      container.scrollTop = container.scrollHeight;
     }
-  }, [messages, isFetchingMore, prevScrollHeight]);
+
+    prevMsgsCount.current = messages.length;
+  }, [messages]); // Bỏ isFetchingMore khỏi đây để tránh trigger sai lúc đang load
+
+  // Reset khi đổi User
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop =
+        scrollContainerRef.current.scrollHeight;
+    }
+    prevMsgsCount.current = 0;
+    setPrevScrollHeight(0);
+  }, [currentUserId]);
 
   // Nhận diện nhóm tin nhắn (Giữ nguyên logic của bạn)
   const groupConsecutiveMessages = (msgs: Message[]): MessageGroup[] => {
@@ -88,10 +119,13 @@ const MessageList = ({
   return (
     <div
       ref={scrollContainerRef}
-      className={`flex-1 overflow-y-auto px-1.5 py-4 space-y-4 ${
+      onScroll={handleScroll}
+      className={`flex-1 overflow-y-auto px-1.5 py-4 space-y-4 pt-2 ${
         isDarkMode ? "bg-gray-900" : "bg-gray-50"
       }`}
     >
+      <div className="h-2 w-full" />
+
       {/* NÚT LOAD MORE TẠI ĐÂY */}
       {hasMore && (
         <div className="flex justify-center py-2">
@@ -234,6 +268,7 @@ const MessageList = ({
         );
       })}
       <div ref={messagesEndRef} />
+      <div className="h-[1px]" />
     </div>
   );
 };

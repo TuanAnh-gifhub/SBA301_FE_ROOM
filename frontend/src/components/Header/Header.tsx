@@ -11,6 +11,7 @@ import UserMenu from "./UserMenu";
 import { useAuth } from "../../context/AuthContext";
 import websocketService from "../../services/websocketService";
 import { toast } from "react-toastify";
+import notificationService from "../../services/notificationService";
 
 const logo =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%234da6ff'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' font-weight='bold' fill='white'%3EEduRoom%3C/text%3E%3C/svg%3E";
@@ -76,6 +77,27 @@ const Header = () => {
   };
 
   useEffect(() => {
+    if (isAuthenticated) {
+      const fetchTopNotifications = async () => {
+        try {
+          const response = await notificationService.getMyNotifications(0, 10);
+          if (response.code === 200 && response.result) {
+            setNotifications(response.result.content);
+
+            const unread = response.result.content.filter(
+              (n) => !n.isRead,
+            ).length;
+            setUnreadNotificationsCount(unread);
+          }
+        } catch (error) {
+          console.error("Lỗi lấy thông báo tại Header:", error);
+        }
+      };
+      fetchTopNotifications();
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
     const updateHeaderHeight = () => {
       const h = headerRef.current
         ? headerRef.current.offsetHeight
@@ -105,16 +127,61 @@ const Header = () => {
 
   useEffect(() => {
     const unsubscribe = websocketService.onNotification((data) => {
-      console.log("🔔 Đã nhận noti trong Header:", data);
+      if (data.type === "CHAT") {
+        const isChatPage = window.location.pathname.includes("/chat");
 
-      // Cập nhật số lượng hiển thị trên chuông
+        const isBubbleChatOpen =
+          document.querySelector(".active-chat-bubble") !== null;
+
+        if (
+          document.visibilityState === "visible" &&
+          (isChatPage || isBubbleChatOpen)
+        ) {
+          return;
+        }
+      }
+
       setUnreadNotificationsCount((prev) => prev + 1);
 
-      // Cập nhật danh sách xem nhanh (dropdown)
-      setNotifications((prev) => [data, ...prev].slice(0, 10));
+      setNotifications((prev) => {
+        const updatedList = [data, ...prev];
+        const seenSenders = new Set<string>();
 
-      // Bắn thêm một cái Toast cho xịn
-      toast.info(`🔔 ${data.notificationTitle}: ${data.notificationBody}`);
+        const filtered = updatedList.filter((noti) => {
+          if (noti.type === "CHAT") {
+            const sId = noti.link
+              ? noti.link.split("/").pop()?.split("?")[0]
+              : "default";
+            if (sId && seenSenders.has(sId)) return false;
+            if (sId) seenSenders.add(sId);
+            return true;
+          }
+          return true;
+        });
+
+        return filtered.slice(0, 10);
+      });
+
+      const rawId = data.link ? data.link.split("/").pop() : "default";
+      const senderId = rawId ? rawId.split("?")[0] : "default";
+
+      const customToastId =
+        data.type === "CHAT"
+          ? `toast-chat-${senderId}`
+          : `toast-noti-${data.notificationId}`;
+
+      const toastMessage = `🔔 ${data.notificationTitle}: ${data.notificationBody}`;
+
+      if (toast.isActive(customToastId)) {
+        toast.update(customToastId, {
+          render: toastMessage,
+          autoClose: 3000,
+        });
+      } else {
+        toast.info(toastMessage, {
+          toastId: customToastId,
+        });
+      }
     });
 
     return () => unsubscribe();
@@ -308,18 +375,28 @@ const Header = () => {
                             ) : (
                               notifications.map((n, index) => (
                                 <div
-                                  key={index}
-                                  className="p-3 border-b hover:bg-blue-50 transition-colors cursor-pointer"
-                                  onClick={() =>
-                                    n.link && (window.location.href = n.link)
-                                  }
+                                  key={n.notificationId || index}
+                                  className={`p-3 border-b hover:bg-blue-50 transition-colors cursor-pointer flex items-start gap-2 ${
+                                    !n.isRead ? "bg-blue-50/50" : ""
+                                  }`}
+                                  onClick={() => {
+                                    if (n.link) window.location.href = n.link;
+                                    setIsNotiOpen(false);
+                                  }}
                                 >
-                                  <p className="text-sm font-semibold text-gray-800">
-                                    {n.notificationTitle}
-                                  </p>
-                                  <p className="text-xs text-gray-600 line-clamp-2">
-                                    {n.notificationBody}
-                                  </p>
+                                  <div className="flex-1">
+                                    <p
+                                      className={`text-sm text-gray-800 ${!n.isRead ? "font-bold" : "font-medium"}`}
+                                    >
+                                      {n.notificationTitle}
+                                    </p>
+                                    <p className="text-xs text-gray-600 line-clamp-2">
+                                      {n.notificationBody}
+                                    </p>
+                                  </div>
+                                  {!n.isRead && (
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shrink-0" />
+                                  )}
                                 </div>
                               ))
                             )}

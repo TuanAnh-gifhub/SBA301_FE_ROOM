@@ -43,7 +43,6 @@ class WebSocketService {
       this.stompClient.subscribe(
         "/user/queue/notifications",
         (message: any) => {
-          console.log("📩 ĐÃ NHẬN TIN NHẮN TỪ /user/queue/notifications");
           if (message.body) {
             const data = JSON.parse(message.body);
             console.log("📦 Dữ liệu Notification đã parse:", data);
