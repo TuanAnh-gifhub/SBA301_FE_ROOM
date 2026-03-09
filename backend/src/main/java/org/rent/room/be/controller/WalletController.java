@@ -6,21 +6,31 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.base.ApiResponse;
+import org.rent.room.be.constant.WithdrawStatus;
+import org.rent.room.be.dto.request.wallet.AdminWithdrawRejectRequest;
 import org.rent.room.be.dto.request.wallet.CreateDepositLinkRequest;
+import org.rent.room.be.dto.request.wallet.CreateWithdrawRequest;
+import org.rent.room.be.dto.request.wallet.UpdateWalletFreezeRequest;
+import org.rent.room.be.dto.response.wallet.AdminWalletStatusResponse;
+import org.rent.room.be.dto.response.wallet.AdminWithdrawRequestItemResponse;
 import org.rent.room.be.dto.response.wallet.CommissionInfoResponse;
 import org.rent.room.be.dto.response.wallet.DepositLinkResponse;
 import org.rent.room.be.dto.response.wallet.RevenueOverviewResponse;
 import org.rent.room.be.dto.response.wallet.WalletInfoResponse;
 import org.rent.room.be.dto.response.wallet.WalletTransactionItemResponse;
+import org.rent.room.be.dto.response.wallet.WithdrawRequestItemResponse;
 import org.rent.room.be.base.PageResponse;
+import org.rent.room.be.service.WalletAdminService;
 import org.rent.room.be.service.WalletDepositService;
 import org.rent.room.be.service.WalletService;
+import org.rent.room.be.service.WalletWithdrawService;
 import org.rent.room.be.serviceImpl.WalletQueryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/wallet")
@@ -32,6 +42,8 @@ public class WalletController {
     WalletDepositService walletDepositService;
     WalletService walletService;
     WalletQueryService walletQueryService;
+    WalletWithdrawService walletWithdrawService;
+    WalletAdminService walletAdminService;
 
     @PostMapping("/deposit/create-link")
     @PreAuthorize("hasAnyRole('ADMIN','RENTER','OWNER')")
@@ -105,6 +117,103 @@ public class WalletController {
                         .code(200)
                         .message("Get wallet transactions successfully")
                         .result(result)
+                        .build()
+        );
+    }
+
+    @PostMapping("/withdraw-requests")
+    @PreAuthorize("hasAnyRole('RENTER','OWNER')")
+    public ResponseEntity<ApiResponse<WithdrawRequestItemResponse>> createWithdrawRequest(
+            @Valid @RequestBody CreateWithdrawRequest request
+    ) {
+        WithdrawRequestItemResponse response = walletWithdrawService.createWithdrawRequest(request);
+        return ResponseEntity.ok(
+                ApiResponse.<WithdrawRequestItemResponse>builder()
+                        .code(200)
+                        .message("Create withdraw request successfully")
+                        .result(response)
+                        .build()
+        );
+    }
+
+    @GetMapping("/withdraw-requests")
+    @PreAuthorize("hasAnyRole('RENTER','OWNER')")
+    public ResponseEntity<ApiResponse<PageResponse<WithdrawRequestItemResponse>>> getMyWithdrawRequests(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) WithdrawStatus status
+    ) {
+        PageResponse<WithdrawRequestItemResponse> result =
+                walletWithdrawService.getMyWithdrawRequests(page, limit, status);
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<WithdrawRequestItemResponse>>builder()
+                        .code(200)
+                        .message("Get my withdraw requests successfully")
+                        .result(result)
+                        .build()
+        );
+    }
+
+    @GetMapping("/admin/withdraw-requests")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<AdminWithdrawRequestItemResponse>>> getAllWithdrawRequests(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) WithdrawStatus status,
+            @RequestParam(required = false) UUID userId
+    ) {
+        PageResponse<AdminWithdrawRequestItemResponse> result =
+                walletWithdrawService.getAllWithdrawRequests(page, limit, status, userId);
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<AdminWithdrawRequestItemResponse>>builder()
+                        .code(200)
+                        .message("Get withdraw requests successfully")
+                        .result(result)
+                        .build()
+        );
+    }
+
+    @PatchMapping("/admin/withdraw-requests/{withdrawRequestId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> approveWithdrawRequest(
+            @PathVariable UUID withdrawRequestId
+    ) {
+        walletWithdrawService.approveWithdrawRequest(withdrawRequestId);
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(200)
+                        .message("Approve withdraw request successfully")
+                        .build()
+        );
+    }
+
+    @PatchMapping("/admin/withdraw-requests/{withdrawRequestId}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> rejectWithdrawRequest(
+            @PathVariable UUID withdrawRequestId,
+            @Valid @RequestBody AdminWithdrawRejectRequest request
+    ) {
+        walletWithdrawService.rejectWithdrawRequest(withdrawRequestId, request.getAdminNote());
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(200)
+                        .message("Reject withdraw request successfully")
+                        .build()
+        );
+    }
+
+    @PatchMapping("/admin/users/{userId}/freeze")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<AdminWalletStatusResponse>> updateWalletFreezeStatus(
+            @PathVariable UUID userId,
+            @Valid @RequestBody UpdateWalletFreezeRequest request
+    ) {
+        AdminWalletStatusResponse response = walletAdminService.updateWalletFreezeStatus(userId, request);
+        return ResponseEntity.ok(
+                ApiResponse.<AdminWalletStatusResponse>builder()
+                        .code(200)
+                        .message("Update wallet freeze status successfully")
+                        .result(response)
                         .build()
         );
     }

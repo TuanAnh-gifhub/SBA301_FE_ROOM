@@ -5,7 +5,13 @@ import WalletHistory from "./WalletHistory";
 import WalletPromotion from "./WalletPromotion";
 import ParallaxBackground from "../LandingPage/ParallaxBackground";
 import Footer from "../../../components/Footer/Footer";
-import { createDepositLink, getMyWallet } from "../../../services/wallet/walletService";
+import {
+    createDepositLink,
+    createWithdrawRequest,
+    getMyWallet,
+    getMyWithdrawRequests,
+    type WithdrawRequestItemResponse
+} from "../../../services/wallet/walletService";
 import { useAuth } from "../../../context/AuthContext";
 // Import các tính năng khác khi cần
 // import WalletRecharge from "./WalletRecharge";
@@ -27,6 +33,8 @@ const WalletPage = () => {
     const { user } = useAuth();
     const [totalBalance, setTotalBalance] = useState(0);
     const [walletId, setWalletId] = useState<string>("");
+    const [walletLocked, setWalletLocked] = useState(false);
+    const [walletFrozenReason, setWalletFrozenReason] = useState<string>("");
     const userName = user?.userName ?? user?.email ?? "Người dùng";
     const userInfo = user?.role ?? "";
     const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -36,20 +44,40 @@ const WalletPage = () => {
     const [rechargeAmount, setRechargeAmount] = useState("10000");
     const [rechargeLoading, setRechargeLoading] = useState(false);
     const [rechargeError, setRechargeError] = useState<string | null>(null);
+    const [withdrawAmount, setWithdrawAmount] = useState("10000");
+    const [bankCode, setBankCode] = useState("");
+    const [bankAccountNumber, setBankAccountNumber] = useState("");
+    const [bankAccountName, setBankAccountName] = useState("");
+    const [withdrawLoading, setWithdrawLoading] = useState(false);
+    const [withdrawError, setWithdrawError] = useState<string | null>(null);
+    const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
+    const [withdrawRequests, setWithdrawRequests] = useState<WithdrawRequestItemResponse[]>([]);
+
+    const fetchWallet = async () => {
+        try {
+            const wallet = await getMyWallet();
+            const balance = Number(wallet.balance ?? 0);
+            setTotalBalance(balance);
+            setWalletId(wallet.walletId ?? "");
+            setWalletLocked(Boolean(wallet.isFrozen));
+            setWalletFrozenReason(wallet.frozenReason ?? "");
+        } catch (error) {
+            console.error("Không thể tải thông tin ví", error);
+        }
+    };
+
+    const fetchWithdrawRequests = async () => {
+        try {
+            const result = await getMyWithdrawRequests(1, 10);
+            setWithdrawRequests(result.data ?? []);
+        } catch (error) {
+            console.error("Không thể tải danh sách rút tiền", error);
+        }
+    };
 
     useEffect(() => {
-        const fetchWallet = async () => {
-            try {
-                const wallet = await getMyWallet();
-                const balance = Number(wallet.balance ?? 0);
-                setTotalBalance(balance);
-                setWalletId(wallet.walletId ?? "");
-            } catch (error) {
-                console.error("Không thể tải thông tin ví", error);
-            }
-        };
-
         fetchWallet();
+        fetchWithdrawRequests();
     }, []);
 
     useEffect(() => {
@@ -133,6 +161,10 @@ const WalletPage = () => {
     };
 
     const handleCreateDepositLink = async () => {
+        if (walletLocked) {
+            setRechargeError("Ví bạn tạm thời bị khóa.");
+            return;
+        }
         const amount = Number(rechargeAmount);
         if (!Number.isFinite(amount) || amount < 10000) {
             setRechargeError("Số tiền nạp tối thiểu là 10,000 VNĐ.");
@@ -150,11 +182,49 @@ const WalletPage = () => {
         } catch (error: unknown) {
             const err = error as ErrorWithResponse;
             setRechargeError(
-                err?.response?.data?.message ??
-                    "Không thể tạo link thanh toán payOS. Vui lòng thử lại.",
+                walletLocked
+                    ? "Ví bạn tạm thời bị khóa."
+                    : err?.response?.data?.message ??
+                      "Không thể tạo link thanh toán payOS. Vui lòng thử lại.",
             );
         } finally {
             setRechargeLoading(false);
+        }
+    };
+
+    const handleCreateWithdrawRequest = async () => {
+        const amount = Number(withdrawAmount);
+        if (!Number.isFinite(amount) || amount < 1000) {
+            setWithdrawError("Số tiền rút tối thiểu là 1,000 VNĐ.");
+            return;
+        }
+        if (!bankCode.trim() || !bankAccountNumber.trim() || !bankAccountName.trim()) {
+            setWithdrawError("Vui lòng nhập đầy đủ thông tin ngân hàng.");
+            return;
+        }
+
+        setWithdrawLoading(true);
+        setWithdrawError(null);
+        setWithdrawSuccess(null);
+        try {
+            await createWithdrawRequest({
+                amount,
+                bankCode: bankCode.trim(),
+                bankAccountNumber: bankAccountNumber.trim(),
+                bankAccountName: bankAccountName.trim(),
+            });
+            setWithdrawSuccess("Tạo yêu cầu rút tiền thành công. Vui lòng chờ ADMIN duyệt.");
+            setWithdrawAmount("10000");
+            await fetchWallet();
+            await fetchWithdrawRequests();
+        } catch (error: unknown) {
+            const err = error as ErrorWithResponse;
+            setWithdrawError(
+                err?.response?.data?.message ??
+                "Không thể tạo yêu cầu rút tiền. Vui lòng thử lại.",
+            );
+        } finally {
+            setWithdrawLoading(false);
         }
     };
 
@@ -232,10 +302,121 @@ const WalletPage = () => {
                 );
             case "withdraw":
                 return (
-                    <div className={`${isDarkMode ? 'bg-[#2d7fcb] border-[#4da6ff]/30' : 'bg-white border-gray-200'} rounded-xl border shadow-sm p-8 text-center`}>
-                        <FaCoins className={`${isDarkMode ? 'text-[#6bb5ff]' : 'text-[#4da6ff]'} text-5xl mx-auto mb-4`} />
-                        <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Rút tiền</h3>
-                        <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Tính năng đang được phát triển</p>
+                    <div className={`${isDarkMode ? 'bg-[#2d7fcb] border-[#4da6ff]/30' : 'bg-white border-gray-200'} rounded-xl border shadow-sm p-8`}>
+                        <FaCoins className={`${isDarkMode ? 'text-[#6bb5ff]' : 'text-[#4da6ff]'} text-4xl mb-4`} />
+                        <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Rút tiền về ngân hàng</h3>
+                        <p className={`mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            Tạo yêu cầu rút tiền. Hệ thống sẽ chờ ADMIN duyệt trước khi hoàn tất.
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label className={`block text-sm mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                                    Số tiền rút (VNĐ)
+                                </label>
+                                <input
+                                    type="number"
+                                    min={1000}
+                                    step={1000}
+                                    value={withdrawAmount}
+                                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                                    className={`w-full rounded-md border px-3 py-2 ${
+                                        isDarkMode
+                                            ? "bg-[#3a8bd8] border-[#5ab4ff] text-white"
+                                            : "bg-white border-gray-300 text-gray-900"
+                                    }`}
+                                />
+                            </div>
+                            <div>
+                                <label className={`block text-sm mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                                    Mã ngân hàng
+                                </label>
+                                <input
+                                    value={bankCode}
+                                    onChange={(e) => setBankCode(e.target.value)}
+                                    placeholder="VD: VCB"
+                                    className={`w-full rounded-md border px-3 py-2 ${
+                                        isDarkMode
+                                            ? "bg-[#3a8bd8] border-[#5ab4ff] text-white"
+                                            : "bg-white border-gray-300 text-gray-900"
+                                    }`}
+                                />
+                            </div>
+                            <div>
+                                <label className={`block text-sm mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                                    Số tài khoản
+                                </label>
+                                <input
+                                    value={bankAccountNumber}
+                                    onChange={(e) => setBankAccountNumber(e.target.value)}
+                                    className={`w-full rounded-md border px-3 py-2 ${
+                                        isDarkMode
+                                            ? "bg-[#3a8bd8] border-[#5ab4ff] text-white"
+                                            : "bg-white border-gray-300 text-gray-900"
+                                    }`}
+                                />
+                            </div>
+                            <div>
+                                <label className={`block text-sm mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                                    Tên chủ tài khoản
+                                </label>
+                                <input
+                                    value={bankAccountName}
+                                    onChange={(e) => setBankAccountName(e.target.value)}
+                                    className={`w-full rounded-md border px-3 py-2 ${
+                                        isDarkMode
+                                            ? "bg-[#3a8bd8] border-[#5ab4ff] text-white"
+                                            : "bg-white border-gray-300 text-gray-900"
+                                    }`}
+                                />
+                            </div>
+                        </div>
+
+                        {withdrawError && <p className="text-sm text-red-500 mb-3">{withdrawError}</p>}
+                        {withdrawSuccess && <p className="text-sm text-green-500 mb-3">{withdrawSuccess}</p>}
+
+                        <button
+                            type="button"
+                            onClick={handleCreateWithdrawRequest}
+                            disabled={withdrawLoading}
+                            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {withdrawLoading ? "Đang gửi yêu cầu..." : "Tạo yêu cầu rút tiền"}
+                        </button>
+
+                        <div className="mt-6">
+                            <h4 className={`text-base font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                Yêu cầu rút tiền gần đây
+                            </h4>
+                            <div className="space-y-2">
+                                {withdrawRequests.map((req) => (
+                                    <div
+                                        key={req.withdrawRequestId}
+                                        className={`${isDarkMode ? 'bg-[#3a8bd8]/40 border-[#4da6ff]/30 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'} border rounded-md p-3 text-sm`}
+                                    >
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <p>
+                                                <b>{Number(req.amount).toLocaleString("vi-VN")} đ</b> - {req.status}
+                                            </p>
+                                            <p className={isDarkMode ? 'text-gray-300' : 'text-gray-500'}>
+                                                {new Date(req.createdAt).toLocaleString("vi-VN")}
+                                            </p>
+                                        </div>
+                                        <p className={isDarkMode ? 'text-gray-300 mt-1' : 'text-gray-600 mt-1'}>
+                                            {req.bankCode} - {req.bankAccountNumber} - {req.bankAccountName}
+                                        </p>
+                                        {req.adminNote && (
+                                            <p className="mt-1 text-orange-400">Ghi chú ADMIN: {req.adminNote}</p>
+                                        )}
+                                    </div>
+                                ))}
+                                {withdrawRequests.length === 0 && (
+                                    <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                                        Chưa có yêu cầu rút tiền nào.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 );
             case "help":
@@ -257,6 +438,8 @@ const WalletPage = () => {
                                 <WalletCard
                                     totalBalance={totalBalance}
                                     walletId={walletId}
+                                    walletLocked={walletLocked}
+                                    walletFrozenReason={walletFrozenReason}
                                     onRecharge={handleRecharge}
                                 />
                             </div>

@@ -27,6 +27,8 @@ import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManag
 import BookingDetail from "../pages/Customer/Booking/BookingDetail";
 import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
 import WalletDepositResultPage from "../pages/Customer/WalletPage/WalletDepositResultPage";
+import WalletWithdrawManagementPage from "../pages/Admin/WalletManagement/WalletWithdrawManagementPage";
+import WalletFreezeManagementPage from "../pages/Admin/WalletManagement/WalletFreezeManagementPage";
 
 export const router = createBrowserRouter([
   {
@@ -85,6 +87,11 @@ export const router = createBrowserRouter([
         path: "wallet/recharge",
         element: <WalletPage />,
         handle: { breadcrumb: "Nạp ví" },
+      },
+      {
+        path: "wallet/withdraw",
+        element: <WalletPage />,
+        handle: { breadcrumb: "Rút tiền" },
       },
       {
         path: "wallet/history",
@@ -196,6 +203,14 @@ export const router = createBrowserRouter([
       {
         path: "packages",
         element: <PackageManagementPage />,
+      },
+      {
+        path: "transactions",
+        element: <WalletWithdrawManagementPage />,
+      },
+      {
+        path: "wallet-freeze",
+        element: <WalletFreezeManagementPage />,
       },
     ],
   },

@@ -17,5 +17,11 @@ public interface WithdrawRequestRepository extends JpaRepository<WithdrawRequest
     Page<WithdrawRequest> findByWalletAndStatus(Wallet wallet, WithdrawStatus status, Pageable pageable);
 
     Optional<WithdrawRequest> findFirstByWalletAndStatus(Wallet wallet, WithdrawStatus status);
+
+    Page<WithdrawRequest> findByStatus(WithdrawStatus status, Pageable pageable);
+
+    Page<WithdrawRequest> findByWallet_User_UserId(java.util.UUID userId, Pageable pageable);
+
+    Page<WithdrawRequest> findByWallet_User_UserIdAndStatus(java.util.UUID userId, WithdrawStatus status, Pageable pageable);
 }
 

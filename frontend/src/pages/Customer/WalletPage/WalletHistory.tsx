@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { FaArrowDown, FaArrowUp, FaCoins, FaShoppingCart, FaMobileAlt } from "react-icons/fa";
-import { getMyWalletTransactions } from "../../../services/wallet/walletService";
+import {
+    getMyWalletTransactions,
+    getMyWithdrawRequests,
+} from "../../../services/wallet/walletService";
 
 interface Transaction {
     id: string;
-    type: "recharge" | "payment" | "refund" | "transfer";
+    type: "recharge" | "payment" | "refund" | "transfer" | "withdraw";
     amount: number;
     description: string;
     date: string;
@@ -23,8 +26,13 @@ const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryPro
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
-                const pageData = await getMyWalletTransactions(1, showFull ? 20 : 5);
-                const mapped: Transaction[] = (pageData.data ?? []).map((item) => ({
+                const limit = showFull ? 20 : 5;
+                const [walletTxPage, withdrawPage] = await Promise.all([
+                    getMyWalletTransactions(1, limit),
+                    getMyWithdrawRequests(1, limit),
+                ]);
+
+                const walletMapped: Transaction[] = (walletTxPage.data ?? []).map((item) => ({
                     id: item.transactionId,
                     type:
                         item.type === "DEPOSIT"
@@ -44,7 +52,27 @@ const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryPro
                                 ? "failed"
                                 : "pending",
                 }));
-                setTransactions(mapped);
+
+                const withdrawMapped: Transaction[] = (withdrawPage.data ?? []).map((item) => ({
+                    id: item.withdrawRequestId,
+                    type: "withdraw",
+                    amount: Number(item.amount ?? 0),
+                    description:
+                        item.adminNote?.trim() ||
+                        `Rút tiền về ${item.bankCode} - ${item.bankAccountNumber}`,
+                    date: item.processedAt || item.createdAt,
+                    status:
+                        item.status === "COMPLETED" || item.status === "APPROVED"
+                            ? "completed"
+                            : item.status === "REJECTED"
+                                ? "failed"
+                                : "pending",
+                }));
+
+                const merged = [...walletMapped, ...withdrawMapped].sort(
+                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+                setTransactions(merged);
             } catch (error) {
                 console.error("Không thể tải lịch sử ví", error);
                 setTransactions([]);
@@ -78,6 +106,8 @@ const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryPro
                 return <FaArrowUp className={isDarkMode ? "text-blue-400" : "text-blue-500"} />;
             case "transfer":
                 return <FaMobileAlt className={isDarkMode ? "text-purple-400" : "text-purple-500"} />;
+            case "withdraw":
+                return <FaArrowUp className={isDarkMode ? "text-orange-400" : "text-orange-500"} />;
             default:
                 return <FaCoins className={isDarkMode ? "text-gray-400" : "text-gray-500"} />;
         }
@@ -93,6 +123,8 @@ const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryPro
                 return "Hoàn tiền";
             case "transfer":
                 return "Chuyển khoản";
+            case "withdraw":
+                return "Rút tiền";
             default:
                 return "Giao dịch";
         }

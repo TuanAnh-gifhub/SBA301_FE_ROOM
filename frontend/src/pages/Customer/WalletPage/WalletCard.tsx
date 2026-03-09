@@ -4,12 +4,16 @@ import { FaCoins } from "react-icons/fa";
 interface WalletCardProps {
     totalBalance?: number;
     walletId?: string;
+    walletLocked?: boolean;
+    walletFrozenReason?: string;
     onRecharge?: () => void;
 }
 
 const WalletCard = ({
     totalBalance = 0,
     walletId = "",
+    walletLocked = false,
+    walletFrozenReason = "",
     onRecharge,
 }: WalletCardProps) => {
     const [infoType, setInfoType] = useState<"about" | "rate" | null>(null);
@@ -63,6 +67,12 @@ const WalletCard = ({
                                     <p className="text-xs md:text-sm font-semibold break-all text-white">
                                         {walletId || "Chưa có mã ví"}
                                     </p>
+                                    {walletLocked && (
+                                        <p className="mt-2 text-xs md:text-sm font-semibold text-red-200">
+                                            Đã bị khóa vui lòng liên hệ hệ thống
+                                            {walletFrozenReason ? `: ${walletFrozenReason}` : ""}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                             <div className="text-right">
@@ -97,6 +107,7 @@ const WalletCard = ({
                             </div>
                             <button
                                 onClick={onRecharge}
+                                disabled={walletLocked}
                                 className="relative bg-white/25 hover:bg-white/35 backdrop-blur-md px-5 py-2.5 rounded-lg text-white font-bold transition-all duration-300 border border-white/40 shadow-lg hover:shadow-xl hover:scale-105 transform"
                             >
                                 <span className="relative z-10">+ Nạp thêm</span>
