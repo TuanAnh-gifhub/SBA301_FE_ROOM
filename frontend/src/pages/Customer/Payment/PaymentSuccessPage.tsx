@@ -1,9 +1,10 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { downloadInvoice } from "../../../services/booking/bookingService";
 export default function PaymentSuccessPage() {
   const { bookingId } = useParams();
+  const navigate = useNavigate();
   const [booking, setBooking] = useState<any>(null);
 
   useEffect(() => {
@@ -136,6 +137,20 @@ export default function PaymentSuccessPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="mb-10 bg-orange-50 border border-orange-200 rounded-xl p-4">
+        <p className="text-sm text-gray-700 mb-3">
+          Nếu có vấn đề với phòng thuê, bạn có thể gửi khiếu nại để hệ thống
+          tạm giữ escrow và admin xử lý.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate(`/report-form?bookingId=${booking.bookingId}`)}
+          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded"
+        >
+          Khiếu nại booking này
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-10">
