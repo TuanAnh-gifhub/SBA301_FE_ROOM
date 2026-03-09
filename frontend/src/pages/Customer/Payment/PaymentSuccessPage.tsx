@@ -78,6 +78,9 @@ export default function PaymentSuccessPage() {
           <p>
             <b>Ngày trả:</b> {new Date(booking.endTime).toLocaleString()}
           </p>
+          <p>
+            <b>Ghi chú:</b> {booking.note}
+          </p>
         </div>
 
         <div>

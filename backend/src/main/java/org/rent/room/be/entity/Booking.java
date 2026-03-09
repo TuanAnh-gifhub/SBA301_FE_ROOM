@@ -30,6 +30,7 @@ public class Booking extends BaseEntity {
     @Column(name = "booking_title")
     private String bookingTitle;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "booking_status", length = 20)
     BookingStatus bookingStatus;
 

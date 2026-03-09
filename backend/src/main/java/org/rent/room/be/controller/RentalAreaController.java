@@ -37,32 +37,8 @@ public class RentalAreaController {
 
     RentalAreaService rentalAreaService;
 
-    @GetMapping("/{rentalAreaId}/bookings")
-    public ApiResponse<?> getBookingsByRentalAreaId(
-            @PathVariable UUID rentalAreaId,
-            @RequestParam(required = false) BookingStatus bookingStatus,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDate fromDate,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDate toDate,
-            @RequestParam(defaultValue = "1", required = false) int page,
-            @RequestParam(defaultValue = "10", required = false) int size
-    ) {
-        PageResponse<?> result = rentalAreaService.getBookingsByRentalAreaId(
-                rentalAreaId, bookingStatus, fromDate, toDate, page, size
-        );
 
-        return ApiResponse.success(200, "Get bookings by rental area id successfully", result);
-    }
-//    @GetMapping("/{rentalAreaId}/bookings/statistics")
-//    public ApiResponse<?> getBookingStatisticsByRentalAreaId(){
-//
-//        return null;
-//    }
 
-//    @GetMapping("/{rentalAreaId}/bookings/report")
 
 
 

@@ -3,35 +3,61 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import createPayment from "../../../services/payment/paymentService";
 import { useNavigate } from "react-router-dom";
-export default function PaymentSummary({ intent }: any) {
+export default function PaymentSummary({ intent, contact }: any) {
   const [paymentMethod, setPaymentMethod] = useState("BANK");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handlePayment = async () => {
+    if (!contact.phone) {
+      toast.error("Vui lòng nhập số điện thoại");
+      return;
+    }
+
     try {
       setLoading(true);
 
       const res = await createPayment({
         bookingIntentId: intent.bookingIntentId,
         paymentMethod,
+        phoneNumber: contact.phone,
+        note: contact.note,
       });
+      console.log(res.data);
       if (res.data.code === 201) {
         toast.success("Thanh toán thành công");
+
         navigate(`/payment/success/${res.data.result.bookingId}`);
+
+        return;
       }
+
       if (res.data.code !== 201) {
         toast.error(res.data.message);
       }
-    } catch (err) {
-      toast.error("Thanh toán thất bại");
+    } catch (err: any) {
+      if (!err.response) {
+        toast.error("Không thể kết nối server. Vui lòng thử lại.");
+        return;
+      }
+
+      const data = err.response.data;
+
+      if (data.code === 2003) {
+        const errorMessages = Object.values(data.result);
+        errorMessages.forEach((msg: any) => toast.error(msg));
+      }
+
+      if (data.code === 500) {
+        toast.error("Lỗi hệ thống");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Card title="Order Summary">
+    <Card title="Tổng hóa đơn">
       <div className="space-y-2">
         <div className="flex justify-between">
           <span>Chi phí</span>

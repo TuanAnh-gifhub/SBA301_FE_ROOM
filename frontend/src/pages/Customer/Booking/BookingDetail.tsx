@@ -8,11 +8,15 @@ import {
 } from "../../../services/booking/bookingService";
 import BookingInfoList from "./BookingInfoList";
 import PaymentSummary from "./PaymentSummary";
-
+import BookingContactForm from "./BookingContactForm";
 export default function BookingDetail() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-
+  const [contact, setContact] = useState({
+    name: "",
+    phone: "",
+    note: "",
+  });
   const [intent, setIntent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -43,30 +47,6 @@ export default function BookingDetail() {
     }
   };
 
-  const handleConfirm = async () => {
-    if (!intent?.bookingIntentId) {
-      message.error("Intent không hợp lệ");
-      return;
-    }
-
-    try {
-      setConfirming(true);
-
-      const res = await confirmBooking(intent.bookingIntentId);
-      if (res?.success) {
-        message.success("Đặt phòng thành công!");
-
-        navigate("/customer/my-bookings");
-      } else {
-        message.error("Đặt phòng thất bại " + (res?.message || ""));
-      }
-    } catch (e) {
-      message.error("Booking thất bại");
-    } finally {
-      setConfirming(false);
-    }
-  };
-
   if (loading || !intent) {
     return (
       <div style={{ textAlign: "center", marginTop: 80 }}>
@@ -76,18 +56,15 @@ export default function BookingDetail() {
   }
 
   return (
-   <Row gutter={24}>
-  <Col span={16}>
-    <BookingInfoList intent={intent} />
-  </Col>
+    <Row gutter={16}>
+      <Col span={16}>
+        <BookingContactForm formData={contact} setFormData={setContact} />
+        <BookingInfoList intent={intent} />
+      </Col>
 
-  <Col span={8}>
-    <PaymentSummary
-      intent={intent}
-      onConfirm={handleConfirm}
-      loading={confirming}
-    />
-  </Col>
-</Row>
+      <Col span={8}>
+        <PaymentSummary intent={intent} contact={contact} />
+      </Col>
+    </Row>
   );
 }

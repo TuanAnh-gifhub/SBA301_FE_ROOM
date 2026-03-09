@@ -6,5 +6,5 @@ import org.rent.room.be.dto.response.booking.BookingResponse;
 import java.io.IOException;
 
 public interface PaymentService {
-   BookingResponse checkout(CheckoutRequest checkoutRequest) throws IOException;
+    BookingResponse checkout(CheckoutRequest checkoutRequest) throws IOException;
 }

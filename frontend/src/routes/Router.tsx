@@ -23,7 +23,7 @@ import PostManagePage from "../pages/Admin/PostManagement/PostManagePage";
 import RentalDetailPage from "../pages/Customer/LandingPage/RentalDetailPage";
 import PackagePage from "../pages/Customer/PackagePage";
 import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManagementPage";
-
+import ProfilePage from "../pages/Customer/ProfilePage/ProfilePage";
 import BookingDetail from "../pages/Customer/Booking/BookingDetail";
 import LoginPage from "../pages/Customer/LoginPage/LoginPage";
 import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
@@ -32,6 +32,8 @@ import ManageRoomPage from "../pages/Customer/ManageRoomPage/ManageRoomPage";
 import ManageBookingPage from "../pages/Owner/ManageBookingPage/ManageBookingPage";
 import ManageSchedulePage from "../pages/Owner/ManageSchedule/ManageSchedulePage";
 import ManagePostPage from "../pages/Customer/ManagePostPage/ManagePostPage";
+import MyBookingHistoryPage from "../pages/Customer/MyBookingHistoryPage/MyBookingHistoryPage";
+import BookingDetailPage from "../pages/Customer/MyBookingHistoryPage/BookingDetailPage";
 
 export const router = createBrowserRouter([
   {
@@ -70,6 +72,18 @@ export const router = createBrowserRouter([
         path: "payment/success/:bookingId",
         element: <PaymentSuccessPage />,
         handle: { breadcrumb: "Thanh toán thành công" },
+      },
+      {
+        path: "profile",
+        element: <ProfilePage />,
+      },
+      {
+        path: "my-booking-history",
+        element: <MyBookingHistoryPage />,
+      },
+      {
+        path: "/my-booking-history/:bookingId",
+        element: <BookingDetailPage />,
       },
       {
         path: "product/:id",
@@ -238,6 +252,5 @@ export const router = createBrowserRouter([
         element: <ManageSchedulePage />,
       },
     ],
- 
   },
 ]);
