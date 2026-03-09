@@ -281,7 +281,7 @@ public class PaymentServiceImpl implements PaymentService {
         } catch (Exception e) {
             payment.setPaymentStatus(PaymentStatus.FAILED);
             paymentRepository.save(payment);
-            throw new RuntimeException("Không thể tạo link thanh toán PAYOS");
+            throw new RuntimeException("Không thể tạo link thanh toán PAYOS 1");
         }
     }
 

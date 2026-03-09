@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import createPayment from "../../../services/payment/paymentService";
 import type { CheckoutResponse } from "../../../services/payment/paymentService";
 import { useNavigate } from "react-router-dom";
-export default function PaymentSummary({ intent ,contact}: any) {
+export default function PaymentSummary({ intent, contact = {} }: any) {
   const [paymentMethod, setPaymentMethod] = useState("BANK");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -99,9 +99,7 @@ export default function PaymentSummary({ intent ,contact}: any) {
           <button
             onClick={() => setPaymentMethod("WALLET")}
             className={`p-3 border rounded-xl w-full ${
-              paymentMethod === "WALLET"
-                ? "border-teal-500 bg-teal-50"
-                : ""
+              paymentMethod === "WALLET" ? "border-teal-500 bg-teal-50" : ""
             }`}
           >
             Ví nội bộ
