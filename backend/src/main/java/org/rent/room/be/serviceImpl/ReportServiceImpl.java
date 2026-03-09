@@ -10,7 +10,9 @@ import org.rent.room.be.dto.response.report.ReportResponse;
 import org.rent.room.be.dto.response.report.ReportStatic;
 import org.rent.room.be.entity.Report;
 import org.rent.room.be.entity.User;
+import org.rent.room.be.entity.Booking;
 import org.rent.room.be.mapper.ReportMapper;
+import org.rent.room.be.repository.BookingRepository;
 import org.rent.room.be.repository.ReportRepository;
 import org.rent.room.be.service.EmailService;
 import org.rent.room.be.service.ReportService;
@@ -40,6 +42,8 @@ public class ReportServiceImpl implements ReportService {
     private EmailService emailService;
     @Autowired
     UserService userService;
+    @Autowired
+    BookingRepository bookingRepository;
 
     @Override
     public PageResponse<ReportResponse> getAllReports(
@@ -75,6 +79,7 @@ public class ReportServiceImpl implements ReportService {
                             .title(report.getTitle())
                             .content(report.getContent())
                             .address(report.getAddress())
+                            .bookingId(report.getBookingId())
                             .status(report.getStatus())
                             .createdAt(report.getCreatedAt())
                             .updatedAt(report.getUpdatedAt())
@@ -129,11 +134,19 @@ public class ReportServiceImpl implements ReportService {
                 .content(reportRequest.getContent())
                 .user(user)
                 .address(reportRequest.getAddress())
+                .bookingId(reportRequest.getBookingId())
                 .status(ReportStatus.PENDING)
                 .isDeleted(false)
                 .build();
 
-        ReportResponse reportResponse = reportMapper.toReportResponse(report);
+        if (reportRequest.getBookingId() != null) {
+            Booking booking = bookingRepository.findById(reportRequest.getBookingId())
+                    .orElseThrow(() -> new RuntimeException("Booking not found"));
+            booking.setDisputeFlag(true);
+            booking.setDisputeNote("Dispute từ report: " + reportRequest.getTitle());
+            bookingRepository.save(booking);
+        }
+
         reportRepository.save(report);
     }
 

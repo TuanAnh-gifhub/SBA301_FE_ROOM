@@ -31,6 +31,7 @@ import WalletWithdrawManagementPage from "../pages/Admin/WalletManagement/Wallet
 import WalletFreezeManagementPage from "../pages/Admin/WalletManagement/WalletFreezeManagementPage";
 import AdminWalletOverviewPage from "../pages/Admin/WalletManagement/AdminWalletOverviewPage";
 import CommissionConfigManagementPage from "../pages/Admin/WalletManagement/CommissionConfigManagementPage";
+import AdminDashboardOverview from "../pages/Admin/AdminDashboardOverview";
 
 export const router = createBrowserRouter([
   {
@@ -94,6 +95,11 @@ export const router = createBrowserRouter([
         path: "wallet/withdraw",
         element: <WalletPage />,
         handle: { breadcrumb: "Rút tiền" },
+      },
+      {
+        path: "wallet/revenue",
+        element: <WalletPage />,
+        handle: { breadcrumb: "Doanh thu" },
       },
       {
         path: "wallet/history",
@@ -167,19 +173,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: (
-          <div className="p-6">
-            <h1
-              className="text-2xl font-bold mb-4"
-              style={{ color: "inherit" }}
-            >
-              Dashboard
-            </h1>
-            <p style={{ color: "inherit" }}>
-              Chào mừng đến với trang quản trị!
-            </p>
-          </div>
-        ),
+        element: <AdminDashboardOverview />,
       },
       {
         path: "customers",

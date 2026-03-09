@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import {
   getAdminWallets,
+  getAdminPendingEscrow,
   getAdminWalletTransactions,
+  triggerEscrowReleaseNow,
+  updateEscrowDispute,
+  type AdminEscrowItemResponse,
   type AdminWalletItemResponse,
   type AdminWalletTransactionItemResponse,
   type WalletTxStatus,
@@ -15,11 +19,14 @@ const AdminWalletOverviewPage = () => {
   const [transactions, setTransactions] = useState<
     AdminWalletTransactionItemResponse[]
   >([]);
+  const [escrows, setEscrows] = useState<AdminEscrowItemResponse[]>([]);
 
   const [walletLoading, setWalletLoading] = useState(false);
   const [txLoading, setTxLoading] = useState(false);
+  const [escrowLoading, setEscrowLoading] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
+  const [escrowError, setEscrowError] = useState<string | null>(null);
 
   const [walletKeyword, setWalletKeyword] = useState("");
   const [walletStatusFilter, setWalletStatusFilter] = useState<"" | "ACTIVE" | "LOCKED">("");
@@ -31,11 +38,15 @@ const AdminWalletOverviewPage = () => {
   const [txWalletIdFilter, setTxWalletIdFilter] = useState("");
   const [txFromDateFilter, setTxFromDateFilter] = useState("");
   const [txToDateFilter, setTxToDateFilter] = useState("");
+  const [escrowDisputedOnly, setEscrowDisputedOnly] = useState(false);
+  const [escrowNoteByBooking, setEscrowNoteByBooking] = useState<Record<string, string>>({});
 
   const [walletPage, setWalletPage] = useState(1);
   const [txPage, setTxPage] = useState(1);
+  const [escrowPage, setEscrowPage] = useState(1);
   const [walletTotalPages, setWalletTotalPages] = useState(1);
   const [txTotalPages, setTxTotalPages] = useState(1);
+  const [escrowTotalPages, setEscrowTotalPages] = useState(1);
 
   const fetchWallets = async (targetPage = 1) => {
     setWalletLoading(true);
@@ -58,6 +69,28 @@ const AdminWalletOverviewPage = () => {
       );
     } finally {
       setWalletLoading(false);
+    }
+  };
+
+  const fetchEscrows = async (targetPage = 1) => {
+    setEscrowLoading(true);
+    setEscrowError(null);
+    try {
+      const result = await getAdminPendingEscrow(
+        targetPage,
+        10,
+        escrowDisputedOnly || undefined,
+      );
+      setEscrows(result.data ?? []);
+      setEscrowPage(result.currentPage || targetPage);
+      setEscrowTotalPages(Math.max(result.totalPages || 1, 1));
+    } catch (e: unknown) {
+      const err = e as ErrorWithResponse;
+      setEscrowError(
+        err?.response?.data?.message ?? "Không thể tải danh sách escrow.",
+      );
+    } finally {
+      setEscrowLoading(false);
     }
   };
 
@@ -90,8 +123,19 @@ const AdminWalletOverviewPage = () => {
   useEffect(() => {
     fetchWallets(1);
     fetchTransactions(1);
+    fetchEscrows(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleUpdateDispute = async (bookingId: string, disputed: boolean) => {
+    await updateEscrowDispute(bookingId, disputed, escrowNoteByBooking[bookingId] || undefined);
+    await fetchEscrows(escrowPage);
+  };
+
+  const handleTriggerRelease = async () => {
+    await triggerEscrowReleaseNow();
+    await fetchEscrows(1);
+  };
 
   return (
     <div className="p-6 space-y-8">
@@ -305,6 +349,125 @@ const AdminWalletOverviewPage = () => {
               <button
                 disabled={txPage >= txTotalPages}
                 onClick={() => fetchTransactions(txPage + 1)}
+                className="px-3 py-1.5 border rounded disabled:opacity-50"
+              >
+                Sau
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="bg-white border rounded-lg p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <label className="text-sm font-medium">Escrow đang giữ</label>
+          <label className="text-sm flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={escrowDisputedOnly}
+              onChange={(e) => setEscrowDisputedOnly(e.target.checked)}
+            />
+            Chỉ hiển thị disputed
+          </label>
+          <button
+            onClick={() => fetchEscrows(1)}
+            className="px-3 py-2 rounded bg-blue-600 text-white text-sm"
+          >
+            Lọc escrow
+          </button>
+          <button
+            onClick={handleTriggerRelease}
+            className="px-3 py-2 rounded bg-green-600 text-white text-sm"
+          >
+            Chạy release ngay
+          </button>
+        </div>
+
+        {escrowLoading && <p className="text-sm text-gray-600">Đang tải escrow...</p>}
+        {escrowError && <p className="text-sm text-red-600">{escrowError}</p>}
+
+        {!escrowLoading && !escrowError && (
+          <>
+            <div className="overflow-auto">
+              <table className="min-w-full text-sm border">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="p-2 border text-left">Booking</th>
+                    <th className="p-2 border text-left">Owner</th>
+                    <th className="p-2 border text-left">Renter</th>
+                    <th className="p-2 border text-left">Giữ</th>
+                    <th className="p-2 border text-left">Commission</th>
+                    <th className="p-2 border text-left">Net</th>
+                    <th className="p-2 border text-left">Dự kiến cộng ví</th>
+                    <th className="p-2 border text-left">Dispute</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {escrows.map((item) => (
+                    <tr key={item.bookingId}>
+                      <td className="p-2 border">{item.bookingId}</td>
+                      <td className="p-2 border">{item.ownerName || "-"}</td>
+                      <td className="p-2 border">{item.renterName || "-"}</td>
+                      <td className="p-2 border">{Number(item.grossAmount).toLocaleString("vi-VN")} đ</td>
+                      <td className="p-2 border">
+                        {(Number(item.commissionRate || 0) * 100).toFixed(2)}% (
+                        {Number(item.commissionAmount).toLocaleString("vi-VN")} đ)
+                      </td>
+                      <td className="p-2 border">{Number(item.netAmount).toLocaleString("vi-VN")} đ</td>
+                      <td className="p-2 border">
+                        {item.expectedReleaseAt
+                          ? new Date(item.expectedReleaseAt).toLocaleString("vi-VN")
+                          : "-"}
+                      </td>
+                      <td className="p-2 border">
+                        <div className="space-y-2">
+                          <p>{item.disputeFlag ? "Đang disputed" : "Bình thường"}</p>
+                          <input
+                            value={escrowNoteByBooking[item.bookingId] ?? item.disputeNote ?? ""}
+                            onChange={(e) =>
+                              setEscrowNoteByBooking((prev) => ({
+                                ...prev,
+                                [item.bookingId]: e.target.value,
+                              }))
+                            }
+                            className="border rounded px-2 py-1 text-xs w-full"
+                            placeholder="Ghi chú dispute"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleUpdateDispute(item.bookingId, true)}
+                              className="px-2 py-1 rounded bg-orange-600 text-white text-xs"
+                            >
+                              Gắn dispute
+                            </button>
+                            <button
+                              onClick={() => handleUpdateDispute(item.bookingId, false)}
+                              className="px-2 py-1 rounded bg-blue-600 text-white text-xs"
+                            >
+                              Gỡ dispute
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                disabled={escrowPage <= 1}
+                onClick={() => fetchEscrows(escrowPage - 1)}
+                className="px-3 py-1.5 border rounded disabled:opacity-50"
+              >
+                Trước
+              </button>
+              <span className="text-sm">
+                Trang {escrowPage}/{escrowTotalPages}
+              </span>
+              <button
+                disabled={escrowPage >= escrowTotalPages}
+                onClick={() => fetchEscrows(escrowPage + 1)}
                 className="px-3 py-1.5 border rounded disabled:opacity-50"
               >
                 Sau

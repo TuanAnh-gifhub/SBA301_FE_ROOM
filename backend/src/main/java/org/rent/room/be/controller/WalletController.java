@@ -10,8 +10,10 @@ import org.rent.room.be.constant.WithdrawStatus;
 import org.rent.room.be.dto.request.wallet.AdminWithdrawRejectRequest;
 import org.rent.room.be.dto.request.wallet.CreateDepositLinkRequest;
 import org.rent.room.be.dto.request.wallet.CreateWithdrawRequest;
+import org.rent.room.be.dto.request.wallet.UpdateEscrowDisputeRequest;
 import org.rent.room.be.dto.request.wallet.UpdateWalletFreezeRequest;
 import org.rent.room.be.dto.request.wallet.UpsertCommissionConfigRequest;
+import org.rent.room.be.dto.response.wallet.AdminEscrowItemResponse;
 import org.rent.room.be.dto.response.wallet.AdminCommissionConfigListResponse;
 import org.rent.room.be.dto.response.wallet.AdminCommissionConfigResponse;
 import org.rent.room.be.dto.response.wallet.AdminWalletStatusResponse;
@@ -21,6 +23,7 @@ import org.rent.room.be.dto.response.wallet.AdminWithdrawRequestItemResponse;
 import org.rent.room.be.dto.response.wallet.CommissionInfoResponse;
 import org.rent.room.be.dto.response.wallet.DepositLinkResponse;
 import org.rent.room.be.dto.response.wallet.RevenueOverviewResponse;
+import org.rent.room.be.dto.response.wallet.EscrowSummaryResponse;
 import org.rent.room.be.dto.response.wallet.WalletInfoResponse;
 import org.rent.room.be.dto.response.wallet.WalletTransactionItemResponse;
 import org.rent.room.be.dto.response.wallet.WithdrawRequestItemResponse;
@@ -284,6 +287,19 @@ public class WalletController {
         );
     }
 
+    @GetMapping("/escrow/pending")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<ApiResponse<EscrowSummaryResponse>> getMyPendingEscrow() {
+        EscrowSummaryResponse response = walletQueryService.getMyPendingEscrow();
+        return ResponseEntity.ok(
+                ApiResponse.<EscrowSummaryResponse>builder()
+                        .code(200)
+                        .message("Get pending escrow successfully")
+                        .result(response)
+                        .build()
+        );
+    }
+
     @GetMapping("/admin/commission-configs")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<AdminCommissionConfigListResponse>> getCommissionConfigs() {
@@ -324,6 +340,52 @@ public class WalletController {
                         .code(200)
                         .message("Update owner commission successfully")
                         .result(response)
+                        .build()
+        );
+    }
+
+    @GetMapping("/admin/escrow/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<AdminEscrowItemResponse>>> getPendingEscrowForAdmin(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) Boolean disputedOnly
+    ) {
+        PageResponse<AdminEscrowItemResponse> result =
+                walletAdminQueryService.getPendingEscrows(page, limit, disputedOnly);
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<AdminEscrowItemResponse>>builder()
+                        .code(200)
+                        .message("Get pending escrow list successfully")
+                        .result(result)
+                        .build()
+        );
+    }
+
+    @PatchMapping("/admin/escrow/{bookingId}/dispute")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> updateEscrowDispute(
+            @PathVariable UUID bookingId,
+            @Valid @RequestBody UpdateEscrowDisputeRequest request
+    ) {
+        walletAdminService.updateEscrowDispute(bookingId, request);
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(200)
+                        .message("Update escrow dispute status successfully")
+                        .build()
+        );
+    }
+
+    @PostMapping("/admin/escrow/release-now")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Map<String, Integer>>> triggerEscrowReleaseNow() {
+        int released = walletAdminService.triggerEscrowReleaseNow();
+        return ResponseEntity.ok(
+                ApiResponse.<Map<String, Integer>>builder()
+                        .code(200)
+                        .message("Escrow release triggered successfully")
+                        .result(Map.of("releasedCount", released))
                         .build()
         );
     }

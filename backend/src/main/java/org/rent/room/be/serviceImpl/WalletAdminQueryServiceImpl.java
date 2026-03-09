@@ -4,14 +4,20 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import lombok.RequiredArgsConstructor;
 import org.rent.room.be.base.PageResponse;
+import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.constant.WalletStatus;
 import org.rent.room.be.constant.WalletTxStatus;
 import org.rent.room.be.constant.WalletTxType;
+import org.rent.room.be.dto.response.wallet.AdminEscrowItemResponse;
 import org.rent.room.be.dto.response.wallet.AdminWalletItemResponse;
 import org.rent.room.be.dto.response.wallet.AdminWalletTransactionItemResponse;
+import org.rent.room.be.entity.Booking;
+import org.rent.room.be.entity.CommissionConfig;
 import org.rent.room.be.entity.User;
 import org.rent.room.be.entity.Wallet;
 import org.rent.room.be.entity.WalletTransaction;
+import org.rent.room.be.repository.BookingRepository;
+import org.rent.room.be.repository.CommissionConfigRepository;
 import org.rent.room.be.repository.WalletRepository;
 import org.rent.room.be.repository.WalletTransactionRepository;
 import org.rent.room.be.service.WalletAdminQueryService;
@@ -23,6 +29,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
@@ -35,6 +43,8 @@ public class WalletAdminQueryServiceImpl implements WalletAdminQueryService {
 
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
+    private final BookingRepository bookingRepository;
+    private final CommissionConfigRepository commissionConfigRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -93,6 +103,31 @@ public class WalletAdminQueryServiceImpl implements WalletAdminQueryService {
                 .pageSize(txPage.getSize())
                 .totalElements(txPage.getTotalElements())
                 .data(txPage.getContent().stream().map(this::toAdminTransactionItem).toList())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<AdminEscrowItemResponse> getPendingEscrows(int page, int limit, Boolean disputedOnly) {
+        int normalizedPage = Math.max(page, 1);
+        int normalizedLimit = Math.min(Math.max(limit, 1), 100);
+        Pageable pageable = PageRequest.of(normalizedPage - 1, normalizedLimit,
+                Sort.by(Sort.Direction.ASC, "checkOut"));
+
+        Page<Booking> bookingPage = bookingRepository
+                .findByBookingStatusAndEscrowReleasedAtIsNull(BookingStatus.COMPLETED, pageable);
+
+        var stream = bookingPage.getContent().stream();
+        if (Boolean.TRUE.equals(disputedOnly)) {
+            stream = stream.filter(b -> Boolean.TRUE.equals(b.getDisputeFlag()));
+        }
+
+        return PageResponse.<AdminEscrowItemResponse>builder()
+                .currentPage(bookingPage.getNumber() + 1)
+                .totalPages(bookingPage.getTotalPages())
+                .pageSize(bookingPage.getSize())
+                .totalElements(bookingPage.getTotalElements())
+                .data(stream.map(this::toAdminEscrowItem).toList())
                 .build();
     }
 
@@ -229,5 +264,49 @@ public class WalletAdminQueryServiceImpl implements WalletAdminQueryService {
                 return defaultValue;
             }
         }
+    }
+
+    private AdminEscrowItemResponse toAdminEscrowItem(Booking booking) {
+        User owner = booking.getRentalArea() == null ? null : booking.getRentalArea().getOwner();
+        User renter = booking.getRenter();
+        BigDecimal gross = booking.getTotalPrice() == null ? BigDecimal.ZERO : booking.getTotalPrice();
+        BigDecimal rate = resolveCommissionRate(owner);
+        BigDecimal commission = gross.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        if (commission.compareTo(gross) > 0) {
+            commission = gross;
+        }
+        BigDecimal net = gross.subtract(commission);
+        LocalDateTime endedAt = booking.getCheckOut() != null ? booking.getCheckOut() : booking.getEndTime();
+        LocalDateTime expectedReleaseAt = endedAt == null ? null : endedAt.plusDays(7);
+
+        return AdminEscrowItemResponse.builder()
+                .bookingId(booking.getBookingId())
+                .ownerId(owner == null ? null : owner.getUserId())
+                .ownerName(owner == null ? null : owner.getUserName())
+                .renterId(renter == null ? null : renter.getUserId())
+                .renterName(renter == null ? null : renter.getUserName())
+                .grossAmount(gross)
+                .commissionRate(rate)
+                .commissionAmount(commission)
+                .netAmount(net)
+                .bookingEndedAt(endedAt)
+                .expectedReleaseAt(expectedReleaseAt)
+                .disputeFlag(Boolean.TRUE.equals(booking.getDisputeFlag()))
+                .disputeNote(booking.getDisputeNote())
+                .build();
+    }
+
+    private BigDecimal resolveCommissionRate(User owner) {
+        if (owner == null) {
+            return BigDecimal.ZERO;
+        }
+        CommissionConfig config = commissionConfigRepository.findByOwner(owner)
+                .or(() -> commissionConfigRepository.findByIsDefaultTrue())
+                .or(() -> commissionConfigRepository.findByOwnerIsNull())
+                .orElse(null);
+        if (config == null || config.getRate() == null) {
+            return BigDecimal.ZERO;
+        }
+        return config.getRate();
     }
 }

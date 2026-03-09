@@ -76,18 +76,36 @@ export default function BookingDetail() {
   }
 
   return (
-   <Row gutter={24}>
-  <Col span={16}>
-    <BookingInfoList intent={intent} />
-  </Col>
+    <div className="space-y-4">
+      <Row gutter={24}>
+        <Col span={16}>
+          <BookingInfoList intent={intent} />
+        </Col>
 
-  <Col span={8}>
-    <PaymentSummary
-      intent={intent}
-      onConfirm={handleConfirm}
-      loading={confirming}
-    />
-  </Col>
-</Row>
+        <Col span={8}>
+          <PaymentSummary
+            intent={intent}
+            onConfirm={handleConfirm}
+            loading={confirming}
+          />
+        </Col>
+      </Row>
+
+      {bookingId && (
+        <Card>
+          <p className="text-sm text-gray-600 mb-3">
+            Nếu bạn gặp vấn đề với booking này, có thể gửi khiếu nại trực tiếp để
+            hệ thống tạm giữ escrow và admin xử lý.
+          </p>
+          <Button
+            type="primary"
+            danger
+            onClick={() => navigate(`/report-form?bookingId=${bookingId}`)}
+          >
+            Khiếu nại booking này
+          </Button>
+        </Card>
+      )}
+    </div>
   );
 }

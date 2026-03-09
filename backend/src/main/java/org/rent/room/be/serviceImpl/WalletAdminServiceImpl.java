@@ -2,14 +2,17 @@ package org.rent.room.be.serviceImpl;
 
 import lombok.RequiredArgsConstructor;
 import org.rent.room.be.constant.WalletStatus;
+import org.rent.room.be.dto.request.wallet.UpdateEscrowDisputeRequest;
 import org.rent.room.be.dto.request.wallet.UpsertCommissionConfigRequest;
 import org.rent.room.be.dto.request.wallet.UpdateWalletFreezeRequest;
 import org.rent.room.be.dto.response.wallet.AdminCommissionConfigListResponse;
 import org.rent.room.be.dto.response.wallet.AdminCommissionConfigResponse;
 import org.rent.room.be.entity.CommissionConfig;
+import org.rent.room.be.entity.Booking;
 import org.rent.room.be.entity.User;
 import org.rent.room.be.dto.response.wallet.AdminWalletStatusResponse;
 import org.rent.room.be.entity.Wallet;
+import org.rent.room.be.repository.BookingRepository;
 import org.rent.room.be.repository.CommissionConfigRepository;
 import org.rent.room.be.repository.WalletRepository;
 import org.rent.room.be.service.UserService;
@@ -26,8 +29,10 @@ import java.util.UUID;
 public class WalletAdminServiceImpl implements WalletAdminService {
 
     private final WalletRepository walletRepository;
+    private final BookingRepository bookingRepository;
     private final CommissionConfigRepository commissionConfigRepository;
     private final UserService userService;
+    private final EscrowReleaseService escrowReleaseService;
 
     @Override
     @Transactional
@@ -70,6 +75,7 @@ public class WalletAdminServiceImpl implements WalletAdminService {
         config.setOwner(null);
         config.setIsDefault(true);
         config.setRate(request.getRate());
+        config.setLegacyRate(request.getRate());
         config.setNote(request.getNote());
         config.setCreatedBy(admin.getUserId());
 
@@ -90,6 +96,7 @@ public class WalletAdminServiceImpl implements WalletAdminService {
         config.setOwner(owner);
         config.setIsDefault(false);
         config.setRate(request.getRate());
+        config.setLegacyRate(request.getRate());
         config.setNote(request.getNote());
         config.setCreatedBy(admin.getUserId());
 
@@ -131,5 +138,21 @@ public class WalletAdminServiceImpl implements WalletAdminService {
                 .createdAt(config.getCreatedAt())
                 .updatedAt(config.getUpdatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void updateEscrowDispute(UUID bookingId, UpdateEscrowDisputeRequest request) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking"));
+        booking.setDisputeFlag(Boolean.TRUE.equals(request.getDisputed()));
+        booking.setDisputeNote(request.getNote());
+        bookingRepository.save(booking);
+    }
+
+    @Override
+    @Transactional
+    public int triggerEscrowReleaseNow() {
+        return escrowReleaseService.releaseCompletedBookingsAfterEscrow();
     }
 }

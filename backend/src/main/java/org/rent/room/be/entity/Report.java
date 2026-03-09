@@ -32,6 +32,9 @@ public class Report extends BaseEntity {
     @Column(name ="address")
     private String address;
 
+    @Column(name = "booking_id")
+    private UUID bookingId;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 20,nullable = false)
     private ReportStatus status ;

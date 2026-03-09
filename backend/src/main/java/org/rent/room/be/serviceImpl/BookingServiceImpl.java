@@ -309,6 +309,7 @@ public class BookingServiceImpl implements BookingService {
                 .totalPrice(bookingIntent.getPreviewPrice())
                 .startTime(bookingIntent.getSlots().getFirst().getStartTime())
                 .endTime(bookingIntent.getSlots().getFirst().getEndTime())
+                .disputeFlag(false)
                 .createdAt(LocalDateTime.now())
                 .rentalArea(bookingIntent.getRentalArea())
                 .build();

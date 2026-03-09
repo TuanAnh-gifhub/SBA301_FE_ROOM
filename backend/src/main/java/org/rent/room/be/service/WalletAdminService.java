@@ -1,6 +1,7 @@
 package org.rent.room.be.service;
 
 import org.rent.room.be.dto.request.wallet.UpdateWalletFreezeRequest;
+import org.rent.room.be.dto.request.wallet.UpdateEscrowDisputeRequest;
 import org.rent.room.be.dto.request.wallet.UpsertCommissionConfigRequest;
 import org.rent.room.be.dto.response.wallet.AdminCommissionConfigListResponse;
 import org.rent.room.be.dto.response.wallet.AdminCommissionConfigResponse;
@@ -17,4 +18,8 @@ public interface WalletAdminService {
     AdminCommissionConfigResponse upsertOwnerCommission(UUID ownerId, UpsertCommissionConfigRequest request);
 
     AdminCommissionConfigListResponse getCommissionConfigs();
+
+    void updateEscrowDispute(UUID bookingId, UpdateEscrowDisputeRequest request);
+
+    int triggerEscrowReleaseNow();
 }

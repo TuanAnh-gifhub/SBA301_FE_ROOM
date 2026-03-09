@@ -1,6 +1,7 @@
 package org.rent.room.be.service;
 
 import org.rent.room.be.base.PageResponse;
+import org.rent.room.be.dto.response.wallet.AdminEscrowItemResponse;
 import org.rent.room.be.dto.response.wallet.AdminWalletItemResponse;
 import org.rent.room.be.dto.response.wallet.AdminWalletTransactionItemResponse;
 
@@ -27,4 +28,6 @@ public interface WalletAdminQueryService {
             UUID userId,
             UUID walletId
     );
+
+    PageResponse<AdminEscrowItemResponse> getPendingEscrows(int page, int limit, Boolean disputedOnly);
 }

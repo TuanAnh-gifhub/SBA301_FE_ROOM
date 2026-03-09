@@ -51,6 +51,15 @@ public class Booking extends BaseEntity {
     @Column(name = "check_out")
     LocalDateTime checkOut;
 
+    @Column(name = "escrow_released_at")
+    LocalDateTime escrowReleasedAt;
+
+    @Column(name = "dispute_flag")
+    Boolean disputeFlag;
+
+    @Column(name = "dispute_note", length = 500)
+    String disputeNote;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "renter_id")
     User renter;

@@ -1,14 +1,17 @@
 package org.rent.room.be.serviceImpl;
 
 import lombok.RequiredArgsConstructor;
+import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.constant.WalletTxStatus;
 import org.rent.room.be.constant.WalletTxType;
 import org.rent.room.be.dto.response.wallet.*;
+import org.rent.room.be.entity.Booking;
 import org.rent.room.be.entity.CommissionConfig;
 import org.rent.room.be.entity.User;
 import org.rent.room.be.entity.Wallet;
 import org.rent.room.be.entity.WalletTransaction;
+import org.rent.room.be.repository.BookingRepository;
 import org.rent.room.be.repository.CommissionConfigRepository;
 import org.rent.room.be.repository.WalletRepository;
 import org.rent.room.be.repository.WalletTransactionRepository;
@@ -21,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
@@ -34,6 +38,7 @@ public class WalletQueryService {
     private final WalletServiceImpl walletServiceImpl;
     private final WalletTransactionRepository walletTransactionRepository;
     private final CommissionConfigRepository commissionConfigRepository;
+    private final BookingRepository bookingRepository;
 
     @Transactional(readOnly = true)
     public PageResponse<WalletTransactionItemResponse> getMyTransactions(
@@ -148,6 +153,37 @@ public class WalletQueryService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public EscrowSummaryResponse getMyPendingEscrow() {
+        User currentUser = userService.getCurrentUserEntity();
+        Pageable pageable = PageRequest.of(0, 200, Sort.by(Sort.Direction.DESC, "checkOut"));
+        Page<Booking> bookingPage = bookingRepository
+                .findByRentalArea_OwnerAndBookingStatusAndEscrowReleasedAtIsNull(
+                        currentUser, BookingStatus.COMPLETED, pageable
+                );
+
+        List<EscrowItemResponse> items = bookingPage.getContent().stream()
+                .map(this::toEscrowItem)
+                .toList();
+
+        BigDecimal totalHolding = items.stream()
+                .map(EscrowItemResponse::getGrossAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalCommission = items.stream()
+                .map(EscrowItemResponse::getCommissionAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalNet = items.stream()
+                .map(EscrowItemResponse::getNetAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return EscrowSummaryResponse.builder()
+                .totalHoldingAmount(totalHolding)
+                .totalCommissionAmount(totalCommission)
+                .totalNetAmount(totalNet)
+                .items(items)
+                .build();
+    }
+
     private WalletTransactionItemResponse toItemResponse(WalletTransaction tx) {
         return WalletTransactionItemResponse.builder()
                 .transactionId(tx.getWalletTransactionId())
@@ -201,6 +237,45 @@ public class WalletQueryService {
                 return defaultValue;
             }
         }
+    }
+
+    private EscrowItemResponse toEscrowItem(Booking booking) {
+        User owner = booking.getRentalArea() == null ? null : booking.getRentalArea().getOwner();
+        BigDecimal gross = booking.getTotalPrice() == null ? BigDecimal.ZERO : booking.getTotalPrice();
+        BigDecimal rate = resolveCommissionRate(owner);
+        BigDecimal commission = gross.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        if (commission.compareTo(gross) > 0) {
+            commission = gross;
+        }
+        BigDecimal net = gross.subtract(commission);
+        LocalDateTime endedAt = booking.getCheckOut() != null ? booking.getCheckOut() : booking.getEndTime();
+        LocalDateTime expectedRelease = endedAt == null ? null : endedAt.plusDays(7);
+
+        return EscrowItemResponse.builder()
+                .bookingId(booking.getBookingId())
+                .grossAmount(gross)
+                .commissionRate(rate)
+                .commissionAmount(commission)
+                .netAmount(net)
+                .bookingEndedAt(endedAt)
+                .expectedReleaseAt(expectedRelease)
+                .disputeFlag(Boolean.TRUE.equals(booking.getDisputeFlag()))
+                .disputeNote(booking.getDisputeNote())
+                .build();
+    }
+
+    private BigDecimal resolveCommissionRate(User owner) {
+        if (owner == null) {
+            return BigDecimal.ZERO;
+        }
+        CommissionConfig config = commissionConfigRepository.findByOwner(owner)
+                .or(() -> commissionConfigRepository.findByIsDefaultTrue())
+                .or(() -> commissionConfigRepository.findByOwnerIsNull())
+                .orElse(null);
+        if (config == null || config.getRate() == null) {
+            return BigDecimal.ZERO;
+        }
+        return config.getRate();
     }
 }
 

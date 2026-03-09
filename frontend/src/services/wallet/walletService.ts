@@ -176,6 +176,25 @@ export type RevenueOverviewResponse = {
   transactions: WalletTransactionItemResponse[];
 };
 
+export type EscrowItemResponse = {
+  bookingId: string;
+  grossAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  netAmount: number;
+  bookingEndedAt?: string;
+  expectedReleaseAt?: string;
+  disputeFlag?: boolean;
+  disputeNote?: string;
+};
+
+export type EscrowSummaryResponse = {
+  totalHoldingAmount: number;
+  totalCommissionAmount: number;
+  totalNetAmount: number;
+  items: EscrowItemResponse[];
+};
+
 export type UpsertCommissionConfigPayload = {
   rate: number;
   note?: string;
@@ -198,6 +217,30 @@ export type AdminCommissionConfigResponse = {
 export type AdminCommissionConfigListResponse = {
   defaultConfig?: AdminCommissionConfigResponse;
   ownerConfigs: AdminCommissionConfigResponse[];
+};
+
+export type AdminEscrowItemResponse = {
+  bookingId: string;
+  ownerId?: string;
+  ownerName?: string;
+  renterId?: string;
+  renterName?: string;
+  grossAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  netAmount: number;
+  bookingEndedAt?: string;
+  expectedReleaseAt?: string;
+  disputeFlag?: boolean;
+  disputeNote?: string;
+};
+
+export type AdminEscrowPageResponse = {
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+  totalElements: number;
+  data: AdminEscrowItemResponse[];
 };
 
 export const createDepositLink = async (amount: number) => {
@@ -322,6 +365,11 @@ export const getMyRevenue = async (fromDate?: string, toDate?: string) => {
   return res.data.result as RevenueOverviewResponse;
 };
 
+export const getMyPendingEscrow = async () => {
+  const res = await api.get("/wallet/escrow/pending");
+  return res.data.result as EscrowSummaryResponse;
+};
+
 export const getAdminCommissionConfigs = async () => {
   const res = await api.get("/wallet/admin/commission-configs");
   return res.data.result as AdminCommissionConfigListResponse;
@@ -340,4 +388,28 @@ export const upsertOwnerCommission = async (
 ) => {
   const res = await api.put(`/wallet/admin/commission/owners/${ownerId}`, payload);
   return res.data.result as AdminCommissionConfigResponse;
+};
+
+export const getAdminPendingEscrow = async (
+  page = 1,
+  limit = 20,
+  disputedOnly?: boolean,
+) => {
+  const res = await api.get("/wallet/admin/escrow/pending", {
+    params: { page, limit, disputedOnly },
+  });
+  return res.data.result as AdminEscrowPageResponse;
+};
+
+export const updateEscrowDispute = async (
+  bookingId: string,
+  disputed: boolean,
+  note?: string,
+) => {
+  await api.patch(`/wallet/admin/escrow/${bookingId}/dispute`, { disputed, note });
+};
+
+export const triggerEscrowReleaseNow = async () => {
+  const res = await api.post("/wallet/admin/escrow/release-now");
+  return res.data.result as { releasedCount: number };
 };

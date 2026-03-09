@@ -40,7 +40,9 @@ public class EscrowReleaseService {
     public int releaseCompletedBookingsAfterEscrow() {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(ESCROW_DAYS);
         List<Booking> releasableBookings = bookingRepository
-                .findByBookingStatusAndCheckOutIsNotNullAndCheckOutLessThanEqual(BookingStatus.COMPLETED, cutoff);
+                .findByBookingStatusAndCheckOutIsNotNullAndCheckOutLessThanEqualAndEscrowReleasedAtIsNullAndDisputeFlagFalse(
+                        BookingStatus.COMPLETED, cutoff
+                );
 
         int releasedCount = 0;
         for (Booking booking : releasableBookings) {
@@ -95,6 +97,9 @@ public class EscrowReleaseService {
                             .bookingId(booking.getBookingId())
                             .build()
             );
+
+            booking.setEscrowReleasedAt(LocalDateTime.now());
+            bookingRepository.save(booking);
 
             releasedCount++;
         }

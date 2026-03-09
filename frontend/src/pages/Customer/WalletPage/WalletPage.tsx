@@ -9,10 +9,12 @@ import {
     createDepositLink,
     createWithdrawRequest,
     getMyCommission,
+    getMyPendingEscrow,
     getMyRevenue,
     getMyWallet,
     getMyWithdrawRequests,
     type CommissionInfoResponse,
+    type EscrowSummaryResponse,
     type RevenueOverviewResponse,
     type WithdrawRequestItemResponse
 } from "../../../services/wallet/walletService";
@@ -25,10 +27,11 @@ import {
     FaMobileAlt,
     FaGift,
     FaHistory,
-    FaHeadphonesAlt
+    FaHeadphonesAlt,
+    FaChartLine,
 } from "react-icons/fa";
 
-type WalletFeature = "overview" | "history" | "promotion" | "recharge" | "withdraw" | "help";
+type WalletFeature = "overview" | "history" | "promotion" | "recharge" | "withdraw" | "help" | "revenue";
 type ErrorWithResponse = { response?: { data?: { message?: string } } };
 
 const WalletPage = () => {
@@ -59,6 +62,7 @@ const WalletPage = () => {
     const [withdrawRequests, setWithdrawRequests] = useState<WithdrawRequestItemResponse[]>([]);
     const [commissionInfo, setCommissionInfo] = useState<CommissionInfoResponse | null>(null);
     const [revenueInfo, setRevenueInfo] = useState<RevenueOverviewResponse | null>(null);
+    const [escrowInfo, setEscrowInfo] = useState<EscrowSummaryResponse | null>(null);
     const [ownerFinanceError, setOwnerFinanceError] = useState<string | null>(null);
 
     const isOwner = (user?.role ?? "").toUpperCase().includes("OWNER");
@@ -95,6 +99,8 @@ const WalletPage = () => {
             ]);
             setCommissionInfo(commission);
             setRevenueInfo(revenue);
+            const escrow = await getMyPendingEscrow();
+            setEscrowInfo(escrow);
             setOwnerFinanceError(null);
         } catch (error) {
             console.error("Không thể tải thông tin commission/revenue", error);
@@ -129,6 +135,7 @@ const WalletPage = () => {
         if (path.includes("/recharge")) return "recharge";
         if (path.includes("/withdraw")) return "withdraw";
         if (path.includes("/help")) return "help";
+        if (path.includes("/revenue")) return "revenue";
         return "overview";
     };
 
@@ -185,6 +192,18 @@ const WalletPage = () => {
                 navigate("/wallet/help");
             },
         },
+        ...(isOwner
+            ? [{
+                icon: FaChartLine,
+                label: "Doanh thu",
+                color: "text-purple-500",
+                bgColor: "bg-purple-50",
+                feature: "revenue" as WalletFeature,
+                onClick: () => {
+                    navigate("/wallet/revenue");
+                },
+            }]
+            : []),
     ];
 
     const handleRecharge = () => {
@@ -464,52 +483,110 @@ const WalletPage = () => {
                         <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Tính năng đang được phát triển</p>
                     </div>
                 );
+            case "revenue":
+                if (!isOwner) {
+                    return (
+                        <div className={`${isDarkMode ? 'bg-[#2d7fcb] border-[#4da6ff]/30' : 'bg-white border-gray-200'} rounded-xl border shadow-sm p-8 text-center`}>
+                            <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Doanh thu</h3>
+                            <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                                Tính năng này chỉ dành cho tài khoản OWNER.
+                            </p>
+                        </div>
+                    );
+                }
+                return (
+                    <div className={`${isDarkMode ? 'bg-[#2d7fcb] border-[#4da6ff]/30' : 'bg-white border-gray-200'} rounded-xl border shadow-sm p-5 mb-6`}>
+                        <h2 className={`text-lg font-bold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            Commission & Doanh thu (OWNER)
+                        </h2>
+                        {ownerFinanceError && (
+                            <p className="text-sm text-red-500 mb-3">{ownerFinanceError}</p>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                            <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                <p className="opacity-80">Tỷ lệ commission</p>
+                                <p className="font-semibold">
+                                    {commissionInfo ? `${(Number(commissionInfo.rate || 0) * 100).toFixed(2)}%` : "-"}
+                                </p>
+                                <p className="text-xs opacity-75">
+                                    {commissionInfo
+                                        ? ((commissionInfo.custom ?? commissionInfo.isCustom)
+                                            ? "Config riêng OWNER"
+                                            : "Config mặc định hệ thống")
+                                        : ""}
+                                </p>
+                            </div>
+                            <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                <p className="opacity-80">Tổng doanh thu</p>
+                                <p className="font-semibold">
+                                    {Number(revenueInfo?.totalIncome ?? 0).toLocaleString("vi-VN")} đ
+                                </p>
+                            </div>
+                            <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                <p className="opacity-80">Tổng commission đã trả</p>
+                                <p className="font-semibold">
+                                    {Number(revenueInfo?.totalCommission ?? 0).toLocaleString("vi-VN")} đ
+                                </p>
+                            </div>
+                            <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                <p className="opacity-80">Thực nhận (net)</p>
+                                <p className="font-semibold">
+                                    {Number(revenueInfo?.netRevenue ?? 0).toLocaleString("vi-VN")} đ
+                                </p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 text-sm">
+                            <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                <p className="opacity-80">Hệ thống đang giữ</p>
+                                <p className="font-semibold">
+                                    {Number(escrowInfo?.totalHoldingAmount ?? 0).toLocaleString("vi-VN")} đ
+                                </p>
+                            </div>
+                            <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                <p className="opacity-80">Commission sẽ trừ</p>
+                                <p className="font-semibold">
+                                    {Number(escrowInfo?.totalCommissionAmount ?? 0).toLocaleString("vi-VN")} đ
+                                </p>
+                            </div>
+                            <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                <p className="opacity-80">Dự kiến cộng ví</p>
+                                <p className="font-semibold">
+                                    {Number(escrowInfo?.totalNetAmount ?? 0).toLocaleString("vi-VN")} đ
+                                </p>
+                            </div>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                            {(escrowInfo?.items ?? []).slice(0, 5).map((item) => (
+                                <div
+                                    key={item.bookingId}
+                                    className={`rounded-md p-3 border ${isDarkMode ? "bg-[#3a8bd8]/20 border-[#4da6ff]/30 text-white" : "bg-gray-50 border-gray-200 text-gray-900"}`}
+                                >
+                                    <p className="text-sm font-semibold">Booking: {item.bookingId}</p>
+                                    <p className="text-xs mt-1">
+                                        Giữ: {Number(item.grossAmount).toLocaleString("vi-VN")} đ | Commission:{" "}
+                                        {(Number(item.commissionRate ?? 0) * 100).toFixed(2)}% (
+                                        {Number(item.commissionAmount).toLocaleString("vi-VN")} đ) | Còn lại:{" "}
+                                        {Number(item.netAmount).toLocaleString("vi-VN")} đ
+                                    </p>
+                                    <p className="text-xs mt-1">
+                                        Dự kiến cộng ví:{" "}
+                                        {item.expectedReleaseAt
+                                            ? new Date(item.expectedReleaseAt).toLocaleString("vi-VN")
+                                            : "-"}
+                                    </p>
+                                </div>
+                            ))}
+                            {(escrowInfo?.items?.length ?? 0) === 0 && (
+                                <p className={`text-sm ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
+                                    Hiện chưa có khoản tiền nào đang giữ trong escrow.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                );
             default:
                 return (
                     <>
-                        {isOwner && (
-                            <div className={`${isDarkMode ? 'bg-[#2d7fcb] border-[#4da6ff]/30' : 'bg-white border-gray-200'} rounded-xl border shadow-sm p-5 mb-6`}>
-                                <h2 className={`text-lg font-bold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                    Commission & Doanh thu (OWNER)
-                                </h2>
-                                {ownerFinanceError && (
-                                    <p className="text-sm text-red-500 mb-3">{ownerFinanceError}</p>
-                                )}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                                    <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
-                                        <p className="opacity-80">Tỷ lệ commission</p>
-                                        <p className="font-semibold">
-                                            {commissionInfo ? `${(Number(commissionInfo.rate || 0) * 100).toFixed(2)}%` : "-"}
-                                        </p>
-                                        <p className="text-xs opacity-75">
-                                            {commissionInfo
-                                                ? ((commissionInfo.custom ?? commissionInfo.isCustom)
-                                                    ? "Config riêng OWNER"
-                                                    : "Config mặc định hệ thống")
-                                                : ""}
-                                        </p>
-                                    </div>
-                                    <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
-                                        <p className="opacity-80">Tổng doanh thu</p>
-                                        <p className="font-semibold">
-                                            {Number(revenueInfo?.totalIncome ?? 0).toLocaleString("vi-VN")} đ
-                                        </p>
-                                    </div>
-                                    <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
-                                        <p className="opacity-80">Tổng commission đã trả</p>
-                                        <p className="font-semibold">
-                                            {Number(revenueInfo?.totalCommission ?? 0).toLocaleString("vi-VN")} đ
-                                        </p>
-                                    </div>
-                                    <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
-                                        <p className="opacity-80">Thực nhận (net)</p>
-                                        <p className="font-semibold">
-                                            {Number(revenueInfo?.netRevenue ?? 0).toLocaleString("vi-VN")} đ
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                         {/* Account Details and Transaction History */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Left Column - Account Details */}
