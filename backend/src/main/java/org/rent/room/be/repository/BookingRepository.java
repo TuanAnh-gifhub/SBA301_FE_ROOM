@@ -45,45 +45,6 @@ public interface BookingRepository extends JpaRepository<Booking, UUID>, JpaSpec
             LocalDateTime to
     );
 
-    @Query("""
-            SELECT SUM(b.totalPrice)
-            FROM Booking b
-            WHERE b.bookingStatus = org.rent.room.be.constant.BookingStatus.COMPLETED
-            AND b.rentalArea.rentalAreaId = :rentalAreaId
-            AND b.createdAt BETWEEN :from AND :to
-            """)
-    BigDecimal sumRevenueByRentalArea(
-            LocalDateTime from,
-            LocalDateTime to,
-            UUID rentalAreaId
-    );
-
-    @Query("""
-            SELECT COUNT(b)
-            FROM Booking b
-            WHERE b.rentalArea.rentalAreaId = :rentalAreaId
-            AND b.createdAt BETWEEN :from AND :to
-            """)
-    long countByRentalAreaAndCreatedAtBetween(
-            UUID rentalAreaId,
-            LocalDateTime from,
-            LocalDateTime to
-    );
-
-    @Query("""
-            SELECT COUNT(b)
-            FROM Booking b
-            WHERE b.rentalArea.rentalAreaId = :rentalAreaId
-            AND b.bookingStatus = :status
-            AND b.createdAt BETWEEN :from AND :to
-            """)
-    long countByRentalAreaAndStatus(
-            UUID rentalAreaId,
-            BookingStatus status,
-            LocalDateTime from,
-            LocalDateTime to
-    );
-
 
     @Query("""
        SELECT COALESCE(SUM(b.totalPrice),0)
@@ -126,4 +87,43 @@ GROUP BY DAY(b.createdAt)
 ORDER BY DAY(b.createdAt)
 """)
     List<Object[]> revenueByDay(int year, int month);
+
+
+    @Query("""
+SELECT COALESCE(SUM(b.totalPrice),0)
+FROM Booking b
+WHERE b.rentalArea.rentalAreaId IN :rentalAreaIds
+AND b.createdAt BETWEEN :from AND :to
+""")
+    BigDecimal sumRevenueByRentalAreas(
+            LocalDateTime from,
+            LocalDateTime to,
+            List<UUID> rentalAreaIds
+    );
+
+    @Query("""
+SELECT COUNT(b)
+FROM Booking b
+WHERE b.rentalArea.rentalAreaId IN :rentalAreaIds
+AND b.createdAt BETWEEN :from AND :to
+""")
+    long countByRentalAreasAndCreatedAtBetween(
+            List<UUID> rentalAreaIds,
+            LocalDateTime from,
+            LocalDateTime to
+    );
+
+    @Query("""
+            SELECT COUNT(b)
+            FROM Booking b
+            WHERE b.rentalArea.rentalAreaId IN :rentalAreaIds
+            AND b.bookingStatus = :status
+            AND b.createdAt BETWEEN :from AND :to
+            """)
+    long countByRentalAreasAndStatus(
+            List<UUID> rentalAreaIds,
+            BookingStatus status,
+            LocalDateTime from,
+            LocalDateTime to
+    );
 }

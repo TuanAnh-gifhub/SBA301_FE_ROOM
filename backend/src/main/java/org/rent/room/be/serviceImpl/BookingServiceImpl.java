@@ -14,6 +14,8 @@ import org.rent.room.be.dto.response.slot.SlotResponse;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.entity.BookingIntent;
 
+import org.rent.room.be.exception.AppException;
+import org.rent.room.be.exception.ErrorCode;
 import org.rent.room.be.repository.*;
 import org.rent.room.be.service.*;
 import org.rent.room.be.specification.BookingSpecification;
@@ -672,28 +674,39 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
-    public BookingSummaryResponse getBookingSummary(LocalDateTime from, LocalDateTime to, UUID rentalAreaId) {
+    public BookingSummaryResponse getBookingSummary(LocalDateTime from, LocalDateTime to, UUID userId) {
+
+        userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        List<RentalArea> rentalAreas = rentalAreaRepository.findByOwnerId(userId);
 
         BigDecimal totalRevenue;
         long totalBookings;
         long totalCompleted;
         long totalCanceled;
 
-        if (rentalAreaId != null) {
+        // OWNER có rental area
+        if (rentalAreas != null && !rentalAreas.isEmpty()) {
 
-            totalRevenue = bookingRepository.sumRevenueByRentalArea(from, to, rentalAreaId);
-            totalBookings = bookingRepository.countByRentalAreaAndCreatedAtBetween(rentalAreaId, from, to);
-            totalCompleted = bookingRepository.countByRentalAreaAndStatus(rentalAreaId, BookingStatus.COMPLETED, from, to);
-            totalCanceled = bookingRepository.countByRentalAreaAndStatus(rentalAreaId, BookingStatus.CANCELLED, from, to);
+            List<UUID> rentalAreaIds = rentalAreas.stream()
+                    .map(RentalArea::getRentalAreaId)
+                    .toList();
+
+            totalRevenue = bookingRepository.sumRevenueByRentalAreas(from, to, rentalAreaIds);
+            totalBookings = bookingRepository.countByRentalAreasAndCreatedAtBetween(rentalAreaIds, from, to);
+            totalCompleted = bookingRepository.countByRentalAreasAndStatus(rentalAreaIds, BookingStatus.COMPLETED, from, to);
+            totalCanceled = bookingRepository.countByRentalAreasAndStatus(rentalAreaIds, BookingStatus.CANCELLED, from, to);
 
         } else {
 
+            // ADMIN xem toàn hệ thống
             totalRevenue = bookingRepository.sumRevenue(from, to);
             totalBookings = bookingRepository.countByCreatedAtBetween(from, to);
             totalCompleted = bookingRepository.countByStatusAndCreatedAtBetween(BookingStatus.COMPLETED, from, to);
             totalCanceled = bookingRepository.countByStatusAndCreatedAtBetween(BookingStatus.CANCELLED, from, to);
         }
-        System.err.println("data " + totalRevenue + " " + totalBookings + " " + totalCompleted + " " + totalCanceled);
+
         return BookingSummaryResponse.builder()
                 .totalRevenue(totalRevenue)
                 .totalBookings(totalBookings)

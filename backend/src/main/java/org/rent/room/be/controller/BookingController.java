@@ -7,6 +7,7 @@ import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.constant.QRType;
 import org.rent.room.be.dto.request.booking.BookingRequest;
 import org.rent.room.be.dto.request.booking.UpdateBookingRequest;
+import org.rent.room.be.security.CustomUserDetails;
 import org.rent.room.be.service.BookingQRService;
 import org.rent.room.be.service.BookingService;
 import org.rent.room.be.service.InvoicePdfService;
@@ -14,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -268,14 +271,19 @@ public class BookingController {
             LocalDateTime from,
             @RequestParam(required = false)
             LocalDateTime to,
-            @RequestParam(required = false)
-            UUID rentalAreaId) {
+            @AuthenticationPrincipal UserDetails principal) {
         try {
-
+            UUID currentUserId = null;
+            if (principal instanceof CustomUserDetails customUserDetails) {
+                currentUserId = customUserDetails.getUserId();
+            }
+            if (currentUserId == null) {
+                throw new RuntimeException("User not authenticated");
+            }
             return ApiResponse.builder()
                     .code(200)
                     .message("Dashboard summary booking successfully")
-                    .result(bookingService.getBookingSummary(from,to,rentalAreaId))
+                    .result(bookingService.getBookingSummary(from,to,currentUserId))
                     .build();
         } catch (Exception e) {
             e.getStackTrace();

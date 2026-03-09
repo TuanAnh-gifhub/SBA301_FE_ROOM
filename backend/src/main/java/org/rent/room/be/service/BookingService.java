@@ -37,7 +37,7 @@ public interface BookingService {
 
     BookingResponse cancelBooking(UUID bookingId);
 
-    BookingSummaryResponse getBookingSummary(LocalDateTime from, LocalDateTime to, UUID rentalAreaId);
+    BookingSummaryResponse getBookingSummary(LocalDateTime from, LocalDateTime to, UUID userId);
 
     BookingDashboardResponse revenue(Integer month, Integer year);
 }

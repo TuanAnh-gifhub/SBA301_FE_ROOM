@@ -50,7 +50,6 @@ export const getBookingsByUserId = async (params) => {
   return response.data;
 };
 
-
 export const getBookingByBookingId = async (bookingId: string) => {
   const res = await api.get(`/bookings/${bookingId}`);
   return res.data;
@@ -61,11 +60,21 @@ export const cancelBooking = async (bookingId: string) => {
   return res.data;
 };
 
-
-
 export const getBookingQrUrl = (
   bookingId: string,
-  type: "CHECK_IN" | "CHECK_OUT"
+  type: "CHECK_IN" | "CHECK_OUT",
 ) => {
   return `${API_URL}/bookings/${bookingId}/qr?type=${type}`;
+};
+
+export const dashboardService = {
+  getSummary: async (from, to) => {
+    const res = await axiosClient.get("/dashboard/summary", {
+      params: {
+        from,
+        to,
+      },
+    });
+    return res.data.result;
+  },
 };

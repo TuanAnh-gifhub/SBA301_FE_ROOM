@@ -34,6 +34,7 @@ import ManageSchedulePage from "../pages/Owner/ManageSchedule/ManageSchedulePage
 import ManagePostPage from "../pages/Customer/ManagePostPage/ManagePostPage";
 import MyBookingHistoryPage from "../pages/Customer/MyBookingHistoryPage/MyBookingHistoryPage";
 import BookingDetailPage from "../pages/Customer/MyBookingHistoryPage/BookingDetailPage";
+import OwnerDashBoard from "../pages/Owner/Dashboard/OwnerDashboard";
 
 export const router = createBrowserRouter([
   {
@@ -234,6 +235,10 @@ export const router = createBrowserRouter([
             </p>
           </div>
         ),
+      },
+      {
+path:"dashboard",
+element: <OwnerDashBoard />,
       },
       {
         path: "manage-posts",
