@@ -8,8 +8,12 @@ import Footer from "../../../components/Footer/Footer";
 import {
     createDepositLink,
     createWithdrawRequest,
+    getMyCommission,
+    getMyRevenue,
     getMyWallet,
     getMyWithdrawRequests,
+    type CommissionInfoResponse,
+    type RevenueOverviewResponse,
     type WithdrawRequestItemResponse
 } from "../../../services/wallet/walletService";
 import { useAuth } from "../../../context/AuthContext";
@@ -33,6 +37,7 @@ const WalletPage = () => {
     const { user } = useAuth();
     const [totalBalance, setTotalBalance] = useState(0);
     const [walletId, setWalletId] = useState<string>("");
+    const [frozenAmount, setFrozenAmount] = useState(0);
     const [walletLocked, setWalletLocked] = useState(false);
     const [walletFrozenReason, setWalletFrozenReason] = useState<string>("");
     const userName = user?.userName ?? user?.email ?? "Người dùng";
@@ -52,12 +57,18 @@ const WalletPage = () => {
     const [withdrawError, setWithdrawError] = useState<string | null>(null);
     const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
     const [withdrawRequests, setWithdrawRequests] = useState<WithdrawRequestItemResponse[]>([]);
+    const [commissionInfo, setCommissionInfo] = useState<CommissionInfoResponse | null>(null);
+    const [revenueInfo, setRevenueInfo] = useState<RevenueOverviewResponse | null>(null);
+    const [ownerFinanceError, setOwnerFinanceError] = useState<string | null>(null);
+
+    const isOwner = (user?.role ?? "").toUpperCase().includes("OWNER");
 
     const fetchWallet = async () => {
         try {
             const wallet = await getMyWallet();
             const balance = Number(wallet.balance ?? 0);
             setTotalBalance(balance);
+            setFrozenAmount(Number(wallet.frozenAmount ?? 0));
             setWalletId(wallet.walletId ?? "");
             setWalletLocked(Boolean(wallet.isFrozen));
             setWalletFrozenReason(wallet.frozenReason ?? "");
@@ -75,10 +86,30 @@ const WalletPage = () => {
         }
     };
 
+    const fetchOwnerFinance = async () => {
+        if (!isOwner) return;
+        try {
+            const [commission, revenue] = await Promise.all([
+                getMyCommission(),
+                getMyRevenue(),
+            ]);
+            setCommissionInfo(commission);
+            setRevenueInfo(revenue);
+            setOwnerFinanceError(null);
+        } catch (error) {
+            console.error("Không thể tải thông tin commission/revenue", error);
+            setOwnerFinanceError("Không thể tải dữ liệu commission/revenue.");
+        }
+    };
+
     useEffect(() => {
         fetchWallet();
         fetchWithdrawRequests();
-    }, []);
+        if (isOwner) {
+            fetchOwnerFinance();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOwner]);
 
     useEffect(() => {
         const handleDarkModeChange = (event: Event) => {
@@ -405,6 +436,12 @@ const WalletPage = () => {
                                         <p className={isDarkMode ? 'text-gray-300 mt-1' : 'text-gray-600 mt-1'}>
                                             {req.bankCode} - {req.bankAccountNumber} - {req.bankAccountName}
                                         </p>
+                                        {req.processedAt && (
+                                            <p className={isDarkMode ? "text-gray-300 mt-1" : "text-gray-600 mt-1"}>
+                                                Xử lý lúc: {new Date(req.processedAt).toLocaleString("vi-VN")}
+                                                {req.processedBy ? ` - bởi ${req.processedBy}` : ""}
+                                            </p>
+                                        )}
                                         {req.adminNote && (
                                             <p className="mt-1 text-orange-400">Ghi chú ADMIN: {req.adminNote}</p>
                                         )}
@@ -430,6 +467,49 @@ const WalletPage = () => {
             default:
                 return (
                     <>
+                        {isOwner && (
+                            <div className={`${isDarkMode ? 'bg-[#2d7fcb] border-[#4da6ff]/30' : 'bg-white border-gray-200'} rounded-xl border shadow-sm p-5 mb-6`}>
+                                <h2 className={`text-lg font-bold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                    Commission & Doanh thu (OWNER)
+                                </h2>
+                                {ownerFinanceError && (
+                                    <p className="text-sm text-red-500 mb-3">{ownerFinanceError}</p>
+                                )}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                                    <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                        <p className="opacity-80">Tỷ lệ commission</p>
+                                        <p className="font-semibold">
+                                            {commissionInfo ? `${(Number(commissionInfo.rate || 0) * 100).toFixed(2)}%` : "-"}
+                                        </p>
+                                        <p className="text-xs opacity-75">
+                                            {commissionInfo
+                                                ? ((commissionInfo.custom ?? commissionInfo.isCustom)
+                                                    ? "Config riêng OWNER"
+                                                    : "Config mặc định hệ thống")
+                                                : ""}
+                                        </p>
+                                    </div>
+                                    <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                        <p className="opacity-80">Tổng doanh thu</p>
+                                        <p className="font-semibold">
+                                            {Number(revenueInfo?.totalIncome ?? 0).toLocaleString("vi-VN")} đ
+                                        </p>
+                                    </div>
+                                    <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                        <p className="opacity-80">Tổng commission đã trả</p>
+                                        <p className="font-semibold">
+                                            {Number(revenueInfo?.totalCommission ?? 0).toLocaleString("vi-VN")} đ
+                                        </p>
+                                    </div>
+                                    <div className={`rounded-md p-3 ${isDarkMode ? "bg-[#3a8bd8]/40 text-white" : "bg-gray-50 text-gray-900"}`}>
+                                        <p className="opacity-80">Thực nhận (net)</p>
+                                        <p className="font-semibold">
+                                            {Number(revenueInfo?.netRevenue ?? 0).toLocaleString("vi-VN")} đ
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {/* Account Details and Transaction History */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Left Column - Account Details */}
@@ -437,6 +517,7 @@ const WalletPage = () => {
                                 <h2 className={`text-xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Chi tiết tài khoản</h2>
                                 <WalletCard
                                     totalBalance={totalBalance}
+                                    frozenAmount={frozenAmount}
                                     walletId={walletId}
                                     walletLocked={walletLocked}
                                     walletFrozenReason={walletFrozenReason}

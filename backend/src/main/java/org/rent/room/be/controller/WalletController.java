@@ -11,7 +11,12 @@ import org.rent.room.be.dto.request.wallet.AdminWithdrawRejectRequest;
 import org.rent.room.be.dto.request.wallet.CreateDepositLinkRequest;
 import org.rent.room.be.dto.request.wallet.CreateWithdrawRequest;
 import org.rent.room.be.dto.request.wallet.UpdateWalletFreezeRequest;
+import org.rent.room.be.dto.request.wallet.UpsertCommissionConfigRequest;
+import org.rent.room.be.dto.response.wallet.AdminCommissionConfigListResponse;
+import org.rent.room.be.dto.response.wallet.AdminCommissionConfigResponse;
 import org.rent.room.be.dto.response.wallet.AdminWalletStatusResponse;
+import org.rent.room.be.dto.response.wallet.AdminWalletItemResponse;
+import org.rent.room.be.dto.response.wallet.AdminWalletTransactionItemResponse;
 import org.rent.room.be.dto.response.wallet.AdminWithdrawRequestItemResponse;
 import org.rent.room.be.dto.response.wallet.CommissionInfoResponse;
 import org.rent.room.be.dto.response.wallet.DepositLinkResponse;
@@ -21,6 +26,7 @@ import org.rent.room.be.dto.response.wallet.WalletTransactionItemResponse;
 import org.rent.room.be.dto.response.wallet.WithdrawRequestItemResponse;
 import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.service.WalletAdminService;
+import org.rent.room.be.service.WalletAdminQueryService;
 import org.rent.room.be.service.WalletDepositService;
 import org.rent.room.be.service.WalletService;
 import org.rent.room.be.service.WalletWithdrawService;
@@ -44,6 +50,7 @@ public class WalletController {
     WalletQueryService walletQueryService;
     WalletWithdrawService walletWithdrawService;
     WalletAdminService walletAdminService;
+    WalletAdminQueryService walletAdminQueryService;
 
     @PostMapping("/deposit/create-link")
     @PreAuthorize("hasAnyRole('ADMIN','RENTER','OWNER')")
@@ -218,6 +225,52 @@ public class WalletController {
         );
     }
 
+    @GetMapping("/admin/wallets")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<AdminWalletItemResponse>>> getAllWallets(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String walletStatus,
+            @RequestParam(required = false) UUID userId
+    ) {
+        PageResponse<AdminWalletItemResponse> result =
+                walletAdminQueryService.getAllWallets(page, limit, keyword, walletStatus, userId);
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<AdminWalletItemResponse>>builder()
+                        .code(200)
+                        .message("Get wallets successfully")
+                        .result(result)
+                        .build()
+        );
+    }
+
+    @GetMapping("/admin/transactions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<AdminWalletTransactionItemResponse>>> getAllWalletTransactions(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) UUID userId,
+            @RequestParam(required = false) UUID walletId
+    ) {
+        PageResponse<AdminWalletTransactionItemResponse> result =
+                walletAdminQueryService.getAllTransactions(
+                        page, limit, type, status, fromDate, toDate, keyword, userId, walletId
+                );
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<AdminWalletTransactionItemResponse>>builder()
+                        .code(200)
+                        .message("Get wallet transactions successfully")
+                        .result(result)
+                        .build()
+        );
+    }
+
     @GetMapping("/commission")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<CommissionInfoResponse>> getMyCommission() {
@@ -226,6 +279,50 @@ public class WalletController {
                 ApiResponse.<CommissionInfoResponse>builder()
                         .code(200)
                         .message("Get commission successfully")
+                        .result(response)
+                        .build()
+        );
+    }
+
+    @GetMapping("/admin/commission-configs")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<AdminCommissionConfigListResponse>> getCommissionConfigs() {
+        AdminCommissionConfigListResponse response = walletAdminService.getCommissionConfigs();
+        return ResponseEntity.ok(
+                ApiResponse.<AdminCommissionConfigListResponse>builder()
+                        .code(200)
+                        .message("Get commission configs successfully")
+                        .result(response)
+                        .build()
+        );
+    }
+
+    @PutMapping("/admin/commission/default")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<AdminCommissionConfigResponse>> upsertDefaultCommission(
+            @Valid @RequestBody UpsertCommissionConfigRequest request
+    ) {
+        AdminCommissionConfigResponse response = walletAdminService.upsertDefaultCommission(request);
+        return ResponseEntity.ok(
+                ApiResponse.<AdminCommissionConfigResponse>builder()
+                        .code(200)
+                        .message("Update default commission successfully")
+                        .result(response)
+                        .build()
+        );
+    }
+
+    @PutMapping("/admin/commission/owners/{ownerId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<AdminCommissionConfigResponse>> upsertOwnerCommission(
+            @PathVariable UUID ownerId,
+            @Valid @RequestBody UpsertCommissionConfigRequest request
+    ) {
+        AdminCommissionConfigResponse response = walletAdminService.upsertOwnerCommission(ownerId, request);
+        return ResponseEntity.ok(
+                ApiResponse.<AdminCommissionConfigResponse>builder()
+                        .code(200)
+                        .message("Update owner commission successfully")
                         .result(response)
                         .build()
         );

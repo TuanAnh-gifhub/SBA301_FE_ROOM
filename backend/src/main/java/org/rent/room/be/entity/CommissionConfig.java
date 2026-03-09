@@ -26,17 +26,47 @@ public class CommissionConfig extends BaseEntity {
     @JoinColumn(name = "owner_id", unique = true)
     private User owner;
 
+    @Column(name = "is_default", nullable = false)
+    private Boolean isDefault;
+
     /**
      * Tỉ lệ hoa hồng, ví dụ:
      * 0.1000 = 10% | 0.0500 = 5% | 0.1500 = 15%
      */
-    @Column(name = "rate", precision = 5, scale = 4, nullable = false)
+    @Column(name = "commission_rate", precision = 5, scale = 4, nullable = false)
     private BigDecimal rate;
+
+    /**
+     * Cột legacy "rate" (DB cũ vẫn còn NOT NULL constraint).
+     * Luôn đồng bộ với commission_rate để tương thích schema hiện tại.
+     */
+    @Column(name = "rate", precision = 5, scale = 4, nullable = false)
+    private BigDecimal legacyRate;
 
     @Column(name = "note", length = 255)
     private String note;
 
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
+
+    @PrePersist
+    @PreUpdate
+    private void syncRateColumns() {
+        if (this.rate != null) {
+            this.legacyRate = this.rate;
+        } else if (this.legacyRate != null) {
+            this.rate = this.legacyRate;
+        }
+        if (this.isDefault == null) {
+            this.isDefault = (this.owner == null);
+        }
+    }
+
+    @PostLoad
+    private void hydrateRateFromLegacy() {
+        if (this.rate == null && this.legacyRate != null) {
+            this.rate = this.legacyRate;
+        }
+    }
 }
 

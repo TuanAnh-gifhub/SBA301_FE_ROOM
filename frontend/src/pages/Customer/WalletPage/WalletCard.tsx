@@ -3,6 +3,7 @@ import { FaCoins } from "react-icons/fa";
 
 interface WalletCardProps {
     totalBalance?: number;
+    frozenAmount?: number;
     walletId?: string;
     walletLocked?: boolean;
     walletFrozenReason?: string;
@@ -11,6 +12,7 @@ interface WalletCardProps {
 
 const WalletCard = ({
     totalBalance = 0,
+    frozenAmount = 0,
     walletId = "",
     walletLocked = false,
     walletFrozenReason = "",
@@ -61,6 +63,10 @@ const WalletCard = ({
                                     </div>
                                 </div>
                                 <div className="mt-3 rounded-lg border border-white/30 bg-white/10 p-3 max-w-md">
+                                    <div className="mb-2 text-xs text-white/90">
+                                        Số dư khả dụng: <b>{totalBalance.toLocaleString("vi-VN")} đ</b> | Đang giữ:{" "}
+                                        <b>{frozenAmount.toLocaleString("vi-VN")} đ</b>
+                                    </div>
                                     <p className="text-[11px] uppercase tracking-wide text-white/70 mb-1">
                                         Mã thẻ ví của bạn
                                     </p>

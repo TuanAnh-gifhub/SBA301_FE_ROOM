@@ -2,14 +2,23 @@ package org.rent.room.be.serviceImpl;
 
 import lombok.RequiredArgsConstructor;
 import org.rent.room.be.constant.WalletStatus;
+import org.rent.room.be.dto.request.wallet.UpsertCommissionConfigRequest;
 import org.rent.room.be.dto.request.wallet.UpdateWalletFreezeRequest;
+import org.rent.room.be.dto.response.wallet.AdminCommissionConfigListResponse;
+import org.rent.room.be.dto.response.wallet.AdminCommissionConfigResponse;
+import org.rent.room.be.entity.CommissionConfig;
+import org.rent.room.be.entity.User;
 import org.rent.room.be.dto.response.wallet.AdminWalletStatusResponse;
 import org.rent.room.be.entity.Wallet;
+import org.rent.room.be.repository.CommissionConfigRepository;
 import org.rent.room.be.repository.WalletRepository;
+import org.rent.room.be.service.UserService;
 import org.rent.room.be.service.WalletAdminService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -17,6 +26,8 @@ import java.util.UUID;
 public class WalletAdminServiceImpl implements WalletAdminService {
 
     private final WalletRepository walletRepository;
+    private final CommissionConfigRepository commissionConfigRepository;
+    private final UserService userService;
 
     @Override
     @Transactional
@@ -45,6 +56,80 @@ public class WalletAdminServiceImpl implements WalletAdminService {
                 .frozenAmount(wallet.getFrozenAmount())
                 .walletStatus(wallet.getWalletStatus())
                 .frozenReason(wallet.getFrozenReason())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public AdminCommissionConfigResponse upsertDefaultCommission(UpsertCommissionConfigRequest request) {
+        User admin = userService.getCurrentUserEntity();
+        CommissionConfig config = commissionConfigRepository.findByIsDefaultTrue()
+                .or(() -> commissionConfigRepository.findByOwnerIsNull())
+                .orElseGet(CommissionConfig::new);
+
+        config.setOwner(null);
+        config.setIsDefault(true);
+        config.setRate(request.getRate());
+        config.setNote(request.getNote());
+        config.setCreatedBy(admin.getUserId());
+
+        return toAdminCommissionResponse(commissionConfigRepository.save(config));
+    }
+
+    @Override
+    @Transactional
+    public AdminCommissionConfigResponse upsertOwnerCommission(UUID ownerId, UpsertCommissionConfigRequest request) {
+        User admin = userService.getCurrentUserEntity();
+        User owner = userService.findByUserId(ownerId);
+        if (owner.getRole() == null || !"OWNER".equalsIgnoreCase(owner.getRole().getRoleName())) {
+            throw new RuntimeException("User không thuộc role OWNER");
+        }
+
+        CommissionConfig config = commissionConfigRepository.findByOwner(owner)
+                .orElseGet(CommissionConfig::new);
+        config.setOwner(owner);
+        config.setIsDefault(false);
+        config.setRate(request.getRate());
+        config.setNote(request.getNote());
+        config.setCreatedBy(admin.getUserId());
+
+        return toAdminCommissionResponse(commissionConfigRepository.save(config));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminCommissionConfigListResponse getCommissionConfigs() {
+        AdminCommissionConfigResponse defaultConfig = commissionConfigRepository.findByIsDefaultTrue()
+                .or(() -> commissionConfigRepository.findByOwnerIsNull())
+                .map(this::toAdminCommissionResponse)
+                .orElse(null);
+
+        List<AdminCommissionConfigResponse> ownerConfigs = commissionConfigRepository.findAllByOwnerIsNotNull()
+                .stream()
+                .sorted(Comparator.comparing(CommissionConfig::getCreatedAt).reversed())
+                .map(this::toAdminCommissionResponse)
+                .toList();
+
+        return AdminCommissionConfigListResponse.builder()
+                .defaultConfig(defaultConfig)
+                .ownerConfigs(ownerConfigs)
+                .build();
+    }
+
+    private AdminCommissionConfigResponse toAdminCommissionResponse(CommissionConfig config) {
+        User owner = config.getOwner();
+        boolean isDefault = Boolean.TRUE.equals(config.getIsDefault()) || owner == null;
+        return AdminCommissionConfigResponse.builder()
+                .commissionConfigId(config.getCommissionConfigId())
+                .isDefault(isDefault)
+                .ownerId(isDefault ? null : owner.getUserId())
+                .ownerName(isDefault ? null : owner.getUserName())
+                .ownerEmail(isDefault ? null : owner.getEmail())
+                .rate(config.getRate())
+                .note(config.getNote())
+                .createdBy(config.getCreatedBy())
+                .createdAt(config.getCreatedAt())
+                .updatedAt(config.getUpdatedAt())
                 .build();
     }
 }

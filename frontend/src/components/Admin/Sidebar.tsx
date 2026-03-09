@@ -106,6 +106,14 @@ const Sidebar: React.FC<SidebarProps> = ({
         "/admin/transactions",
       ),
       getItem(
+        <Link to="/admin/wallet-overview">Tổng quan ví hệ thống</Link>,
+        "/admin/wallet-overview",
+      ),
+      getItem(
+        <Link to="/admin/commission-config">Cấu hình Commission</Link>,
+        "/admin/commission-config",
+      ),
+      getItem(
         <Link to="/admin/wallet-freeze">Khóa/Mở khóa ví</Link>,
         "/admin/wallet-freeze",
       ),

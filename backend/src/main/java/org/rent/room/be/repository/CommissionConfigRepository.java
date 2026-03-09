@@ -14,6 +14,8 @@ public interface CommissionConfigRepository extends JpaRepository<CommissionConf
 
     Optional<CommissionConfig> findByOwnerIsNull();
 
+    Optional<CommissionConfig> findByIsDefaultTrue();
+
     List<CommissionConfig> findAllByOwnerIsNotNull();
 }
 

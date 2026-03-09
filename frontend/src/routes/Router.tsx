@@ -29,6 +29,8 @@ import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
 import WalletDepositResultPage from "../pages/Customer/WalletPage/WalletDepositResultPage";
 import WalletWithdrawManagementPage from "../pages/Admin/WalletManagement/WalletWithdrawManagementPage";
 import WalletFreezeManagementPage from "../pages/Admin/WalletManagement/WalletFreezeManagementPage";
+import AdminWalletOverviewPage from "../pages/Admin/WalletManagement/AdminWalletOverviewPage";
+import CommissionConfigManagementPage from "../pages/Admin/WalletManagement/CommissionConfigManagementPage";
 
 export const router = createBrowserRouter([
   {
@@ -207,6 +209,14 @@ export const router = createBrowserRouter([
       {
         path: "transactions",
         element: <WalletWithdrawManagementPage />,
+      },
+      {
+        path: "wallet-overview",
+        element: <AdminWalletOverviewPage />,
+      },
+      {
+        path: "commission-config",
+        element: <CommissionConfigManagementPage />,
       },
       {
         path: "wallet-freeze",

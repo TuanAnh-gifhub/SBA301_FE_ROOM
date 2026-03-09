@@ -82,7 +82,8 @@ public class WalletQueryService {
 
         CommissionConfig config = commissionConfigRepository.findByOwner(currentUser)
                 .orElseGet(() ->
-                        commissionConfigRepository.findByOwnerIsNull()
+                        commissionConfigRepository.findByIsDefaultTrue()
+                                .or(() -> commissionConfigRepository.findByOwnerIsNull())
                                 .orElse(null)
                 );
 

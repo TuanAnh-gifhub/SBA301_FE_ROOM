@@ -37,6 +37,10 @@ const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryPro
                     type:
                         item.type === "DEPOSIT"
                             ? "recharge"
+                            : item.type === "BOOKING_INCOME" || item.type === "FREEZE_RELEASE" || item.type === "WITHDRAW_REJECTED"
+                                ? "refund"
+                                : item.type === "WITHDRAW" || item.type === "BOOKING_PAYMENT" || item.type === "COMMISSION" || item.type === "PACKAGE_PURCHASE" || item.type === "FREEZE_HOLD"
+                                    ? "payment"
                             : item.type === "REFUND"
                                 ? "refund"
                                 : item.type === "PAYMENT"

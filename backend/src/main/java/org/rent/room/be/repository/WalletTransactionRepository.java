@@ -33,5 +33,7 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
             LocalDateTime to,
             Pageable pageable
     );
+
+    boolean existsByBookingIdAndType(UUID bookingId, WalletTxType type);
 }
 
