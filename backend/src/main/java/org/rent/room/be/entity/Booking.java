@@ -86,4 +86,6 @@ public class Booking extends BaseEntity {
     @JoinColumn(name = "rental_area_id")
     private RentalArea rentalArea;
 
+    @Column(name = "invoice_url")
+    private String invoiceUrl;
 }

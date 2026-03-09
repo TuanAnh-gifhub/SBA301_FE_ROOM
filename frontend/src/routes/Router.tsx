@@ -33,6 +33,11 @@ import WalletFreezeManagementPage from "../pages/Admin/WalletManagement/WalletFr
 import AdminWalletOverviewPage from "../pages/Admin/WalletManagement/AdminWalletOverviewPage";
 import CommissionConfigManagementPage from "../pages/Admin/WalletManagement/CommissionConfigManagementPage";
 import AdminDashboardOverview from "../pages/Admin/AdminDashboardOverview";
+import OwnerPage from "../pages/Owner/OwnerPage";
+import ManageRoomPage from "../pages/Customer/ManageRoomPage/ManageRoomPage";
+import ManageBookingPage from "../pages/Owner/ManageBookingPage/ManageBookingPage";
+import ManageSchedulePage from "../pages/Owner/ManageSchedule/ManageSchedulePage";
+import ManagePostPage from "../pages/Customer/ManagePostPage/ManagePostPage";
 
 export const router = createBrowserRouter([
   {
@@ -127,6 +132,7 @@ export const router = createBrowserRouter([
         element: <ResetPassword />,
         handle: { breadcrumb: "Đặt lại mật khẩu" },
       },
+
       {
         path: "manage-posts",
         element: <ManagePage />,
@@ -223,5 +229,50 @@ export const router = createBrowserRouter([
         element: <WalletFreezeManagementPage />,
       },
     ],
+  },
+
+  //Owner
+  {
+    path: "/owner",
+    element: (
+      // <ProtectedAdminRoute>
+      <OwnerPage />
+      // </ProtectedAdminRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: (
+          <div className="p-6">
+            <h1
+              className="text-2xl font-bold mb-4"
+              style={{ color: "inherit" }}
+            >
+              Dashboard
+            </h1>
+            <p style={{ color: "inherit" }}>
+              Chào mừng đến với trang quản trị!
+            </p>
+          </div>
+        ),
+      },
+      {
+        path: "manage-posts",
+        element: <ManagePostPage />,
+      },
+      {
+        path: "rooms",
+        element: <ManageRoomPage />,
+      },
+      {
+        path: "bookings",
+        element: <ManageBookingPage />,
+      },
+      {
+        path: "schedules",
+        element: <ManageSchedulePage />,
+      },
+    ],
+ 
   },
 ]);

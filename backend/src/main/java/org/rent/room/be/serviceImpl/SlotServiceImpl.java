@@ -29,9 +29,7 @@ public class SlotServiceImpl implements SlotService {
     @Override
     @Transactional
     public Slot createSlot(Slot slot) {
-
       slot = slotRepository.save(slot);
-
         return slot;
     }
 

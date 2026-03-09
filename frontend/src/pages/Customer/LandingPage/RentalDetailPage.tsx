@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import rentalAreasService from "../../../services/rental-areas/rentalAreas";
 import RentalHeader from "./RentalHeader";
 import RoomListPage from "./RoomListPage";
@@ -82,6 +82,8 @@ export default function RentalDetailPage() {
 
     const maxCopies = getAvailableCopies(room);
 
+    let added = false;
+
     setCart((prev) => {
       const index = prev.findIndex(
         (item) =>
@@ -93,7 +95,6 @@ export default function RentalDetailPage() {
 
       if (index !== -1) {
         const copy = [...prev];
-
         const newQty = copy[index].quantity + 1;
 
         copy[index] = {
@@ -101,9 +102,11 @@ export default function RentalDetailPage() {
           quantity: Math.min(newQty, maxCopies),
         };
 
+        added = true;
         return copy;
       }
 
+      added = true;
       return [
         ...prev,
         {
@@ -115,6 +118,10 @@ export default function RentalDetailPage() {
         },
       ];
     });
+
+    if (added) {
+      toast.success("Thêm phòng vào giỏ hàng thành công");
+    }
   };
   const increase = (index: number) => {
     setCart((prev) => {
@@ -160,6 +167,8 @@ export default function RentalDetailPage() {
         endTime: `${item.date}T${item.endTime}:00`,
       }));
 
+      console.error("xem id", user?.userId);
+
       const payload = {
         userId: user?.userId,
         userName: user?.name,
@@ -175,7 +184,7 @@ export default function RentalDetailPage() {
       const res = await createBookingIntent(payload);
       if (res.code === 200) {
         toast.success(
-          "Hãy xác nhận  phòng và hoàn tất thanh toán trong 15 phút.",
+          "Hãy xác nhận phòng và hoàn tất thanh toán trong 15 phút.",
         );
         navigate(`/customer/bookings/${res.result.bookingIntentId}`);
         setCart([]);
@@ -204,13 +213,10 @@ export default function RentalDetailPage() {
 
       <Row gutter={24} style={{ marginTop: 32 }}>
         <Col span={24}>
-         
-            <BookingSearchBar filter={filter} setFilter={setFilter} />
-        
+          <BookingSearchBar filter={filter} setFilter={setFilter} />
         </Col>
       </Row>
 
-   
       <Row gutter={24} style={{ marginTop: 24 }}>
         <Col span={16}>
           <RoomCardList rooms={rental.rooms} onAddRoom={addRoom} />
@@ -225,6 +231,8 @@ export default function RentalDetailPage() {
           />
         </Col>
       </Row>
+{/* 
+      //review */}
     </div>
   );
 }

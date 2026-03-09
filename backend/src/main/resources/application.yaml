@@ -87,3 +87,5 @@ payos:
   base-url: https://api-merchant.payos.vn
   return-url: ${PAYOS_RETURN_URL}
   cancel-url: ${PAYOS_CANCEL_URL}
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}

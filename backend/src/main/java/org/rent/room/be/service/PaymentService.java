@@ -5,6 +5,8 @@ import org.rent.room.be.dto.response.payment.CheckoutResponse;
 
 import java.util.Map;
 
+import java.io.IOException;
+
 public interface PaymentService {
    CheckoutResponse checkout(CheckoutRequest checkoutRequest);
    Map<String, Object> handlePayOsWebhook(Map<String, Object> payload);

@@ -11,11 +11,14 @@ import org.rent.room.be.dto.response.booking.BookingResponse;
 import org.rent.room.be.entity.BookingQR;
 import org.rent.room.be.service.BookingQRService;
 import org.rent.room.be.service.BookingService;
+import org.rent.room.be.service.InvoicePdfService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -31,6 +34,9 @@ public class BookingController {
     @Autowired
     private  BookingQRService bookingQRService;
 
+    @Autowired
+    private InvoicePdfService invoicePdfService;
+
     @GetMapping("/{bookingId}/qr")
     public ResponseEntity<byte[]> getQr(
             @PathVariable UUID bookingId,
@@ -45,6 +51,14 @@ public class BookingController {
         return new ResponseEntity<>(image, headers, HttpStatus.OK);
     }
 
+    @GetMapping("/qr-scan")
+    public ApiResponse<?> scan(@RequestParam String token) {
+
+        String result = bookingQRService.scanBookingQR(token);
+
+        return ApiResponse.success(200, "Scan QR successfully", result
+        );
+    }
     @PostMapping("/check-booking")
     public  ApiResponse<?> checkIfUserBooked(){
         try {
@@ -108,31 +122,31 @@ public class BookingController {
             e.getStackTrace();
             return ApiResponse.builder()
                     .code(500)
-                    .message( e.getMessage())
+                    .message("douma may"+ e.getMessage())
                     .build();
         }
     }
 
 
 
-    @PostMapping
-    public ApiResponse<?> booking(UUID bookingIntentID) {
-        try {
-
-            return ApiResponse.builder()
-                    .code(200)
-                    .message("Create booking successfully")
-                    .result(bookingService.createBooking(bookingIntentID))
-                    .build();
-
-        } catch (Exception e) {
-            e.getStackTrace();
-            return ApiResponse.builder()
-                    .code(500)
-                    .message("Api system have some problems " + e.getMessage())
-                    .build();
-        }
-    }
+//    @PostMapping
+//    public ApiResponse<?> booking(UUID bookingIntentID) {
+//        try {
+//
+//            return ApiResponse.builder()
+//                    .code(200)
+//                    .message("Create booking successfully")
+//                    .result(bookingService.createBooking(bookingIntentID ))
+//                    .build();
+//
+//        } catch (Exception e) {
+//            e.getStackTrace();
+//            return ApiResponse.builder()
+//                    .code(500)
+//                    .message("Api system have some problems " + e.getMessage())
+//                    .build();
+//        }
+//    }
 
 
     @GetMapping
@@ -179,6 +193,27 @@ public class BookingController {
                     .message("Api system have some problems "+ e.getMessage())
                     .build();
         }
+    }
+
+    @GetMapping("/my-rentals")
+    public ApiResponse<?> getMyRentals(@PathVariable UUID bookingId) {
+
+ return null;
+    }
+
+    @GetMapping("/{bookingId}/invoice")
+    public ResponseEntity<Resource> downloadInvoice(
+            @PathVariable UUID bookingId
+    ) throws IOException {
+
+        Resource resource = invoicePdfService.downloadInvoice(bookingId);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + resource.getFilename() + "\"")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .body(resource);
     }
 
 
