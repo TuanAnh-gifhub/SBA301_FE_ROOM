@@ -26,6 +26,7 @@ import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManag
 
 import BookingDetail from "../pages/Customer/Booking/BookingDetail";
 import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
+import BookingPaymentResultPage from "../pages/Customer/Payment/BookingPaymentResultPage";
 import WalletDepositResultPage from "../pages/Customer/WalletPage/WalletDepositResultPage";
 import WalletWithdrawManagementPage from "../pages/Admin/WalletManagement/WalletWithdrawManagementPage";
 import WalletFreezeManagementPage from "../pages/Admin/WalletManagement/WalletFreezeManagementPage";
@@ -70,6 +71,11 @@ export const router = createBrowserRouter([
         path: "payment/success/:bookingId",
         element: <PaymentSuccessPage />,
         handle: { breadcrumb: "Thanh toán thành công" },
+      },
+      {
+        path: "payment/booking-result",
+        element: <BookingPaymentResultPage />,
+        handle: { breadcrumb: "Kết quả thanh toán booking" },
       },
       {
         path: "product/:id",

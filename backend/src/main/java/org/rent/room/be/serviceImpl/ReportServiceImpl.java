@@ -140,11 +140,11 @@ public class ReportServiceImpl implements ReportService {
                 .build();
 
         if (reportRequest.getBookingId() != null) {
-            Booking booking = bookingRepository.findById(reportRequest.getBookingId())
-                    .orElseThrow(() -> new RuntimeException("Booking not found"));
-            booking.setDisputeFlag(true);
-            booking.setDisputeNote("Dispute từ report: " + reportRequest.getTitle());
-            bookingRepository.save(booking);
+            bookingRepository.findById(reportRequest.getBookingId()).ifPresentOrElse(booking -> {
+                booking.setDisputeFlag(true);
+                booking.setDisputeNote("Dispute từ report: " + reportRequest.getTitle());
+                bookingRepository.save(booking);
+            }, () -> log.warn("Report created with non-existing bookingId={}", reportRequest.getBookingId()));
         }
 
         reportRepository.save(report);

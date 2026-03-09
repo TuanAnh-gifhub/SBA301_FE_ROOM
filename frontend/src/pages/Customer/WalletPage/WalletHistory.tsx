@@ -10,6 +10,7 @@ interface Transaction {
     type: "recharge" | "payment" | "refund" | "transfer" | "withdraw";
     amount: number;
     description: string;
+    channel?: "wallet" | "payos";
     date: string;
     status: "completed" | "pending" | "failed";
 }
@@ -48,6 +49,11 @@ const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryPro
                                     : "transfer",
                     amount: Number(item.amount ?? 0),
                     description: item.description || "Giao dịch ví",
+                    channel:
+                        item.type === "BOOKING_PAYMENT" &&
+                        (item.description || "").toLowerCase().includes("payos")
+                            ? "payos"
+                            : "wallet",
                     date: item.createdAt,
                     status:
                         item.status === "COMPLETED"
@@ -181,6 +187,11 @@ const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryPro
                                     <p className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                                         {getTransactionLabel(transaction.type)}
                                     </p>
+                                    {transaction.type === "payment" && transaction.channel === "payos" && (
+                                        <p className={`text-[11px] inline-flex px-2 py-[2px] rounded mt-1 ${isDarkMode ? "bg-cyan-500/20 text-cyan-300" : "bg-cyan-100 text-cyan-700"}`}>
+                                            Qua PayOS
+                                        </p>
+                                    )}
                                     <p className={`text-xs truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{transaction.description}</p>
                                     <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{formatDate(transaction.date)}</p>
                                 </div>

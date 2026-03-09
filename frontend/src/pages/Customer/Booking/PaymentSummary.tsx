@@ -2,9 +2,10 @@ import { Card, Button } from "antd";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import createPayment from "../../../services/payment/paymentService";
+import type { CheckoutResponse } from "../../../services/payment/paymentService";
 import { useNavigate } from "react-router-dom";
 export default function PaymentSummary({ intent }: any) {
-  const [paymentMethod, setPaymentMethod] = useState("BANK");
+  const [paymentMethod, setPaymentMethod] = useState("WALLET");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -16,9 +17,23 @@ export default function PaymentSummary({ intent }: any) {
         bookingIntentId: intent.bookingIntentId,
         paymentMethod,
       });
-      if (res.data.code === 201) {
-        toast.success("Thanh toán thành công");
-        navigate(`/payment/success/${res.data.result.bookingId}`);
+      const result: CheckoutResponse | undefined = res?.data?.result;
+      if (res.data.code === 201 && result) {
+        if (result.mode === "BOOKED" && result.bookingId) {
+          toast.success("Thanh toán thành công");
+          navigate(`/payment/success/${result.bookingId}`);
+          return;
+        }
+        if (result.mode === "REDIRECT" && result.paymentUrl) {
+          window.location.href = result.paymentUrl;
+          return;
+        }
+        if (result.mode === "PENDING") {
+          toast.info(result.message || "Đang chờ xác nhận thanh toán");
+          return;
+        }
+        toast.error(result.message || "Thanh toán chưa thành công");
+        return;
       }
       if (res.data.code !== 201) {
         toast.error(res.data.message);
@@ -61,23 +76,14 @@ export default function PaymentSummary({ intent }: any) {
 
         <div className="flex gap-3">
           <button
-            onClick={() => setPaymentMethod("BANK_TRANSFER")}
+            onClick={() => setPaymentMethod("WALLET")}
             className={`p-3 border rounded-xl w-full ${
-              paymentMethod === "BANK_TRANSFER"
+              paymentMethod === "WALLET"
                 ? "border-teal-500 bg-teal-50"
                 : ""
             }`}
           >
-            Bank Transfer
-          </button>
-
-          <button
-            onClick={() => setPaymentMethod("PAYPAL")}
-            className={`p-3 border rounded-xl w-full ${
-              paymentMethod === "PAYPAL" ? "border-teal-500 bg-teal-50" : ""
-            }`}
-          >
-            PayPal
+            Ví nội bộ
           </button>
 
           <button
@@ -86,7 +92,7 @@ export default function PaymentSummary({ intent }: any) {
               paymentMethod === "VN_PAY" ? "border-teal-500 bg-teal-50" : ""
             }`}
           >
-            VNPay
+            PayOS trực tiếp
           </button>
         </div>
       </div>
