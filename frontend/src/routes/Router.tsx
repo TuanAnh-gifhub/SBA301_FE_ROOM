@@ -25,8 +25,14 @@ import PackagePage from "../pages/Customer/PackagePage";
 import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManagementPage";
 
 import BookingDetail from "../pages/Customer/Booking/BookingDetail";
-import LoginPage from "../pages/Customer/LoginPage/LoginPage";
 import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
+import BookingPaymentResultPage from "../pages/Customer/Payment/BookingPaymentResultPage";
+import WalletDepositResultPage from "../pages/Customer/WalletPage/WalletDepositResultPage";
+import WalletWithdrawManagementPage from "../pages/Admin/WalletManagement/WalletWithdrawManagementPage";
+import WalletFreezeManagementPage from "../pages/Admin/WalletManagement/WalletFreezeManagementPage";
+import AdminWalletOverviewPage from "../pages/Admin/WalletManagement/AdminWalletOverviewPage";
+import CommissionConfigManagementPage from "../pages/Admin/WalletManagement/CommissionConfigManagementPage";
+import AdminDashboardOverview from "../pages/Admin/AdminDashboardOverview";
 import OwnerPage from "../pages/Owner/OwnerPage";
 import ManageRoomPage from "../pages/Customer/ManageRoomPage/ManageRoomPage";
 import ManageBookingPage from "../pages/Owner/ManageBookingPage/ManageBookingPage";
@@ -73,6 +79,11 @@ export const router = createBrowserRouter([
         handle: { breadcrumb: "Thanh toán thành công" },
       },
       {
+        path: "payment/booking-result",
+        element: <BookingPaymentResultPage />,
+        handle: { breadcrumb: "Kết quả thanh toán booking" },
+      },
+      {
         path: "product/:id",
         element: <RoomDetailPage />,
         handle: { breadcrumb: "Chi tiết phòng" },
@@ -88,6 +99,21 @@ export const router = createBrowserRouter([
         handle: { breadcrumb: "Ví cá nhân" },
       },
       {
+        path: "wallet/recharge",
+        element: <WalletPage />,
+        handle: { breadcrumb: "Nạp ví" },
+      },
+      {
+        path: "wallet/withdraw",
+        element: <WalletPage />,
+        handle: { breadcrumb: "Rút tiền" },
+      },
+      {
+        path: "wallet/revenue",
+        element: <WalletPage />,
+        handle: { breadcrumb: "Doanh thu" },
+      },
+      {
         path: "wallet/history",
         element: <WalletHistoryPage />,
         handle: { breadcrumb: "Lịch sử giao dịch" },
@@ -96,6 +122,11 @@ export const router = createBrowserRouter([
         path: "wallet/promotion",
         element: <WalletPromotion />,
         handle: { breadcrumb: "Khuyến mãi" },
+      },
+      {
+        path: "wallet/deposit/result",
+        element: <WalletDepositResultPage />,
+        handle: { breadcrumb: "Kết quả nạp ví" },
       },
       {
         path: "reset-password",
@@ -159,19 +190,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: (
-          <div className="p-6">
-            <h1
-              className="text-2xl font-bold mb-4"
-              style={{ color: "inherit" }}
-            >
-              Dashboard
-            </h1>
-            <p style={{ color: "inherit" }}>
-              Chào mừng đến với trang quản trị!
-            </p>
-          </div>
-        ),
+        element: <AdminDashboardOverview />,
       },
       {
         path: "customers",
@@ -197,6 +216,22 @@ export const router = createBrowserRouter([
       {
         path: "packages",
         element: <PackageManagementPage />,
+      },
+      {
+        path: "transactions",
+        element: <WalletWithdrawManagementPage />,
+      },
+      {
+        path: "wallet-overview",
+        element: <AdminWalletOverviewPage />,
+      },
+      {
+        path: "commission-config",
+        element: <CommissionConfigManagementPage />,
+      },
+      {
+        path: "wallet-freeze",
+        element: <WalletFreezeManagementPage />,
       },
     ],
   },

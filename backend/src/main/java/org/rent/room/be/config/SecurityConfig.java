@@ -43,6 +43,8 @@ public class SecurityConfig {
             "/reports/**",
             "/bookings/**",
             "/posts/**",
+            "/wallet/deposit/webhook",
+            "/payments/payos/webhook",
 
     };
 

@@ -80,19 +80,14 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 6. CATCH-ALL: Bắt tất cả các lỗi còn lại (RuntimeException, NullPointer, DB Error...)
-    // Đây là chốt chặn cuối cùng để API không bao giờ chết hoặc trả về stacktrace xấu xí
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleUnwantedException(Exception e) {
-        // Ghi log lỗi ra console server để Developer sửa
         log.error("Uncaught Exception: ", e);
-        ErrorCode errorCode = ErrorCode.USER_NOT_AUTHENTICATED;
-
         return ResponseEntity
-                .status(errorCode.getHttpStatusCode())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.builder()
-                        .code(errorCode.getCode())
-                        .message(errorCode.getMessage())
+                        .code(500)
+                        .message("Internal server error")
                         .build());
     }
 
