@@ -57,13 +57,5 @@ public interface RoomCopyRepository extends JpaRepository<RoomCopy, UUID> {
             LocalDateTime endTime
     );
 
-    @Query("""
-                SELECT rc
-                FROM RoomCopy rc
-                WHERE rc.roomCopyStatus = 'HOLD'
-                  AND rc.heldUntil <= :now
-            """)
-    List<RoomCopy> findExpiredHeldRooms(
-            LocalDateTime now
-    );
+
 }

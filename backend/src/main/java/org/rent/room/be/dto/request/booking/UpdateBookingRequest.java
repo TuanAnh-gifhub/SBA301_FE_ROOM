@@ -2,6 +2,7 @@ package org.rent.room.be.dto.request.booking;
 
 import jakarta.validation.Valid;
 import lombok.*;
+import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.constant.BookingType;
 
 import java.util.List;
@@ -12,13 +13,9 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class BookingIntentUpdateRequest {
+public class UpdateBookingRequest {
     private UUID userId;
-    private String userName;
-    private String userPhone;
-    private List<@Valid SlotRequest> slotRequests;
-    private int numberOfMonths;
-    private String note;
+    private BookingStatus bookingStatus;
     private BookingType bookingType;
-
+    private String note;
 }

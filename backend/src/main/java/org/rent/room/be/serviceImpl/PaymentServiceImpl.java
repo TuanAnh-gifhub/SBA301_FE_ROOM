@@ -22,12 +22,12 @@ import org.rent.room.be.entity.WalletTransaction;
 import org.rent.room.be.properties.PayOsProperties;
 import org.rent.room.be.repository.BookingIntentRepository;
 
-import org.rent.room.be.repository.BookingRepository;
+
 import org.rent.room.be.repository.PaymentRepository;
 import org.rent.room.be.repository.WalletRepository;
 import org.rent.room.be.repository.WalletTransactionRepository;
 import org.rent.room.be.service.BookingService;
-import org.rent.room.be.service.InvoicePdfService;
+
 import org.rent.room.be.service.PaymentService;
 import org.rent.room.be.service.UserService;
 import org.springframework.beans.factory.ObjectProvider;
@@ -281,7 +281,7 @@ public class PaymentServiceImpl implements PaymentService {
         } catch (Exception e) {
             payment.setPaymentStatus(PaymentStatus.FAILED);
             paymentRepository.save(payment);
-            throw new RuntimeException("Không thể tạo link thanh toán PAYOS");
+            throw new RuntimeException("Không thể tạo link thanh toán PAYOS 1");
         }
     }
 

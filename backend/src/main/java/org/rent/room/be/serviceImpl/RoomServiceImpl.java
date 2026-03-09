@@ -1,5 +1,6 @@
 package org.rent.room.be.serviceImpl;
 
+import com.beust.ah.A;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -9,10 +10,12 @@ import org.rent.room.be.constant.RoomStatus;
 import org.rent.room.be.dto.internal.CloudinaryUploadResult;
 import org.rent.room.be.dto.request.room.CreateRoomRequest;
 import org.rent.room.be.dto.request.room.UpdateRoomRequest;
+import org.rent.room.be.dto.response.booking.BookingShortResponse;
 import org.rent.room.be.dto.response.room.RoomCardResponse;
 import org.rent.room.be.dto.response.room.RoomImageResponse;
 import org.rent.room.be.dto.response.room.RoomResponse;
 import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
+import org.rent.room.be.dto.response.slot.SlotResponse;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.repository.*;
 import org.rent.room.be.service.CloudinaryService;
@@ -125,10 +128,13 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public List<RoomResponse> getRoomsByUserId(UUID userId) {
-        return roomRepository.findByOwnerIdNotInactive(userId)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+
+
+         List<Room> response =  roomRepository.findAllRoomsByOwnerId(userId);
+
+        List<RoomResponse> roomResponses = response.stream().map(room -> mapToResponse(room)).collect(Collectors.toList());
+
+        return roomResponses;
     }
 
     @Override
@@ -328,11 +334,47 @@ public class RoomServiceImpl implements RoomService {
 
         Category category = room.getCategory();
 
-        List<RoomCopyResponse> roomCopyResponses = room.getRoomCopies().stream().map(rc -> RoomCopyResponse.builder()
-                .roomCopyId(rc.getRoomCopyId())
-                .roomCode(rc.getRoomCode())
-                .roomCopyStatus(rc.getRoomCopyStatus() != null ? rc.getRoomCopyStatus() : null)
-                .build()).toList();
+        List<RoomCopyResponse> roomCopyResponses = room.getRoomCopies().stream()
+                .map(rc -> {
+
+                    List<SlotResponse> rs = null;
+
+                    if (rc.getSlots() != null) {
+
+                        rs = rc.getSlots().stream()
+                                .map(s -> {
+
+                                    BookingShortResponse bookingRes = null;
+
+                                    if (s.getBooking() != null) {
+                                        bookingRes = BookingShortResponse.builder()
+                                                .bookingId(s.getBooking().getBookingId())
+                                                .userName(s.getBooking().getRenter().getUserName())
+                                                .userPhone(s.getBooking().getRenter().getPhone())
+                                                .note(s.getBooking().getNote())
+                                                .build();
+                                    }
+
+                                    return SlotResponse.builder()
+                                            .slotId(s.getSlotId())
+                                            .startTime(s.getStartTime())
+                                            .endTime(s.getEndTime())
+                                            .status(s.getSlotStatus())
+                                            .booking(bookingRes)
+                                            .build();
+                                })
+                                .toList();
+                    }
+
+                    return RoomCopyResponse.builder()
+                            .roomCopyId(rc.getRoomCopyId())
+                            .roomCode(rc.getRoomCode())
+                            .roomCopyStatus(rc.getRoomCopyStatus())
+                            .slots(rs)
+                            .build();
+                })
+                .toList();
+
 
         return RoomResponse.builder()
                 .roomId(room.getRoomId())

@@ -1,5 +1,4 @@
 import { Card } from "antd";
-import { use } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 export default function BookingInfoList({ intent }: any) {
@@ -11,7 +10,7 @@ export default function BookingInfoList({ intent }: any) {
   }
   return (
     <>
-      <Card title="Your Booking Info">
+      <Card>
         {intent.slots.map((slot: any) => (
           <Card key={slot.intentSlotId} className="mb-4">
             <div className="flex gap-3">
@@ -28,7 +27,7 @@ export default function BookingInfoList({ intent }: any) {
                 </h3>
 
                 <p className="text-gray-500 text-sm mb-2">
-                  {new Date(slot.startTime).toLocaleString("vi-VN")} →{" "}
+                  {new Date(slot.startTime).toLocaleString("vi-VN")} →
                   {new Date(slot.endTime).toLocaleString("vi-VN")}
                 </p>
                 <p className="mb-2">Số lượng: {slot.quantity}</p>

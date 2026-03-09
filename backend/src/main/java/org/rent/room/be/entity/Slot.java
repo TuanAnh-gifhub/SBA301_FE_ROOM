@@ -36,8 +36,6 @@ public class Slot extends BaseEntity {
     @Column(name = "price", precision = 19, scale = 2)
     BigDecimal price;
 
-    @Column(name = "specific_date")
-    LocalDate specificDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "slot_status")

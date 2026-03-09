@@ -87,15 +87,8 @@ export default function HourlyForm({
           expireAt: res.expiresAt,
         });
 
-        toast.success("Đã giữ phòng");
-      } else {
-        await updateBookingIntent(bookingIntentId, payload);
-
-        saveBookingIntent({
-          bookingIntentId,
-          slots: updated,
-        });
-      }
+      
+      } 
     } catch (e: any) {
       toast.error(e.message);
     }

@@ -38,6 +38,10 @@ import ManageRoomPage from "../pages/Customer/ManageRoomPage/ManageRoomPage";
 import ManageBookingPage from "../pages/Owner/ManageBookingPage/ManageBookingPage";
 import ManageSchedulePage from "../pages/Owner/ManageSchedule/ManageSchedulePage";
 import ManagePostPage from "../pages/Customer/ManagePostPage/ManagePostPage";
+import MyBookingHistoryPage from "../pages/Customer/MyBookingHistoryPage/MyBookingHistoryPage";
+import BookingDetailPage from "../pages/Customer/MyBookingHistoryPage/BookingDetailPage";
+import OwnerDashBoard from "../pages/Owner/Dashboard/OwnerDashboard";
+import ProfilePage from "../pages/Customer/ProfilePage/ProfilePage";
 
 export const router = createBrowserRouter([
   {
@@ -76,6 +80,18 @@ export const router = createBrowserRouter([
         path: "payment/success/:bookingId",
         element: <PaymentSuccessPage />,
         handle: { breadcrumb: "Thanh toán thành công" },
+      },
+      {
+        path: "profile",
+        element: <ProfilePage />,
+      },
+      {
+        path: "my-booking-history",
+        element: <MyBookingHistoryPage />,
+      },
+      {
+        path: "/my-booking-history/:bookingId",
+        element: <BookingDetailPage />,
       },
       {
         path: "payment/booking-result",
@@ -255,6 +271,10 @@ export const router = createBrowserRouter([
             </p>
           </div>
         ),
+      },
+      {
+path:"dashboard",
+element: <OwnerDashBoard />,
       },
       {
         path: "manage-posts",
