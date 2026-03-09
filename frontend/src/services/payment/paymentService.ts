@@ -12,6 +12,8 @@ export type CheckoutResponse = {
 export async function createPayment(data: {
   bookingIntentId: string;
   paymentMethod: string;
+  phoneNumber: string;
+  note?: string;
 }) {
   const res = await axios.post("/payments/checkout", data);
   return res;

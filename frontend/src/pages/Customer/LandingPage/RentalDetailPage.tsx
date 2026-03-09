@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import rentalAreasService from "../../../services/rental-areas/rentalAreas";
 import RentalHeader from "./RentalHeader";
 import RoomListPage from "./RoomListPage";
@@ -167,12 +167,10 @@ export default function RentalDetailPage() {
         endTime: `${item.date}T${item.endTime}:00`,
       }));
 
-      console.error("xem id", user?.userId);
-
       const payload = {
         userId: user?.userId,
         userName: user?.name,
-        userPhone: user?.phone,
+        userPhone: user?.phone || "",
         bookingType: "HOURLY",
         numberOfMonths: 0,
         note: "",
@@ -189,12 +187,26 @@ export default function RentalDetailPage() {
         navigate(`/customer/bookings/${res.result.bookingIntentId}`);
         setCart([]);
       }
+
       if (res.code === 500) {
         toast.error(res.message || "Đặt phòng thất bại");
       }
       console.log(" CREATED", res.result);
     } catch (err) {
-      console.error(err);
+      if (err.response && err.response.data) {
+        const res = err.response.data;
+        console.log("Dữ liệu lỗi từ server:", res);
+
+        if (res.code === 2003) {
+          const errorMessages = Object.values(res.result);
+          errorMessages.forEach((msg) => toast.error(msg));
+        } else {
+          toast.error(res.message || "Đặt phòng thất bại");
+        }
+      } else {
+        toast.error("Không thể kết nối đến server");
+      }
+   
     }
   };
   return (
@@ -231,7 +243,7 @@ export default function RentalDetailPage() {
           />
         </Col>
       </Row>
-{/* 
+      {/* 
       //review */}
     </div>
   );

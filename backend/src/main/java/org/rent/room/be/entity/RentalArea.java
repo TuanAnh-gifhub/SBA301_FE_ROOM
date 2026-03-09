@@ -56,6 +56,9 @@ public class RentalArea extends BaseEntity {
     @OneToMany(mappedBy = "rentalArea",fetch = FetchType.LAZY)
     List<Room> room;
 
+    @OneToMany(mappedBy = "rentalArea",fetch = FetchType.LAZY)
+    List<Booking> bookings;
+
 //    @OneToMany(mappedBy = "rentalArea")
 //    private List<Post> posts;
 }
