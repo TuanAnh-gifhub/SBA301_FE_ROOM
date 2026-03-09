@@ -48,4 +48,13 @@ public class Payment extends BaseEntity {
 
     @OneToOne
     private BookingIntent bookingIntent;
+
+    @Column(name = "payos_order_code", unique = true)
+    Long payosOrderCode;
+
+    @Column(name = "payos_payment_link_id")
+    String payosPaymentLinkId;
+
+    @Column(name = "booking_id")
+    UUID bookingId;
 }

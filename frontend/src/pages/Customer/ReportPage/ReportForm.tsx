@@ -1,6 +1,7 @@
 import type { FormProps } from "antd";
 import { Button, Col, Form, Input, message, Row, Select } from "antd";
 import { useAuth } from "../../../context/AuthContext";
+import { useSearchParams } from "react-router-dom";
 
 import { useEffect } from "react";
 
@@ -13,19 +14,23 @@ type FieldReportType = {
   address?: string;
   roomName?: string;
   reportId?: string;
+  bookingId?: string;
 };
 
 export default function ReportForm() {
   const [form] = Form.useForm<FieldReportType>();
   const [messageApi, contextHolder] = message.useMessage();
   const { user, isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
   useEffect(() => {
+    const bookingId = searchParams.get("bookingId") || undefined;
     if (user) {
       form.setFieldsValue({
         reportId: user?.userId,
+        bookingId,
       });
     }
-  }, [user, form]);
+  }, [user, form, searchParams]);
 
   const onFinish: FormProps<FieldReportType>["onFinish"] = async (values) => {
     if (!isAuthenticated || !user) {
@@ -40,6 +45,7 @@ export default function ReportForm() {
       address: values.address,
       roomName: values.roomName,
       reportId: values.reportId,
+      bookingId: values.bookingId,
     };
 
     try {
@@ -179,6 +185,9 @@ export default function ReportForm() {
                   />
                 </Form.Item>
                 <Form.Item name="reportId" hidden>
+                  <Input />
+                </Form.Item>
+                <Form.Item name="bookingId" hidden>
                   <Input />
                 </Form.Item>
                 <div className="pt-4">

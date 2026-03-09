@@ -23,7 +23,7 @@ public interface BookingService {
 
     BookingIntentResponse createBookingIntent(BookingRequest bookingRequest);
 
-    BookingResponse createBooking(UUID bookingIntentID, Payment payment, String note) throws IOException;
+    BookingResponse createBooking(UUID bookingIntentID, Payment payment) throws IOException;
 
     BookingResponse updateBooking(UUID bookingId, UpdateBookingRequest bookingRequest);
 

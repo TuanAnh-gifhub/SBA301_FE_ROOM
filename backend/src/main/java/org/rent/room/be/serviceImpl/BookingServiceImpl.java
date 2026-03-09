@@ -2,10 +2,13 @@ package org.rent.room.be.serviceImpl;
 
 import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.constant.*;
+
 import org.rent.room.be.dto.request.booking.BookingRequest;
 import org.rent.room.be.dto.request.booking.SlotRequest;
 import org.rent.room.be.dto.request.booking.UpdateBookingRequest;
+
 import org.rent.room.be.dto.response.booking.*;
+
 import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.dto.response.room.RoomImageResponse;
 import org.rent.room.be.dto.response.room.RoomResponse;
@@ -13,7 +16,6 @@ import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
 import org.rent.room.be.dto.response.slot.SlotResponse;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.entity.BookingIntent;
-
 import org.rent.room.be.exception.AppException;
 import org.rent.room.be.exception.ErrorCode;
 import org.rent.room.be.repository.*;
@@ -53,15 +55,21 @@ public class BookingServiceImpl implements BookingService {
     private RoomRepository roomRepository;
     @Autowired
     private BookingQRService bookingQRService;
+
     @Autowired
     private SlotRepository slotRepository;
+    @Autowired
+    private BookingQRRepository bookingQRRepository;
 
     @Autowired
     private BookingIntentRepository bookingIntentRepository;
+
     @Autowired
     private RentalAreaRepository rentalAreaRepository;
+
     @Autowired
     private InvoicePdfService invoicePdfService;
+
 
 
     @Override
@@ -276,8 +284,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
 
+
     @Transactional
-    public BookingResponse createBooking(UUID bookingIntentId, Payment payment, String note) throws IOException {
+    public BookingResponse createBooking(UUID bookingIntentId, Payment payment) throws IOException {
         BookingIntent bookingIntent = bookingIntentRepository.findById(bookingIntentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy mã đặt lịch dự định với id " + bookingIntentId));
 
@@ -285,6 +294,11 @@ public class BookingServiceImpl implements BookingService {
             throw new RuntimeException("Thông tin đặt lịch  đã hết hạn trong thời gian giữ,vui lòng đặt lại");
         }
 
+//        if(bookingIntent.getUser().getPhone() == null){
+//            User user = bookingIntent.getUser();
+//            user.setPhone(phone);
+//            userRepository.save(user);
+//        }
 
         Booking booking = Booking.builder()
                 .bookingTitle(bookingIntent.getTitle())
@@ -296,7 +310,7 @@ public class BookingServiceImpl implements BookingService {
                 .endTime(bookingIntent.getSlots().getLast().getEndTime())
                 .createdAt(LocalDateTime.now())
                 .rentalArea(bookingIntent.getRentalArea())
-                .note(note != null ? note : bookingIntent.getNote())
+                .note(bookingIntent.getNote() != null ?  bookingIntent.getNote():"")
                 .build();
 
         bookingRepository.save(booking);
@@ -369,7 +383,6 @@ public class BookingServiceImpl implements BookingService {
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
                 .status(BookingStatus.BOOKED)
-//                .numberOfMonths(Math.max(request.getNumberOfMonths(), 0))
                 .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
                 .statusPayment("")
@@ -716,7 +729,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingDashboardResponse revenue(Integer month,Integer year) {
+    public BookingDashboardResponse revenue(Integer month, Integer year) {
 
         LocalDate today = LocalDate.now();
 

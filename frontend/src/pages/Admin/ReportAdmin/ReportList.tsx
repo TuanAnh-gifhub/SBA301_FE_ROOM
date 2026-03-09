@@ -13,6 +13,7 @@ const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
 
 interface DataType {
   reportId: string;
+  bookingId?: string;
   title: string;
   content: string;
   address: string;
@@ -55,6 +56,11 @@ export default function ReportList({
     {
       title: "Nội dung",
       dataIndex: "content",
+    },
+    {
+      title: "Booking ID",
+      dataIndex: "bookingId",
+      render: (value?: string) => value || "-",
     },
     {
       title: "Trạng thái",

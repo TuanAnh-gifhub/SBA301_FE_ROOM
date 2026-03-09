@@ -18,6 +18,7 @@ public class ReportResponse {
     private String content;
     private ReportStatus status;
     private String address;
+    private UUID bookingId;
     private UserResponse user;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

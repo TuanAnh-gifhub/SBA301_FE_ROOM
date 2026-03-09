@@ -47,6 +47,30 @@ export default function BookingDetail() {
     }
   };
 
+  const handleConfirm = async () => {
+    if (!intent?.bookingIntentId) {
+      message.error("Intent không hợp lệ");
+      return;
+    }
+
+    try {
+      setConfirming(true);
+
+      const res = await confirmBooking(intent.bookingIntentId);
+      if (res?.success) {
+        message.success("Đặt phòng thành công!");
+
+        navigate("/customer/my-bookings");
+      } else {
+        message.error("Đặt phòng thất bại " + (res?.message || ""));
+      }
+    } catch (e) {
+      message.error("Booking thất bại");
+    } finally {
+      setConfirming(false);
+    }
+  };
+
   if (loading || !intent) {
     return (
       <div style={{ textAlign: "center", marginTop: 80 }}>
@@ -56,15 +80,37 @@ export default function BookingDetail() {
   }
 
   return (
+      <div>
     <Row gutter={16}>
       <Col span={16}>
         <BookingContactForm formData={contact} setFormData={setContact} />
         <BookingInfoList intent={intent} />
       </Col>
 
-      <Col span={8}>
-        <PaymentSummary intent={intent} contact={contact} />
-      </Col>
-    </Row>
+        <Col span={8}>
+          <PaymentSummary
+            intent={intent}
+            onConfirm={handleConfirm}
+            loading={confirming}
+          />
+        </Col>
+      </Row>
+
+      {bookingId && (
+        <Card>
+          <p className="text-sm text-gray-600 mb-3">
+            Nếu bạn gặp vấn đề với booking này, có thể gửi khiếu nại trực tiếp để
+            hệ thống tạm giữ escrow và admin xử lý.
+          </p>
+          <Button
+            type="primary"
+            danger
+            onClick={() => navigate(`/report-form?bookingId=${bookingId}`)}
+          >
+            Khiếu nại booking này
+          </Button>
+        </Card>
+      )}
+    </div>
   );
 }

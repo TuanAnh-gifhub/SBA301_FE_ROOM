@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.rent.room.be.constant.BookingType;
+import org.rent.room.be.validation.ValidSlotRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -13,7 +14,6 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
 public class BookingRequest {
     @NotNull(message = "Mã người dùng không được bỏ trống")
     private UUID userId;
