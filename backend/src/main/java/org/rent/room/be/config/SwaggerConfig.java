@@ -1,7 +1,6 @@
 package org.rent.room.be.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.tags.Tags;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -16,7 +15,6 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 // truy cập http://localhost:8080/api/v1/rent-room/swagger-ui/index.html để xem tài liệu API
-
 @OpenAPIDefinition(
         tags = {
                 @Tag(name = "1. Authentication", description = "API quản lý xác thực"),
@@ -28,8 +26,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
                 @Tag(name = "7. Report", description = "API quản lý báo cáo vi phạm"),
         }
 )
-
-
 @Configuration
 public class SwaggerConfig {
 

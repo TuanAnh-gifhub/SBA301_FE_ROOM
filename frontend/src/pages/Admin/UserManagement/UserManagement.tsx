@@ -4,11 +4,11 @@ import type { TablePaginationConfig } from "antd/es/table";
 import { ReloadOutlined } from "@ant-design/icons";
 import { userService, type UserResponse } from "../../../services/usersService";
 
-// Import components con
 import UserFilter from "./UserFilter";
 import UserTable from "./UserTable";
 import UserDetailModal from "./UserDetailModal";
 import UserEditModal from "./UserEditModal";
+import UserAddModal from "./UserAddModal";
 
 const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
@@ -270,22 +270,19 @@ const UserManagement: React.FC = () => {
         onClose={handleCloseDetailModal}
       />
 
+      <UserAddModal
+        open={isCreateModalOpen}
+        loading={loading}
+        onCancel={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateSubmit}
+      />
+
       <UserEditModal
         open={isEditModalOpen}
         user={editingUser}
         loading={loading}
-        mode="edit" // Xác định chế độ edit
         onCancel={handleCloseEditModal}
         onSubmit={handleUpdateSubmit}
-      />
-
-      <UserEditModal
-        open={isCreateModalOpen}
-        user={null} // Không có dữ liệu cũ
-        loading={loading}
-        mode="create" // Xác định chế độ create
-        onCancel={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateSubmit}
       />
     </>
 

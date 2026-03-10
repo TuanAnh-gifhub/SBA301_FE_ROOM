@@ -1,5 +1,11 @@
 import api from "../../config/axios";
 
+export interface MessageRequest {
+  conversationId?: string;
+  receiverId: string;
+  content: string;
+}
+
 export interface ApiResponse<T> {
   code: number;
   message: string;
@@ -46,9 +52,14 @@ const chatService = {
 
   getMessages: async (
     conversationId: string,
+    page: number = 0,
+    size: number = 20
   ): Promise<ApiResponse<MessageResponse[]>> => {
     const response = await api.get<ApiResponse<MessageResponse[]>>(
       `/chat/history/${conversationId}`,
+      {
+        params: { page, size }
+      }
     );
     return response.data;
   },
@@ -77,8 +88,21 @@ const chatService = {
   },
 
   sendMessageWithImage: async (
-    formData: FormData,
+    request: MessageRequest,
+    file?: File
   ): Promise<ApiResponse<MessageResponse>> => {
+    const formData = new FormData();
+    
+    // Chuyển MessageRequest thành Blob với type application/json để @RequestPart đọc được
+    formData.append(
+      "data",
+      new Blob([JSON.stringify(request)], { type: "application/json" })
+    );
+
+    if (file) {
+      formData.append("file", file);
+    }
+
     const response = await api.post<ApiResponse<MessageResponse>>(
       `/chat/send-with-image`,
       formData,

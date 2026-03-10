@@ -14,7 +14,7 @@ import AboutUs from "../pages/Customer/AboutUs/AboutUs";
 import ReportPage from "../pages/Admin/ReportAdmin/ReportPage";
 import ReportForm from "../pages/Customer/ReportPage/ReportForm";
 import ResetPassword from "../pages/Customer/LoginPage/ResetPassword";
-import UserManagement from "../pages/Admin/UserManagement";
+import UserManagement from "../pages/Admin/UserManagement/UserManagement";
 import ManagePage from "../pages/Customer/ManagePage/ManagePage";
 import ConfirmRegister from "../pages/Customer/LoginPage/ConfirmRegister";
 import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManagementPage";
@@ -38,6 +38,7 @@ import ManageRoomPage from "../pages/Customer/ManageRoomPage/ManageRoomPage";
 import ManageBookingPage from "../pages/Owner/ManageBookingPage/ManageBookingPage";
 import ManageSchedulePage from "../pages/Owner/ManageSchedule/ManageSchedulePage";
 import ManagePostPage from "../pages/Customer/ManagePostPage/ManagePostPage";
+import NotificationPage from "../pages/Customer/NotificationPage/NotificationPage";
 import MyBookingHistoryPage from "../pages/Customer/MyBookingHistoryPage/MyBookingHistoryPage";
 import BookingDetailPage from "../pages/Customer/MyBookingHistoryPage/BookingDetailPage";
 import OwnerDashBoard from "../pages/Owner/Dashboard/OwnerDashboard";
@@ -148,7 +149,6 @@ export const router = createBrowserRouter([
         element: <ResetPassword />,
         handle: { breadcrumb: "Đặt lại mật khẩu" },
       },
-
       {
         path: "manage-posts",
         element: <ManagePage />,
@@ -184,6 +184,11 @@ export const router = createBrowserRouter([
         element: <ReportForm />,
         handle: { breadcrumb: "Báo cáo vi phạm" },
       },
+      {
+        path: "notifications",
+        element: <NotificationPage />,
+        handle: { breadcrumb: "Thông báo mới" },
+      }
     ],
   },
   // Admin routes

@@ -5,13 +5,12 @@ class WebSocketService {
   private stompClient: any = null;
   private socket: any = null;
 
-  // Sửa thành Mảng để lưu nhiều callback
   private newMessageListeners: ((data: any) => void)[] = [];
   private readReceiptListeners: ((data: {
     conversationId: string;
     readerId: string;
   }) => void)[] = [];
-  private connectedCallback: (() => void) | null = null;
+  private notificationListeners: ((data: any) => void)[] = [];
 
   connect(url: string, token: string | null = null): void {
     if (this.isConnected()) return;
@@ -40,6 +39,27 @@ class WebSocketService {
           this.readReceiptListeners.forEach((callback) => callback(data));
         }
       });
+
+      this.stompClient.subscribe(
+        "/user/queue/notifications",
+        (message: any) => {
+          if (message.body) {
+            const data = JSON.parse(message.body);
+            console.log("📦 Dữ liệu Notification đã parse:", data);
+
+            if (this.notificationListeners.length === 0) {
+              console.warn(
+                "⚠️ Cảnh báo: Nhận được data nhưng chưa có Component nào đăng ký onNotification!",
+              );
+            }
+
+            this.notificationListeners.forEach((callback) => callback(data));
+          }
+        },
+        (error: any) => {
+          console.error("❌ Lỗi khi subscribe notifications:", error);
+        },
+      );
     });
   }
 
@@ -82,8 +102,13 @@ class WebSocketService {
     return this.stompClient && this.stompClient.connected;
   }
 
-  onConnected(callback: () => void) {
-    this.connectedCallback = callback;
+  onNotification(callback: (data: any) => void) {
+    this.notificationListeners.push(callback);
+    return () => {
+      this.notificationListeners = this.notificationListeners.filter(
+        (l) => l !== callback,
+      );
+    };
   }
 }
 
