@@ -22,12 +22,12 @@ import org.rent.room.be.entity.WalletTransaction;
 import org.rent.room.be.properties.PayOsProperties;
 import org.rent.room.be.repository.BookingIntentRepository;
 
-import org.rent.room.be.repository.BookingRepository;
+
 import org.rent.room.be.repository.PaymentRepository;
 import org.rent.room.be.repository.WalletRepository;
 import org.rent.room.be.repository.WalletTransactionRepository;
 import org.rent.room.be.service.BookingService;
-import org.rent.room.be.service.InvoicePdfService;
+
 import org.rent.room.be.service.PaymentService;
 import org.rent.room.be.service.UserService;
 import org.springframework.beans.factory.ObjectProvider;
@@ -47,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -195,10 +196,6 @@ public class PaymentServiceImpl implements PaymentService {
         wallet.setBalance(after);
         walletRepository.save(wallet);
 
-        BookingResponse booking = bookingService.createBooking(intent.getBookingIntentId());
-        intent.setStatus(BookingIntentStatus.CONFIRMED);
-        bookingIntentRepository.save(intent);
-
         Payment payment = Payment.builder()
                 .bookingIntent(intent)
                 .amount(intent.getPreviewPrice())
@@ -207,26 +204,35 @@ public class PaymentServiceImpl implements PaymentService {
                 .transactionDate(LocalDateTime.now())
                 .user(user)
                 .wallet(wallet)
-                .bookingId(booking.getBookingId())
                 .build();
         paymentRepository.save(payment);
+        try {
+            BookingResponse booking = bookingService.createBooking(intent.getBookingIntentId(), payment);
+            intent.setStatus(BookingIntentStatus.CONFIRMED);
+            bookingIntentRepository.save(intent);
 
-        createWalletPaymentTransactionSafely(
-                wallet,
-                booking.getBookingId(),
-                intent.getPreviewPrice(),
-                before,
-                after,
-                "Thanh toan booking bang vi",
-                "booking_checkout_wallet"
-        );
+            payment.setBookingId(booking.getBookingId());
+            paymentRepository.save(payment);
 
-        return CheckoutResponse.builder()
-                .mode("BOOKED")
-                .paymentStatus(PaymentStatus.SUCCESS.name())
-                .bookingId(booking.getBookingId())
-                .message("Thanh toán bằng ví thành công")
-                .build();
+            createWalletPaymentTransactionSafely(
+                    wallet,
+                    booking.getBookingId(),
+                    intent.getPreviewPrice(),
+                    before,
+                    after,
+                    "Thanh toan booking bang vi",
+                    "booking_checkout_wallet"
+            );
+
+            return CheckoutResponse.builder()
+                    .mode("BOOKED")
+                    .paymentStatus(PaymentStatus.SUCCESS.name())
+                    .bookingId(booking.getBookingId())
+                    .message("Thanh toán bằng ví thành công")
+                    .build();
+        } catch (IOException e) {
+            throw new RuntimeException("Không thể tạo booking/invoice cho thanh toán ví", e);
+        }
     }
 
     private CheckoutResponse handlePayOsCheckout(BookingIntent intent, User user, PaymentMethod method) {
@@ -275,7 +281,7 @@ public class PaymentServiceImpl implements PaymentService {
         } catch (Exception e) {
             payment.setPaymentStatus(PaymentStatus.FAILED);
             paymentRepository.save(payment);
-            throw new RuntimeException("Không thể tạo link thanh toán PAYOS");
+            throw new RuntimeException("Không thể tạo link thanh toán PAYOS 1");
         }
     }
 
@@ -289,32 +295,36 @@ public class PaymentServiceImpl implements PaymentService {
             return;
         }
 
-        BookingResponse booking = bookingService.createBooking(payment.getBookingIntent().getBookingIntentId());
-        BookingIntent intent = payment.getBookingIntent();
-        intent.setStatus(BookingIntentStatus.CONFIRMED);
-        bookingIntentRepository.save(intent);
+        try {
+            BookingResponse booking = bookingService.createBooking(payment.getBookingIntent().getBookingIntentId(), payment);
+            BookingIntent intent = payment.getBookingIntent();
+            intent.setStatus(BookingIntentStatus.CONFIRMED);
+            bookingIntentRepository.save(intent);
 
-        payment.setBookingId(booking.getBookingId());
-        payment.setPaymentStatus(PaymentStatus.SUCCESS);
-        paymentRepository.save(payment);
+            payment.setBookingId(booking.getBookingId());
+            payment.setPaymentStatus(PaymentStatus.SUCCESS);
+            paymentRepository.save(payment);
 
-        Wallet renterWallet = walletRepository.findByUser(payment.getUser())
-                .orElseGet(() -> walletRepository.save(Wallet.builder()
-                        .user(payment.getUser())
-                        .balance(BigDecimal.ZERO)
-                        .frozenAmount(BigDecimal.ZERO)
-                        .walletStatus(WalletStatus.ACTIVE)
-                        .build()));
-        BigDecimal sameBalance = renterWallet.getBalance();
-        createWalletPaymentTransactionSafely(
-                renterWallet,
-                booking.getBookingId(),
-                payment.getAmount(),
-                sameBalance,
-                sameBalance,
-                "Thanh toan booking qua PayOS",
-                "booking_checkout_payos"
-        );
+            Wallet renterWallet = walletRepository.findByUser(payment.getUser())
+                    .orElseGet(() -> walletRepository.save(Wallet.builder()
+                            .user(payment.getUser())
+                            .balance(BigDecimal.ZERO)
+                            .frozenAmount(BigDecimal.ZERO)
+                            .walletStatus(WalletStatus.ACTIVE)
+                            .build()));
+            BigDecimal sameBalance = renterWallet.getBalance();
+            createWalletPaymentTransactionSafely(
+                    renterWallet,
+                    booking.getBookingId(),
+                    payment.getAmount(),
+                    sameBalance,
+                    sameBalance,
+                    "Thanh toan booking qua PayOS",
+                    "booking_checkout_payos"
+            );
+        } catch (IOException e) {
+            throw new RuntimeException("Không thể tạo booking/invoice cho thanh toán PayOS", e);
+        }
     }
 
     private boolean tryFinalizeByPayOsPaymentStatus(Payment payment) {
@@ -346,25 +356,17 @@ public class PaymentServiceImpl implements PaymentService {
             String description,
             String source
     ) {
-        if (bookingId != null && walletTransactionRepository.existsByBookingIdAndType(bookingId, WalletTxType.BOOKING_PAYMENT)) {
-            return;
-        }
-        try {
-            WalletTransaction tx = WalletTransaction.builder()
-                    .wallet(wallet)
-                    .type(WalletTxType.BOOKING_PAYMENT)
-                    .status(WalletTxStatus.COMPLETED)
-                    .amount(amount)
-                    .balanceBefore(before)
-                    .balanceAfter(after)
-                    .bookingId(bookingId)
-                    .description(description)
-                    .metadata(writeMetadata(new LinkedHashMap<>(Map.of("source", source))))
-                    .build();
-            walletTransactionRepository.save(tx);
-        } catch (DataIntegrityViolationException e) {
-            log.warn("Cannot write wallet booking transaction due to DB constraint mismatch", e);
-        }
+        // WARNING:
+        // Current database schema for wallet_transactions has a CHECK constraint
+        // on transaction_type that does NOT include BOOKING_PAYMENT.
+        // Attempting to persist a BOOKING_PAYMENT row causes DataIntegrityViolationException
+        // on commit (similar to the legacy withdraw issue).
+        //
+        // To keep the booking payment flow stable without changing legacy DB constraints,
+        // we SKIP writing these BOOKING_PAYMENT transactions entirely.
+        // Booking and payment records are still created; only the extra wallet log is omitted.
+        log.warn("Skip creating wallet BOOKING_PAYMENT transaction for bookingId={} due to legacy DB check constraint.", bookingId);
+        return;
     }
 
     private void validateIntentOwnership(BookingIntent intent, User currentUser) {

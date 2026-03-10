@@ -30,7 +30,6 @@ public class DataInitializer implements CommandLineRunner {
     RoomCopyRepository roomCopyRepository;
     RoomRepository roomRepository;
     RentalAreaRepository rentalAreaRepository;
-
     @Override
     public void run(String... args) throws Exception {
         seedUsers();
@@ -40,12 +39,13 @@ public class DataInitializer implements CommandLineRunner {
         seedRooms();
     }
 
-    private void seedRooms() {
+
+    private void seedRooms(){
         List<City> cities = cityRepository.findAll();
         List<Amenity> amenities = amenityRepository.findAll();
         Set<Amenity> amenitySet = new HashSet<>(amenities);
         List<Category> categories = categoryRepository.findAll();
-        RentalArea rentalArea = RentalArea.builder()
+        RentalArea rentalArea =RentalArea.builder()
                 .address("90 Phạm Đăng Giảng, phường Bình Hưng Hòa")
                 .contactName("Quang B")
                 .contactPhone("0777964742")
@@ -76,11 +76,13 @@ public class DataInitializer implements CommandLineRunner {
                 .roomCopyStatus(RoomCopyStatus.AVAILABLE)
                 .build();
 
+
         roomCopyRepository.save(roomCopy1);
         roomCopyRepository.save(roomCopy2);
         roomCopyRepository.save(roomCopy3);
         roomCopyRepository.save(roomCopy4);
         roomCopyRepository.save(roomCopy5);
+
 
         Room room1 = Room.builder()
                 .roomName("Phòng học 30 người")
@@ -98,6 +100,8 @@ public class DataInitializer implements CommandLineRunner {
         roomRepository.save(room1);
         roomCopyRepository.saveAll(List.of(roomCopy1, roomCopy2, roomCopy3));
 
+
+
         Room room2 = Room.builder()
                 .roomName("Phòng học 40 người")
                 .description("Phòng học")
@@ -109,7 +113,9 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
         roomRepository.save(room1);
         roomRepository.save(room2);
+
     }
+
 
     private void seedUsers() {
         Role adminRole = createRoleIfNotExist("ADMIN", "Quản trị hệ thống");
@@ -124,7 +130,7 @@ public class DataInitializer implements CommandLineRunner {
                 .passwordHash(passwordEncoder.encode("12345678"))
                 .phone("0987654321")
                 .dateOfBirth(LocalDate.of(2000, 1, 2))
-                .role(renterRole)
+                .role(ownerRole)
                 .active(true).build();
 
         User user2 = User.builder()
@@ -158,67 +164,18 @@ public class DataInitializer implements CommandLineRunner {
                 .active(true).build();
 
         User user5 = User.builder()
-                .userName("Minh Anh")
-                .gender("Female")
-                .email("minhanh@gmail.com")
+                .userName("Quân")
+                .gender("Other")
+                .email("quan@gmail.com")
                 .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("0912345678")
-                .dateOfBirth(LocalDate.of(1998, 5, 20))
+                .phone("1234567810")
+                .dateOfBirth(LocalDate.of(2004, 1, 2))
                 .role(renterRole)
                 .active(true).build();
 
-        User user6 = User.builder()
-                .userName("Hoàng Nam")
-                .gender("Male")
-                .email("hoangnam@gmail.com")
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("0922334455")
-                .dateOfBirth(LocalDate.of(1995, 10, 15))
-                .role(ownerRole)
-                .active(true).build();
-
-        User user7 = User.builder()
-                .userName("Thu Thảo")
-                .gender("Female")
-                .email("thuthao@gmail.com")
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("0933445566")
-                .dateOfBirth(LocalDate.of(2001, 3, 12))
-                .role(renterRole)
-                .active(true).build();
-
-        User user8 = User.builder()
-                .userName("Văn Dũng")
-                .gender("Male")
-                .email("vandung@gmail.com")
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("0944556677")
-                .dateOfBirth(LocalDate.of(1988, 7, 30))
-                .role(ownerRole)
-                .active(true).build();
-
-        User user9 = User.builder()
-                .userName("Bảo Ngọc")
-                .gender("Female")
-                .email("baongoc@gmail.com")
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("0955667788")
-                .dateOfBirth(LocalDate.of(2002, 12, 25))
-                .role(renterRole)
-                .active(true).build();
-
-        User user10 = User.builder()
-                .userName("Tuấn Kiệt")
-                .gender("Male")
-                .email("tuankiet@gmail.com")
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("0966778899")
-                .dateOfBirth(LocalDate.of(1997, 2, 14))
-                .role(renterRole)
-                .active(true).build();
-
-        userRepository.saveAll(List.of(user1, user2, user3, user4, user5, user6, user7, user8, user9, user10));
+        userRepository.saveAll(List.of(user1, user2, user3, user4,user5));
     }
+
 
     private void seedCities() {
 
@@ -343,6 +300,8 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
     }
+
+
 
     private Role createRoleIfNotExist(String roleName, String description) {
         return roleRepository.findByRoleName(roleName)

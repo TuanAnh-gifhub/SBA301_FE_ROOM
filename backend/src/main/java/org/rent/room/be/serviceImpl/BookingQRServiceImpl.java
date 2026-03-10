@@ -73,13 +73,19 @@ public class BookingQRServiceImpl implements BookingQRService {
                 .orElseThrow(() ->
                         new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
+//        LocalDateTime now = LocalDateTime.now();
+
         if (qr.getQrType() == QRType.CHECK_IN) {
+
+//            if (now.isBefore(booking.getStartTime())) {
+//                throw new AppException(ErrorCode.CANNOT_CHECKIN_BEFORE_START_TIME);
+//            }
 
             if (booking.getBookingStatus() == BookingStatus.CHECKED_IN) {
                 throw new AppException(ErrorCode.BOOKING_ALREADY_CHECKED_IN);
             }
 
-            booking.setCheckIn(LocalDateTime.now());
+//            booking.setCheckIn(now);
             booking.setBookingStatus(BookingStatus.CHECKED_IN);
 
         } else {
@@ -88,7 +94,7 @@ public class BookingQRServiceImpl implements BookingQRService {
                 throw new AppException(ErrorCode.CANNOT_CHECKOUT_BEFORE_CHECKIN);
             }
 
-            booking.setCheckOut(LocalDateTime.now());
+//            booking.setCheckOut(now);
             booking.setBookingStatus(BookingStatus.COMPLETED);
         }
 

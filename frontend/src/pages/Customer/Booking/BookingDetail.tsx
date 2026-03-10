@@ -8,11 +8,15 @@ import {
 } from "../../../services/booking/bookingService";
 import BookingInfoList from "./BookingInfoList";
 import PaymentSummary from "./PaymentSummary";
-
+import BookingContactForm from "./BookingContactForm";
 export default function BookingDetail() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-
+  const [contact, setContact] = useState({
+    name: "",
+    phone: "",
+    note: "",
+  });
   const [intent, setIntent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -76,15 +80,17 @@ export default function BookingDetail() {
   }
 
   return (
-    <div className="space-y-4">
-      <Row gutter={24}>
+    <div>
+      <Row gutter={16}>
         <Col span={16}>
+          <BookingContactForm formData={contact} setFormData={setContact} />
           <BookingInfoList intent={intent} />
         </Col>
 
         <Col span={8}>
           <PaymentSummary
             intent={intent}
+            contact={contact}
             onConfirm={handleConfirm}
             loading={confirming}
           />
@@ -94,8 +100,8 @@ export default function BookingDetail() {
       {bookingId && (
         <Card>
           <p className="text-sm text-gray-600 mb-3">
-            Nếu bạn gặp vấn đề với booking này, có thể gửi khiếu nại trực tiếp để
-            hệ thống tạm giữ escrow và admin xử lý.
+            Nếu bạn gặp vấn đề với booking này, có thể gửi khiếu nại trực tiếp
+            để hệ thống tạm giữ escrow và admin xử lý.
           </p>
           <Button
             type="primary"

@@ -1,8 +1,10 @@
 package org.rent.room.be.specification;
 
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.entity.Booking;
+import org.rent.room.be.entity.User;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -15,9 +17,70 @@ import java.util.UUID;
 
 public class BookingSpecification {
 
-    public static Specification<Booking> filterBookings(
+    public static Specification<Booking> filterBookingsByUserId(
+            UUID userId,
+            BookingStatus bookingStatus,
+            String keyword,
+            LocalDate fromDate,
+            LocalDate toDate
+    ) {
+        return (root, query, cb) -> {
+
+            List<Predicate> predicates = new ArrayList<>();
+
+            System.err.println("user id trong spec" + userId);
+
+
+            if (userId != null) {
+
+                Join<Booking, User> renterJoin = root.join("renter");
+
+                predicates.add(
+                        cb.equal(
+                                renterJoin.get("userId"),
+                                userId
+                        )
+                );
+            }
+
+
+            if (bookingStatus != null) {
+                predicates.add(
+                        cb.equal(root.get("bookingStatus"), bookingStatus)
+                );
+            }
+
+            if (keyword != null && !keyword.isBlank()) {
+                predicates.add(
+                        cb.like(
+                                cb.lower(root.get("bookingTitle")),
+                                "%" + keyword.toLowerCase() + "%"
+                        )
+                );
+            }
+
+            if (fromDate != null && toDate != null) {
+
+                LocalDateTime from = fromDate.atStartOfDay();
+                LocalDateTime to = toDate.atTime(23, 59, 59);
+
+                predicates.add(
+                        cb.and(
+                                cb.lessThanOrEqualTo(root.get("startTime"), to),
+                                cb.greaterThanOrEqualTo(root.get("endTime"), from)
+                        )
+                );
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+
+    public static Specification<Booking> filterBookingsByRentalId(
             UUID rentalAreaId,
             BookingStatus bookingStatus,
+            String keyword,
             LocalDate fromDate,
             LocalDate toDate
     ) {
@@ -42,6 +105,18 @@ public class BookingSpecification {
                 );
             }
 
+            if (keyword != null && !keyword.isBlank()) {
+
+                Join<Booking, User> renterJoin = root.join("renter");
+
+                predicates.add(
+                        cb.like(
+                                cb.lower(renterJoin.get("userName")),
+                                "%" + keyword.toLowerCase() + "%"
+                        )
+                );
+            }
+
 
             if (fromDate != null && toDate != null) {
 
@@ -50,11 +125,12 @@ public class BookingSpecification {
 
                 predicates.add(
                         cb.and(
-                                cb.lessThanOrEqualTo(root.get("checkIn"), to),
-                                cb.greaterThanOrEqualTo(root.get("checkOut"), from)
+                                cb.lessThanOrEqualTo(root.get("startTime"), to),
+                                cb.greaterThanOrEqualTo(root.get("endTime"), from)
                         )
                 );
             }
+
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
@@ -69,7 +145,7 @@ public class BookingSpecification {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // bookingStatus
+
             if (bookingStatus != null) {
                 predicates.add(
                         cb.equal(
@@ -79,17 +155,16 @@ public class BookingSpecification {
                 );
             }
 
-            // keyword (ví dụ search theo note)
             if (keyword != null && !keyword.isBlank()) {
                 predicates.add(
                         cb.like(
-                                cb.lower(root.get("note")),
+                                cb.lower(root.get("title")),
                                 "%" + keyword.toLowerCase() + "%"
                         )
                 );
             }
 
-            // from date
+
             if (from != null) {
                 predicates.add(
                         cb.greaterThanOrEqualTo(
@@ -99,7 +174,7 @@ public class BookingSpecification {
                 );
             }
 
-            // to date
+
             if (to != null) {
                 predicates.add(
                         cb.lessThanOrEqualTo(
