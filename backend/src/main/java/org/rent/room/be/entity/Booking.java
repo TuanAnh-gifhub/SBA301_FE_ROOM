@@ -59,8 +59,7 @@ public class Booking extends BaseEntity {
     @JoinColumn(name = "wallet_id")
     Wallet wallet;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "review_id")
+    @OneToOne(mappedBy = "booking", fetch = FetchType.LAZY)
     Review review;
 
     @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
