@@ -102,7 +102,7 @@ export default function PaymentSummary({ intent, contact = {} }: any) {
               paymentMethod === "WALLET" ? "border-teal-500 bg-teal-50" : ""
             }`}
           >
-            Ví nội bộ
+            Ví cá nhân
           </button>
 
           <button
@@ -111,7 +111,7 @@ export default function PaymentSummary({ intent, contact = {} }: any) {
               paymentMethod === "VN_PAY" ? "border-teal-500 bg-teal-50" : ""
             }`}
           >
-            PayOS trực tiếp
+            PayOS 
           </button>
         </div>
       </div>
