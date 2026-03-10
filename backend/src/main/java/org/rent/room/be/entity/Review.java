@@ -7,9 +7,7 @@ import org.rent.room.be.base.BaseEntity;
 import org.rent.room.be.constant.ReviewStatus;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
 @Setter
@@ -153,7 +151,7 @@ public class Review extends BaseEntity {
             fetch = FetchType.LAZY
     )
     @Builder.Default
-    List<ReviewTag> tags = new ArrayList<>();
+    Set<ReviewTag> tags = new HashSet<>();
 
     /**
      * Cac luot vote "Huu ich" tu nguoi dung khac.
