@@ -50,6 +50,32 @@ public enum ErrorCode {
     BOOKING_NOT_FOUND(4004, "Không tìm thấy booking",HttpStatus.NOT_FOUND),
     BOOKING_ALREADY_CHECKED_IN(4000, "Đã check-in rồi",HttpStatus.BAD_REQUEST),
     CANNOT_CHECKOUT_BEFORE_CHECKIN(4000, "Chưa check-in thì không thể check-out",HttpStatus.BAD_REQUEST),
+
+    // REVIEW
+    REVIEW_NOT_FOUND(5001, "Review not found", HttpStatus.NOT_FOUND),
+    REVIEW_ALREADY_EXISTS(5002, "Bạn đã review booking này rồi", HttpStatus.CONFLICT),
+    REVIEW_NOT_OWNER(5003, "Bạn không có quyền thao tác review này", HttpStatus.FORBIDDEN),
+    REVIEW_EDIT_EXPIRED(5004, "Đã quá 7 ngày, không thể sửa review", HttpStatus.FORBIDDEN),
+    REVIEW_DELETED(5005, "Review này đã bị xóa", HttpStatus.GONE),
+
+    // BOOKING (Review Context)
+    BOOKING_NOT_COMPLETED(5011, "Chỉ có thể review sau khi hoàn thành booking", HttpStatus.BAD_REQUEST),
+    BOOKING_NOT_BELONG_TO_USER(5012, "Booking này không thuộc về bạn", HttpStatus.FORBIDDEN),
+
+    // REPLY
+    REPLY_ALREADY_EXISTS(5020, "Review này đã có phản hồi rồi", HttpStatus.CONFLICT),
+    REPLY_NOT_FOUND(5021, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND),
+    REPLY_NOT_OWNER(5022, "Chỉ chủ phòng mới có thể trả lời review", HttpStatus.FORBIDDEN),
+
+    // VOTE
+    CANNOT_VOTE_OWN_REVIEW(5030, "Không thể vote review của chính mình", HttpStatus.BAD_REQUEST),
+
+    // TAG
+    INVALID_TAG(5040, "Tag không hợp lệ", HttpStatus.BAD_REQUEST),
+    TOO_MANY_TAGS(5041, "Tối đa 5 tags mỗi review", HttpStatus.BAD_REQUEST),
+
+    // MEDIA
+    TOO_MANY_MEDIA(5050, "Tối đa 5 file mỗi review", HttpStatus.BAD_REQUEST);
     ;
 
 

@@ -79,7 +79,7 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     List<Report> reports;
 
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
-    private Review review;
+    @OneToMany(mappedBy = "reviewer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    List<Review> reviews;
 
 }

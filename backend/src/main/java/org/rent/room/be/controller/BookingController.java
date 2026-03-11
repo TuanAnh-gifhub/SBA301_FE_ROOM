@@ -122,8 +122,18 @@ public class BookingController {
                                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
                                         LocalDate to,
                                         @RequestParam(defaultValue = "1", required = false) int page,
-                                        @RequestParam(defaultValue = "10", required = false) int size) {
+                                        @RequestParam(defaultValue = "10", required = false) int size,
+                                        @AuthenticationPrincipal UserDetails principal) {
         try {
+            UUID currentUserId = null;
+
+            if (principal instanceof CustomUserDetails customUserDetails) {
+                currentUserId = customUserDetails.getUserId();
+            }
+
+            if (currentUserId == null) {
+                throw new RuntimeException("User not authenticated");
+            }
 
 
             return ApiResponse.builder()
@@ -159,7 +169,7 @@ public class BookingController {
     }
 
     @GetMapping("/my-rentals")
-    public ApiResponse<?> getMyRentals(@RequestParam UUID rentalId,
+    public ApiResponse<?> getMyRentals(@RequestParam UUID userId,
                                        @RequestParam(required = false) BookingStatus bookingStatus,
                                        @RequestParam(required = false) String keyword,
                                        @RequestParam(required = false)
@@ -171,11 +181,11 @@ public class BookingController {
                                        @RequestParam(defaultValue = "1", required = false) int page,
                                        @RequestParam(defaultValue = "10", required = false) int size) {
         try {
-
+            System.err.println("uẻ id "+ userId);
             return ApiResponse.builder()
                     .code(200)
                     .message("Get all bookings of rental successfully")
-                    .result(bookingService.getBookingsRentalId(rentalId, bookingStatus, keyword, from, to, page, size))
+                    .result(bookingService.getBookingsRentalId(userId, bookingStatus, keyword, from, to, page, size))
                     .build();
         } catch (Exception e) {
             e.getStackTrace();
