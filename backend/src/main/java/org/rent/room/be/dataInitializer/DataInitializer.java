@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.constant.BookingType;
+import org.rent.room.be.constant.RentalAreaStatus;
 import org.rent.room.be.constant.RoomCopyStatus;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.repository.*;
@@ -65,6 +66,7 @@ public class DataInitializer implements CommandLineRunner {
                 .city(cities.getFirst() != null ? cities.getFirst() : City.builder()
                         .cityName("Thành phố Huế")
                         .build())
+                .status(RentalAreaStatus.ACTIVE)
                 .build();
         rentalAreaRepository.save(rentalArea);
         RoomCopy roomCopy1 = RoomCopy.builder()
@@ -143,7 +145,7 @@ public class DataInitializer implements CommandLineRunner {
                 .passwordHash(passwordEncoder.encode("12345678"))
                 .phone("0987654321")
                 .dateOfBirth(LocalDate.of(2000, 1, 2))
-                .role(renterRole)
+                .role(ownerRole)
                 .active(true).build();
 
         User user2 = User.builder()
@@ -176,7 +178,17 @@ public class DataInitializer implements CommandLineRunner {
                 .role(adminRole)
                 .active(true).build();
 
-        userRepository.saveAll(List.of(user1, user2, user3, user4));
+        User user5 = User.builder()
+                .userName("Quân")
+                .gender("Other")
+                .email("quan@gmail.com")
+                .passwordHash(passwordEncoder.encode("12345678"))
+                .phone("1234567810")
+                .dateOfBirth(LocalDate.of(2004, 1, 2))
+                .role(renterRole)
+                .active(true).build();
+
+        userRepository.saveAll(List.of(user1, user2, user3, user4,user5));
     }
 
 
@@ -394,6 +406,7 @@ public class DataInitializer implements CommandLineRunner {
             log.info("[DataInitializer] Bookings da ton tai, bo qua seedBookings()");
             return;
         }
+        System.out.println();
 
         // Lay user can thiet
         User renter = userRepository.findByEmail("renter@gmail.com")

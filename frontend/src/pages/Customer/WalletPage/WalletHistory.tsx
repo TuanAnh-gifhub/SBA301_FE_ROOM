@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaArrowDown, FaArrowUp, FaCoins, FaShoppingCart, FaMobileAlt } from "react-icons/fa";
+import {
+    getMyWalletTransactions,
+    getMyWithdrawRequests,
+} from "../../../services/wallet/walletService";
 
 interface Transaction {
     id: string;
-    type: "recharge" | "payment" | "refund" | "transfer";
+    type: "recharge" | "payment" | "refund" | "transfer" | "withdraw";
     amount: number;
     description: string;
+    channel?: "wallet" | "payos";
     date: string;
     status: "completed" | "pending" | "failed";
 }
@@ -16,17 +21,90 @@ interface WalletHistoryProps {
 }
 
 const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryProps) => {
-    const [transactions] = useState<Transaction[]>([
-        // Sample data - in real app, this would come from API
-        // {
-        //   id: "1",
-        //   type: "recharge",
-        //   amount: 100000,
-        //   description: "Nạp tiền từ thẻ ngân hàng",
-        //   date: "2024-01-15T10:30:00",
-        //   status: "completed",
-        // },
-    ]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            try {
+                const limit = showFull ? 20 : 5;
+                const [walletTxPage, withdrawPage] = await Promise.all([
+                    getMyWalletTransactions(1, limit),
+                    getMyWithdrawRequests(1, limit),
+                ]);
+
+                const walletMapped: Transaction[] = (walletTxPage.data ?? []).map((item) => ({
+                    id: item.transactionId,
+                    type:
+                        item.type === "DEPOSIT"
+                            ? "recharge"
+                            : item.type === "BOOKING_INCOME" || item.type === "FREEZE_RELEASE" || item.type === "WITHDRAW_REJECTED"
+                                ? "refund"
+                                : item.type === "WITHDRAW" || item.type === "BOOKING_PAYMENT" || item.type === "COMMISSION" || item.type === "PACKAGE_PURCHASE" || item.type === "FREEZE_HOLD"
+                                    ? "payment"
+                            : item.type === "REFUND"
+                                ? "refund"
+                                : item.type === "PAYMENT"
+                                    ? "payment"
+                                    : "transfer",
+                    amount: Number(item.amount ?? 0),
+                    description: item.description || "Giao dịch ví",
+                    channel:
+                        item.type === "BOOKING_PAYMENT" &&
+                        (item.description || "").toLowerCase().includes("payos")
+                            ? "payos"
+                            : "wallet",
+                    date: item.createdAt,
+                    status:
+                        item.status === "COMPLETED"
+                            ? "completed"
+                            : item.status === "FAILED"
+                                ? "failed"
+                                : "pending",
+                }));
+
+                const withdrawMapped: Transaction[] = (withdrawPage.data ?? []).map((item) => ({
+                    id: item.withdrawRequestId,
+                    type: "withdraw",
+                    amount: Number(item.amount ?? 0),
+                    description:
+                        item.adminNote?.trim() ||
+                        `Rút tiền về ${item.bankCode} - ${item.bankAccountNumber}`,
+                    date: item.processedAt || item.createdAt,
+                    status:
+                        item.status === "COMPLETED" || item.status === "APPROVED"
+                            ? "completed"
+                            : item.status === "REJECTED"
+                                ? "failed"
+                                : "pending",
+                }));
+
+                const merged = [...walletMapped, ...withdrawMapped].sort(
+                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+                setTransactions(merged);
+            } catch (error) {
+                console.error("Không thể tải lịch sử ví", error);
+                setTransactions([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTransactions();
+    }, [showFull]);
+
+    if (loading) {
+        return (
+            <div className={`${isDarkMode ? 'bg-[#2d7fcb] border-[#4da6ff]/30' : 'bg-white border-gray-200'} rounded-xl border shadow-sm p-8`}>
+                <div className="text-center py-12">
+                    <p className={isDarkMode ? 'text-gray-300 text-sm' : 'text-gray-500 text-sm'}>
+                        Đang tải lịch sử giao dịch...
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     const getTransactionIcon = (type: string) => {
         switch (type) {
@@ -38,6 +116,8 @@ const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryPro
                 return <FaArrowUp className={isDarkMode ? "text-blue-400" : "text-blue-500"} />;
             case "transfer":
                 return <FaMobileAlt className={isDarkMode ? "text-purple-400" : "text-purple-500"} />;
+            case "withdraw":
+                return <FaArrowUp className={isDarkMode ? "text-orange-400" : "text-orange-500"} />;
             default:
                 return <FaCoins className={isDarkMode ? "text-gray-400" : "text-gray-500"} />;
         }
@@ -53,6 +133,8 @@ const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryPro
                 return "Hoàn tiền";
             case "transfer":
                 return "Chuyển khoản";
+            case "withdraw":
+                return "Rút tiền";
             default:
                 return "Giao dịch";
         }
@@ -105,6 +187,11 @@ const WalletHistory = ({ showFull = true, isDarkMode = false }: WalletHistoryPro
                                     <p className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                                         {getTransactionLabel(transaction.type)}
                                     </p>
+                                    {transaction.type === "payment" && transaction.channel === "payos" && (
+                                        <p className={`text-[11px] inline-flex px-2 py-[2px] rounded mt-1 ${isDarkMode ? "bg-cyan-500/20 text-cyan-300" : "bg-cyan-100 text-cyan-700"}`}>
+                                            Qua PayOS
+                                        </p>
+                                    )}
                                     <p className={`text-xs truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{transaction.description}</p>
                                     <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{formatDate(transaction.date)}</p>
                                 </div>

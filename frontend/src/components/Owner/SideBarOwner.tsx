@@ -54,6 +54,11 @@ const SidebarOwner: React.FC<SidebarProps> = ({
 
   const items: MenuItem[] = [
     getItem(
+      <Link to="/owner/dashboard">Báo cáo và thống kê</Link>,
+      "/owner/dashboard",
+      <FileTextOutlined />,
+    ),
+    getItem(
       <Link to="/owner/manage-posts">Quản lý tin đăng</Link>,
       "/owner/manage-posts",
       <FileTextOutlined />,

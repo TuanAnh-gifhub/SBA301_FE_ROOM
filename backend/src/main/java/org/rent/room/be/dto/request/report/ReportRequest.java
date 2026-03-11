@@ -24,5 +24,6 @@ public class ReportRequest {
     @NotBlank(message = "Địa chỉ cụ thể không bỏ trống")
     private String address;
     private String roomName;
+    private UUID bookingId;
 
 }

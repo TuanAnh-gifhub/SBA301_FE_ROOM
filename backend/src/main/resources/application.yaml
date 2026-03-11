@@ -80,5 +80,12 @@ cloudinary:
 
 token_reset_password_expire_seconds: 900
 
+payos:
+  client-id: ${PAYOS_CLIENT_ID}
+  api-key: ${PAYOS_API_KEY}
+  checksum-key: ${PAYOS_CHECKSUM_KEY}
+  base-url: https://api-merchant.payos.vn
+  return-url: ${PAYOS_RETURN_URL}
+  cancel-url: ${PAYOS_CANCEL_URL}
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}

@@ -41,12 +41,14 @@ type CartItem = {
   endTime: string;
   quantity: number;
 };
+
 type Cart = CartItem[];
 
 export default function RentalDetailPage() {
   const [slots, setSlots] = useState<BookingSlot[]>([]);
   const { id } = useParams();
   const [rental, setRental] = useState<any>(null);
+  const [quantity, setQuantity] = useState(0);
   const { user } = useAuth();
   const [cart, setCart] = useState<Cart>([]);
   const navigate = useNavigate();
@@ -54,9 +56,9 @@ export default function RentalDetailPage() {
   // ── FIX 1: completedBookingId ────────────────────────────────────
   // State lưu bookingId COMPLETED của user cho rental area này.
   // Nếu có -> hiện form viết review. Nếu undefined -> ẩn form.
-  const [completedBookingId, setCompletedBookingId] = useState<
-    string | undefined
-  >(undefined);
+const [completedBookingId, setCompletedBookingId] = useState<string | undefined>(
+ // paste bookingId COMPLETED thật từ DB vào đây
+);
 
   const [filter, setFilter] = useState<BookingFilter>({
     date: "",
@@ -84,12 +86,12 @@ export default function RentalDetailPage() {
     try {
       // Gọi GET /bookings/my-bookings?rentalAreaId=...&status=COMPLETED&page=1&size=1
       // Chỉ cần lấy 1 booking COMPLETED là đủ để mở form viết review
-      const res = await getBookingsByUserId({
-        rentalAreaId: id,
-        status: "COMPLETED",
-        page: 1,
-        size: 1,
-      });
+    const res = await getBookingsByUserId({
+      userId: user?.userId,
+      bookingStatus: "COMPLETED",
+      page: 1,
+      size: 5,
+    });
 
       // res.result có thể là PageResponse hoặc array tuỳ BE
       // Trường hợp 1: BE trả về PageResponse { data: [...] }
@@ -142,6 +144,7 @@ export default function RentalDetailPage() {
           ...copy[index],
           quantity: Math.min(copy[index].quantity + 1, maxCopies),
         };
+
         added = true;
         return copy;
       }
@@ -165,11 +168,14 @@ export default function RentalDetailPage() {
   const increase = (index: number) => {
     setCart((prev) => {
       const copy = [...prev];
+
       const maxCopies = getAvailableCopies(copy[index].room);
+
       copy[index] = {
         ...copy[index],
         quantity: Math.min(copy[index].quantity + 1, maxCopies),
       };
+
       return copy;
     });
   };
@@ -199,7 +205,7 @@ export default function RentalDetailPage() {
       const payload = {
         userId: user?.userId,
         userName: user?.name,
-        userPhone: user?.phone,
+        userPhone: user?.phone || "",
         bookingType: "HOURLY",
         numberOfMonths: 0,
         note: "",
@@ -212,11 +218,25 @@ export default function RentalDetailPage() {
         navigate(`/customer/bookings/${res.result.bookingIntentId}`);
         setCart([]);
       }
+
       if (res.code === 500) {
         toast.error(res.message || "Đặt phòng thất bại");
       }
     } catch (err) {
-      console.error(err);
+      if (err.response && err.response.data) {
+        const res = err.response.data;
+        console.log("Dữ liệu lỗi từ server:", res);
+
+        if (res.code === 2003) {
+          const errorMessages = Object.values(res.result);
+          errorMessages.forEach((msg) => toast.error(msg));
+        } else {
+          toast.error(res.message || "Đặt phòng thất bại");
+        }
+      } else {
+        toast.error("Không thể kết nối đến server");
+      }
+
     }
   };
 

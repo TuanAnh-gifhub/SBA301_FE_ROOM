@@ -5,11 +5,10 @@ import org.rent.room.be.constant.*;
 
 import org.rent.room.be.dto.request.booking.BookingRequest;
 import org.rent.room.be.dto.request.booking.SlotRequest;
-import org.rent.room.be.dto.response.UserResponse;
-import org.rent.room.be.dto.response.booking.BookingIntentResponse;
-import org.rent.room.be.dto.response.booking.BookingResponse;
-import org.rent.room.be.dto.response.booking.IntentSlotResponse;
-import org.rent.room.be.dto.response.qr.ScanQRResponse;
+import org.rent.room.be.dto.request.booking.UpdateBookingRequest;
+
+import org.rent.room.be.dto.response.booking.*;
+
 import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.dto.response.room.RoomImageResponse;
 import org.rent.room.be.dto.response.room.RoomResponse;
@@ -28,11 +27,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -69,17 +70,7 @@ public class BookingServiceImpl implements BookingService {
     @Autowired
     private InvoicePdfService invoicePdfService;
 
-    @Transactional
-    public void releaseExpiredHolds() {
 
-        List<RoomCopy> heldRooms =
-                roomCopyRepository.findExpiredHeldRooms(LocalDateTime.now());
-
-        for (RoomCopy rc : heldRooms) {
-            rc.setRoomCopyStatus(RoomCopyStatus.AVAILABLE);
-            rc.setHeldUntil(null);
-        }
-    }
 
     @Override
     public BookingIntentResponse getBookingIntentById(UUID bookingIntentId) {
@@ -156,7 +147,6 @@ public class BookingServiceImpl implements BookingService {
             BookingRequest bookingRequest
     ) {
 
-        validateBookingTime(bookingRequest);
 
         User user = userRepository.findById(
                 bookingRequest.getUserId()
@@ -169,6 +159,10 @@ public class BookingServiceImpl implements BookingService {
             case MONTHLY -> "Đặt phòng theo tháng";
         };
 
+
+        if (user.getPhone() == null || user.getPhone().isEmpty()) {
+            throw new RuntimeException("Vui lòng cập nhật số điện thoại trước khi đặt phòng");
+        }
 
         BookingIntent bookingIntent = BookingIntent.builder()
                 .title(title)
@@ -224,11 +218,13 @@ public class BookingServiceImpl implements BookingService {
                     .build();
 
             intentSlots.add(intentSlot);
+            long minutes = Duration.between(slotReq.getStartTime(), slotReq.getEndTime()).toMinutes();
+            BigDecimal hours = BigDecimal.valueOf(minutes).divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+            BigDecimal slotPrice = room.getPrice()
+                    .multiply(BigDecimal.valueOf(slotReq.getQuantity()))
+                    .multiply(hours);
 
-            totalPrice = totalPrice.add(
-                    room.getPrice()
-                            .multiply(BigDecimal.valueOf(slotReq.getQuantity()))
-            );
+            totalPrice = totalPrice.add(slotPrice);
         }
 
         RentalAreaResponse rentalAreaResponse = RentalAreaResponse.builder()
@@ -287,15 +283,7 @@ public class BookingServiceImpl implements BookingService {
                 .build();
     }
 
-    @Override
-    @Transactional
-    public BookingIntentResponse updateBookingIntent(
-            UUID bookingIntentId,
-            BookingRequest bookingRequest
-    ) {
 
-        return null;
-    }
 
     @Transactional
     public BookingResponse createBooking(UUID bookingIntentId, Payment payment) throws IOException {
@@ -306,6 +294,11 @@ public class BookingServiceImpl implements BookingService {
             throw new RuntimeException("Thông tin đặt lịch  đã hết hạn trong thời gian giữ,vui lòng đặt lại");
         }
 
+//        if(bookingIntent.getUser().getPhone() == null){
+//            User user = bookingIntent.getUser();
+//            user.setPhone(phone);
+//            userRepository.save(user);
+//        }
 
         Booking booking = Booking.builder()
                 .bookingTitle(bookingIntent.getTitle())
@@ -314,9 +307,10 @@ public class BookingServiceImpl implements BookingService {
                 .renter(bookingIntent.getUser())
                 .totalPrice(bookingIntent.getPreviewPrice())
                 .startTime(bookingIntent.getSlots().getFirst().getStartTime())
-                .endTime(bookingIntent.getSlots().getFirst().getEndTime())
+                .endTime(bookingIntent.getSlots().getLast().getEndTime())
                 .createdAt(LocalDateTime.now())
                 .rentalArea(bookingIntent.getRentalArea())
+                .note(bookingIntent.getNote() != null ?  bookingIntent.getNote():"")
                 .build();
 
         bookingRepository.save(booking);
@@ -389,7 +383,6 @@ public class BookingServiceImpl implements BookingService {
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
                 .status(BookingStatus.BOOKED)
-//                .numberOfMonths(Math.max(request.getNumberOfMonths(), 0))
                 .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
                 .statusPayment("")
@@ -402,39 +395,60 @@ public class BookingServiceImpl implements BookingService {
     }
 
 
-    private void validateBookingTime(BookingRequest request) {
-        LocalDateTime now = LocalDateTime.now();
-
-        if (request.getBookingType() == BookingType.DAILY || request.getBookingType() == BookingType.HOURLY) {
-
-            LocalDateTime start = request.getSlotRequests().getFirst().getStartTime();
-            LocalDateTime end = request.getSlotRequests().getLast().getEndTime();
-
-            if (start.isBefore(now)) {
-                throw new RuntimeException("Không thể đặt phòng trong quá khứ");
-            }
-            Duration duration = Duration.between(start, end);
-            long minutes = duration.toMinutes();
-
-            if (minutes < 60) {
-                throw new RuntimeException("Booking ngắn hạn tối thiểu 1 giờ");
-            }
-
-            if (start.isAfter(now.plusDays(30))) {
-                throw new RuntimeException("Không được đặt phòng trước quá 30 ngày");
-            }
-        }
-
-        if (request.getBookingType() == BookingType.MONTHLY) {
-            if (request.getNumberOfMonths() <= 0) {
-                throw new RuntimeException("Số tháng thuê không hợp lệ");
-            }
-        }
-    }
-
     @Override
-    public BookingResponse updateBooking(BookingRequest bookingRequest) {
-        return null;
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
+    public BookingResponse updateBooking(UUID bookingId, UpdateBookingRequest bookingRequest) {
+
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
+                new RuntimeException("Không tìm thấy booking với id " + bookingId));
+
+        booking.setBookingStatus(bookingRequest.getBookingStatus());
+        booking.setNote(bookingRequest.getNote());
+
+        bookingRepository.save(booking);
+        List<SlotResponse> slotResponses = booking.getSlots().stream().map(slot -> {
+
+            RoomCopy rc = slot.getRoomCopy();
+            RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
+                    .roomCopyId(rc.getRoomCopyId())
+                    .roomCode(rc.getRoomCode())
+                    .roomCopyStatus(rc.getRoomCopyStatus())
+                    .build();
+
+
+            return SlotResponse.builder()
+                    .slotId(slot.getSlotId())
+                    .startTime(slot.getStartTime())
+                    .endTime(slot.getEndTime())
+                    .roomCopy(roomCopyResponse)
+                    .build();
+        }).toList();
+        RentalAreaResponse rentalAreaResponse = RentalAreaResponse.builder()
+                .rentalAreaName(booking.getRentalArea().getRentalAreaName())
+                .address(booking.getRentalArea().getAddress())
+                .cityName(booking.getRentalArea().getCity().getCityName())
+                .contactPhone(booking.getRentalArea().getContactPhone())
+                .build();
+
+        return BookingResponse.builder()
+                .bookingId(booking.getBookingId())
+                .userName(booking.getRenter().getUserName())
+                .phoneNumber(booking.getRenter().getPhone())
+                .bookingType(booking.getBookingType())
+                .startTime(booking.getStartTime())
+                .endTime(booking.getEndTime())
+                .status(booking.getBookingStatus())
+                .note(booking.getNote())
+                .totalPrice(booking.getTotalPrice())
+                .statusPayment("")
+                .slots(slotResponses)
+                .createdAt(booking.getCreatedAt())
+                .rentalArea(rentalAreaResponse)
+                .qrCodeUrl(null)
+                .invoicePdfUrl(booking.getInvoiceUrl())
+                .build();
+
+
     }
 
     @Override
@@ -474,8 +488,7 @@ public class BookingServiceImpl implements BookingService {
                 .bookingType(booking.getBookingType())
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
-                .status(BookingStatus.BOOKED)
-//                .numberOfMonths(Math.max(request.getNumberOfMonths(), 0))
+                .status(booking.getBookingStatus())
                 .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
                 .statusPayment("")
@@ -483,11 +496,12 @@ public class BookingServiceImpl implements BookingService {
                 .createdAt(booking.getCreatedAt())
                 .rentalArea(rentalAreaResponse)
                 .qrCodeUrl(null)
-                .invoicePdfUrl(null)
+                .invoicePdfUrl(booking.getInvoiceUrl())
                 .build();
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public PageResponse<BookingResponse> getAllBookings(
             BookingStatus bookingStatus,
             String keyword,
@@ -558,5 +572,277 @@ public class BookingServiceImpl implements BookingService {
                 .build();
     }
 
+    @Override
+    public PageResponse<BookingResponse> getMyBookings(UUID userId, BookingStatus bookingStatus, String keyword, LocalDate from, LocalDate to, int page, int size) {
+       User user  = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("user not found"));
 
+
+        Pageable pageable =
+                PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Specification<Booking> spec =
+                BookingSpecification.filterBookingsByUserId(
+                        userId,
+                        bookingStatus,
+                        keyword,
+                        from,
+                        to
+                );
+
+        Page<Booking> bookingPage = bookingRepository.findAll(spec,pageable);
+
+        List<BookingResponse> responses =
+                bookingPage.getContent().stream()
+                        .map(booking -> {
+
+                            List<SlotResponse> slotResponses = booking.getSlots().stream()
+                                    .map(slot -> {
+                                        RoomCopy roomCopy = slot.getRoomCopy();
+                                        Room room = roomCopy.getRoom();
+                                        RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
+                                                .roomCopyId(roomCopy.getRoomCopyId())
+                                                .roomCode(roomCopy.getRoomCode())
+                                                .build();
+
+                                        return SlotResponse.builder()
+                                                .slotId(slot.getSlotId())
+                                                .startTime(slot.getStartTime())
+                                                .endTime(slot.getEndTime())
+                                                .roomCopy(roomCopyResponse)
+                                                .status(slot.getSlotStatus())
+
+                                                .build();
+                                    })
+                                    .toList();
+
+
+                            return BookingResponse.builder()
+                                    .bookingId(booking.getBookingId())
+                                    .userName(booking.getRenter().getUserName())
+                                    .phoneNumber(booking.getRenter().getPhone())
+                                    .startTime(booking.getStartTime())
+                                    .endTime(booking.getEndTime())
+                                    .totalPrice(booking.getTotalPrice())
+                                    .note(booking.getNote())
+                                    .createdAt(booking.getCreatedAt())
+                                    .status(booking.getBookingStatus())
+                                    .bookingType(booking.getBookingType())
+                                    .statusPayment("")
+                                    .slots(slotResponses)
+                                    .invoicePdfUrl(booking.getInvoiceUrl())
+                                    .build();
+                        })
+                        .toList();
+
+        return PageResponse.<BookingResponse>builder()
+                .currentPage(bookingPage.getNumber() + 1)
+                .totalPages(bookingPage.getTotalPages())
+                .pageSize(bookingPage.getSize())
+                .totalElements(bookingPage.getTotalElements())
+                .data(responses)
+                .build();
+    }
+
+    @Override
+    public BookingResponse cancelBooking(UUID bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
+                new RuntimeException("Không tìm thấy booking với id " + bookingId));
+
+        if (booking.getBookingStatus() == BookingStatus.CANCELLED) {
+            throw new RuntimeException("Booking đã được hủy trước đó");
+        }
+
+        booking.setBookingStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(booking);
+        List<SlotResponse> slotResponse = booking.getSlots().stream().map(slot -> {
+            RoomCopy roomCopy = slot.getRoomCopy();
+            RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
+                    .roomCopyId(roomCopy.getRoomCopyId())
+                    .roomCode(roomCopy.getRoomCode())
+                    .build();
+
+            return SlotResponse.builder()
+                    .slotId(slot.getSlotId())
+                    .startTime(slot.getStartTime())
+                    .endTime(slot.getEndTime())
+                    .roomCopy(roomCopyResponse)
+                    .status(slot.getSlotStatus())
+
+                    .build();
+        }).toList();
+
+        BookingResponse bookingResponse = BookingResponse.builder()
+                .bookingId(booking.getBookingId())
+                .userName(booking.getRenter().getUserName())
+                .phoneNumber(booking.getRenter().getPhone() != null ? booking.getRenter().getPhone() : "")
+                .bookingType(booking.getBookingType())
+                .startTime(booking.getStartTime())
+                .endTime(booking.getEndTime())
+                .status(booking.getBookingStatus())
+                .slots(slotResponse)
+                .build();
+
+        return bookingResponse;
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
+    public BookingSummaryResponse getBookingSummary(LocalDateTime from, LocalDateTime to, UUID userId) {
+
+        userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        List<RentalArea> rentalAreas = rentalAreaRepository.findByOwnerId(userId);
+
+        BigDecimal totalRevenue;
+        long totalBookings;
+        long totalCompleted;
+        long totalCanceled;
+
+        // OWNER có rental area
+        if (rentalAreas != null && !rentalAreas.isEmpty()) {
+
+            List<UUID> rentalAreaIds = rentalAreas.stream()
+                    .map(RentalArea::getRentalAreaId)
+                    .toList();
+
+            totalRevenue = bookingRepository.sumRevenueByRentalAreas(from, to, rentalAreaIds);
+            totalBookings = bookingRepository.countByRentalAreasAndCreatedAtBetween(rentalAreaIds, from, to);
+            totalCompleted = bookingRepository.countByRentalAreasAndStatus(rentalAreaIds, BookingStatus.COMPLETED, from, to);
+            totalCanceled = bookingRepository.countByRentalAreasAndStatus(rentalAreaIds, BookingStatus.CANCELLED, from, to);
+
+        } else {
+
+            // ADMIN xem toàn hệ thống
+            totalRevenue = bookingRepository.sumRevenue(from, to);
+            totalBookings = bookingRepository.countByCreatedAtBetween(from, to);
+            totalCompleted = bookingRepository.countByStatusAndCreatedAtBetween(BookingStatus.COMPLETED, from, to);
+            totalCanceled = bookingRepository.countByStatusAndCreatedAtBetween(BookingStatus.CANCELLED, from, to);
+        }
+
+        return BookingSummaryResponse.builder()
+                .totalRevenue(totalRevenue)
+                .totalBookings(totalBookings)
+                .completedBookings(totalCompleted)
+                .cancelledBookings(totalCanceled)
+                .build();
+    }
+
+    @Override
+    public BookingDashboardResponse revenue(Integer month, Integer year) {
+
+        LocalDate today = LocalDate.now();
+
+        if (year == null) {
+            year = today.getYear();
+        }
+
+        if (month == null) {
+            month = today.getMonthValue();
+        }
+
+
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end = today.atTime(23,59,59);
+
+        BigDecimal revenueToday = bookingRepository.revenueToday(start, end);
+
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        List<Object[]> last7 = bookingRepository.revenueLast7Days(sevenDaysAgo);
+
+        List<Object[]> monthData = bookingRepository.revenueByMonth(year);
+        List<Object[]> dayData = bookingRepository.revenueByDay(year, month);
+
+        return BookingDashboardResponse.builder()
+                .revenueToday(revenueToday)
+                .revenueLast7Days(mapRevenue(last7))
+                .revenueByMonth(mapRevenue(monthData))
+                .revenueByDay(mapRevenue(dayData))
+                .build();
+    }
+    private List<BookingRevenueItem> mapRevenue(List<Object[]> data) {
+
+        return data.stream()
+                .map(r -> new BookingRevenueItem(
+                        String.valueOf(r[0]),
+                        (BigDecimal) r[1]
+                ))
+                .toList();
+    }
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
+    public PageResponse<BookingResponse> getBookingsRentalId(
+            UUID userId,
+            BookingStatus bookingStatus,
+            String keyword,
+            LocalDate fromDate,
+            LocalDate toDate,
+            int page,
+            int size
+    ) {
+        Pageable pageable =
+                PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Specification<Booking> spec =
+                BookingSpecification.filterBookingsByOwner(
+                        userId,
+                        bookingStatus,
+                        keyword,
+                        fromDate,
+                        toDate
+                );
+
+        Page<Booking> bookingPage = bookingRepository.findAll(spec, pageable);
+
+        List<BookingResponse> responses =
+                bookingPage.getContent().stream()
+                        .map(this::mapToBookingResponse)
+                        .toList();
+
+        return PageResponse.<BookingResponse>builder()
+                .currentPage(bookingPage.getNumber() + 1)
+                .totalPages(bookingPage.getTotalPages())
+                .pageSize(bookingPage.getSize())
+                .totalElements(bookingPage.getTotalElements())
+                .data(responses)
+                .build();
+    }
+
+    private BookingResponse mapToBookingResponse(Booking booking) {
+
+        List<SlotResponse> slotResponses = booking.getSlots().stream()
+                .map(slot -> {
+
+                    RoomCopy roomCopy = slot.getRoomCopy();
+
+                    RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
+                            .roomCopyId(roomCopy.getRoomCopyId())
+                            .roomCode(roomCopy.getRoomCode())
+                            .build();
+
+                    return SlotResponse.builder()
+                            .slotId(slot.getSlotId())
+                            .startTime(slot.getStartTime())
+                            .endTime(slot.getEndTime())
+                            .roomCopy(roomCopyResponse)
+                            .status(slot.getSlotStatus())
+                            .build();
+                })
+                .toList();
+
+        return BookingResponse.builder()
+                .bookingId(booking.getBookingId())
+                .userName(booking.getRenter().getUserName())
+                .phoneNumber(booking.getRenter().getPhone())
+                .startTime(booking.getStartTime())
+                .endTime(booking.getEndTime())
+                .totalPrice(booking.getTotalPrice())
+                .note(booking.getNote())
+                .createdAt(booking.getCreatedAt())
+                .status(booking.getBookingStatus())
+                .bookingType(booking.getBookingType())
+                .statusPayment("")
+                .slots(slotResponses)
+                .build();
+    }
 }

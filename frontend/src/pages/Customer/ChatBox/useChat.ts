@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import chatService from "../../../services/chats/chatService";
-import websocketService from "../../../services/chats/websocketService";
+import websocketService from "../../../services/websocketService";
 
 export const useChat = (
   currentUserId: string | null,
@@ -18,15 +18,16 @@ export const useChat = (
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentConversationIdRef = useRef<string | null>(null);
 
-  // 1. Thêm Ref để giữ selectedChat mới nhất mà không gây re-render useEffect
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const pageSize = 20;
+
   const selectedChatRef = useRef(selectedChat);
+
   useEffect(() => {
     selectedChatRef.current = selectedChat;
   }, [selectedChat]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   const loadConversations = async () => {
     if (!currentUserId) return;
@@ -45,16 +46,42 @@ export const useChat = (
     setLoading(false);
   };
 
-  const loadMessages = async (id: string) => {
-    currentConversationIdRef.current = id;
-    const res = await chatService.getMessages(id);
-    if (res.result && Array.isArray(res.result)) {
-      const transformed = res.result.map((msg: any) => ({
-        ...msg,
-        sender: msg.senderId === currentUserId ? "user" : "other",
-        isRead: msg.status === "READ",
-      }));
-      setMessages(transformed);
+  // Trong useChat.ts - Tìm hàm loadMessages
+  const loadMessages = async (id: string, isLoadMore = false) => {
+    if (!id || (isLoadMore && (!hasMore || isFetchingMore))) return;
+
+    if (isLoadMore) setIsFetchingMore(true);
+    const currentPage = isLoadMore ? page + 1 : 0;
+
+    try {
+      const res = await chatService.getMessages(id, currentPage, pageSize);
+      if (res.result && Array.isArray(res.result)) {
+        const transformed = res.result.map((msg: any) => ({
+          ...msg,
+          sender: msg.senderId === currentUserId ? "user" : "other",
+          isRead: msg.status === "READ",
+        }));
+
+        setMessages((prev) => {
+          // Nếu loadMore (cuộn lên), nối vào ĐẦU. Nếu load lần đầu, lấy hoàn toàn tin nhắn mới
+          const combined = isLoadMore ? [...transformed, ...prev] : transformed;
+
+          // Lọc trùng theo messageId để chắc chắn không bị lặp tin nhắn
+          const map = new Map();
+          combined.forEach((m) => map.set(String(m.messageId), m));
+          return Array.from(map.values()).sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          );
+        });
+
+        setHasMore(res.result.length === pageSize);
+        setPage(currentPage);
+      }
+    } catch (error) {
+      console.error("Pagination error:", error);
+    } finally {
+      setIsFetchingMore(false);
     }
   };
 
@@ -168,21 +195,16 @@ export const useChat = (
 
     if (selectedFiles.length > 0 && selectedFiles[0]) {
       try {
-        const formData = new FormData();
-        const messageData = {
+        const messageRequest = {
           content: newMessage.trim(),
-          recipientId,
-          conversationId: targetConversationId,
+          recipientId: recipientId,
+          conversationId: targetConversationId || undefined,
         };
-        formData.append(
-          "data",
-          new Blob([JSON.stringify(messageData)], { type: "application/json" }),
-        );
 
-        if (selectedFiles[0].file) {
-          formData.append("file", selectedFiles[0].file);
-        }
-        await chatService.sendMessageWithImage(formData);
+        const fileToSend = selectedFiles[0].file;
+
+        await chatService.sendMessageWithImage(messageRequest, fileToSend);
+
         setNewMessage("");
         setSelectedFiles([]);
       } catch (err) {
@@ -197,6 +219,7 @@ export const useChat = (
           content,
           conversationId: targetConversationId,
         });
+
         const tempId = `temp-${Date.now()}`;
         const tempMessage = {
           messageId: tempId,
@@ -216,20 +239,21 @@ export const useChat = (
   };
 
   const handleChatSelect = async (chat: any) => {
-    // 4. Kiểm tra xem có thực sự đang click sang một người khác không
     const isChangingConversation =
       currentConversationIdRef.current !== chat.conversationId;
-
     setSelectedChat(chat);
     currentConversationIdRef.current = chat.conversationId;
 
-    if (chat.conversationId) {
-      // CHỈ load lại API nếu là cuộc hội thoại mới, tránh gọi API ghi đè tin nhắn đang chat
-      if (isChangingConversation) {
-        await loadMessages(chat.conversationId);
-      }
-      await chatService.markMessageAsRead(chat.conversationId, currentUserId!);
-      loadConversations();
+    if (chat.conversationId && isChangingConversation) {
+      setPage(0);
+      setHasMore(true);
+      await loadMessages(chat.conversationId, false);
+    }
+  };
+
+  const loadMoreMessages = () => {
+    if (currentConversationIdRef.current) {
+      loadMessages(currentConversationIdRef.current, true);
     }
   };
 
@@ -251,5 +275,8 @@ export const useChat = (
     messagesEndRef,
     handleSendMessage,
     handleChatSelect,
+    hasMore,
+    loadMoreMessages,
+    isFetchingMore,
   };
 };

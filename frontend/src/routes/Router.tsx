@@ -14,7 +14,7 @@ import AboutUs from "../pages/Customer/AboutUs/AboutUs";
 import ReportPage from "../pages/Admin/ReportAdmin/ReportPage";
 import ReportForm from "../pages/Customer/ReportPage/ReportForm";
 import ResetPassword from "../pages/Customer/LoginPage/ResetPassword";
-import UserManagement from "../pages/Admin/UserManagement";
+import UserManagement from "../pages/Admin/UserManagement/UserManagement";
 import ManagePage from "../pages/Customer/ManagePage/ManagePage";
 import ConfirmRegister from "../pages/Customer/LoginPage/ConfirmRegister";
 import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManagementPage";
@@ -25,13 +25,24 @@ import PackagePage from "../pages/Customer/PackagePage";
 import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManagementPage";
 
 import BookingDetail from "../pages/Customer/Booking/BookingDetail";
-import LoginPage from "../pages/Customer/LoginPage/LoginPage";
 import PaymentSuccessPage from "../pages/Customer/Payment/PaymentSuccessPage";
+import BookingPaymentResultPage from "../pages/Customer/Payment/BookingPaymentResultPage";
+import WalletDepositResultPage from "../pages/Customer/WalletPage/WalletDepositResultPage";
+import WalletWithdrawManagementPage from "../pages/Admin/WalletManagement/WalletWithdrawManagementPage";
+import WalletFreezeManagementPage from "../pages/Admin/WalletManagement/WalletFreezeManagementPage";
+import AdminWalletOverviewPage from "../pages/Admin/WalletManagement/AdminWalletOverviewPage";
+import CommissionConfigManagementPage from "../pages/Admin/WalletManagement/CommissionConfigManagementPage";
+import AdminDashboardOverview from "../pages/Admin/AdminDashboardOverview";
 import OwnerPage from "../pages/Owner/OwnerPage";
 import ManageRoomPage from "../pages/Customer/ManageRoomPage/ManageRoomPage";
 import ManageBookingPage from "../pages/Owner/ManageBookingPage/ManageBookingPage";
 import ManageSchedulePage from "../pages/Owner/ManageSchedule/ManageSchedulePage";
 import ManagePostPage from "../pages/Customer/ManagePostPage/ManagePostPage";
+import NotificationPage from "../pages/Customer/NotificationPage/NotificationPage";
+import MyBookingHistoryPage from "../pages/Customer/MyBookingHistoryPage/MyBookingHistoryPage";
+import BookingDetailPage from "../pages/Customer/MyBookingHistoryPage/BookingDetailPage";
+import OwnerDashBoard from "../pages/Owner/Dashboard/OwnerDashboard";
+import ProfilePage from "../pages/Customer/ProfilePage/ProfilePage";
 
 export const router = createBrowserRouter([
   {
@@ -72,6 +83,23 @@ export const router = createBrowserRouter([
         handle: { breadcrumb: "Thanh toán thành công" },
       },
       {
+        path: "profile",
+        element: <ProfilePage />,
+      },
+      {
+        path: "my-booking-history",
+        element: <MyBookingHistoryPage />,
+      },
+      {
+        path: "/my-booking-history/:bookingId",
+        element: <BookingDetailPage />,
+      },
+      {
+        path: "payment/booking-result",
+        element: <BookingPaymentResultPage />,
+        handle: { breadcrumb: "Kết quả thanh toán booking" },
+      },
+      {
         path: "product/:id",
         element: <RoomDetailPage />,
         handle: { breadcrumb: "Chi tiết phòng" },
@@ -87,6 +115,21 @@ export const router = createBrowserRouter([
         handle: { breadcrumb: "Ví cá nhân" },
       },
       {
+        path: "wallet/recharge",
+        element: <WalletPage />,
+        handle: { breadcrumb: "Nạp ví" },
+      },
+      {
+        path: "wallet/withdraw",
+        element: <WalletPage />,
+        handle: { breadcrumb: "Rút tiền" },
+      },
+      {
+        path: "wallet/revenue",
+        element: <WalletPage />,
+        handle: { breadcrumb: "Doanh thu" },
+      },
+      {
         path: "wallet/history",
         element: <WalletHistoryPage />,
         handle: { breadcrumb: "Lịch sử giao dịch" },
@@ -97,11 +140,15 @@ export const router = createBrowserRouter([
         handle: { breadcrumb: "Khuyến mãi" },
       },
       {
+        path: "wallet/deposit/result",
+        element: <WalletDepositResultPage />,
+        handle: { breadcrumb: "Kết quả nạp ví" },
+      },
+      {
         path: "reset-password",
         element: <ResetPassword />,
         handle: { breadcrumb: "Đặt lại mật khẩu" },
       },
-
       {
         path: "manage-posts",
         element: <ManagePage />,
@@ -137,6 +184,11 @@ export const router = createBrowserRouter([
         element: <ReportForm />,
         handle: { breadcrumb: "Báo cáo vi phạm" },
       },
+      {
+        path: "notifications",
+        element: <NotificationPage />,
+        handle: { breadcrumb: "Thông báo mới" },
+      }
     ],
   },
   // Admin routes
@@ -154,19 +206,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: (
-          <div className="p-6">
-            <h1
-              className="text-2xl font-bold mb-4"
-              style={{ color: "inherit" }}
-            >
-              Dashboard
-            </h1>
-            <p style={{ color: "inherit" }}>
-              Chào mừng đến với trang quản trị!
-            </p>
-          </div>
-        ),
+        element: <AdminDashboardOverview />,
       },
       {
         path: "customers",
@@ -192,6 +232,22 @@ export const router = createBrowserRouter([
       {
         path: "packages",
         element: <PackageManagementPage />,
+      },
+      {
+        path: "transactions",
+        element: <WalletWithdrawManagementPage />,
+      },
+      {
+        path: "wallet-overview",
+        element: <AdminWalletOverviewPage />,
+      },
+      {
+        path: "commission-config",
+        element: <CommissionConfigManagementPage />,
+      },
+      {
+        path: "wallet-freeze",
+        element: <WalletFreezeManagementPage />,
       },
     ],
   },
@@ -220,6 +276,10 @@ export const router = createBrowserRouter([
             </p>
           </div>
         ),
+      },
+      {
+path:"dashboard",
+element: <OwnerDashBoard />,
       },
       {
         path: "manage-posts",

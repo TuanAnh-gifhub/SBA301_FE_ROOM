@@ -17,14 +17,12 @@ public interface RoomRepository extends JpaRepository<Room, UUID> {
         where r.roomStatus <> org.rent.room.be.constant.RoomStatus.INACTIVE
     """)
     List<Room> findAllNotInactive();
-
-    @Query("""
-        select r
-        from Room r
-        where r.roomStatus <> org.rent.room.be.constant.RoomStatus.INACTIVE
-          and r.rentalArea.owner.userId = :userId
-    """)
-    List<Room> findByOwnerIdNotInactive(@Param("userId") UUID userId);
+@Query("""
+    select r
+    from Room r
+    where r.rentalArea.owner.userId = :userId
+""")
+List<Room> findAllRoomsByOwnerId(@Param("userId") UUID userId);
 
     @Query("""
     select r

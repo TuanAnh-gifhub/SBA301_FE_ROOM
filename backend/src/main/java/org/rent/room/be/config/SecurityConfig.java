@@ -41,9 +41,10 @@ public class SecurityConfig {
              "/posts/**",
             "/rental-areas/{rentalId}",
             "/reports/**",
-            "/chat/send-test",
             "/bookings/**",
             "/posts/**",
+            "/wallet/deposit/webhook",
+            "/payments/payos/webhook",
 
     };
 

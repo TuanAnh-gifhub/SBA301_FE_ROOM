@@ -82,4 +82,9 @@ public class RentalArea extends BaseEntity {
     @Column(name = "total_reviews", nullable = false)
     @Builder.Default
     Integer totalReviews = 0;
+    @OneToMany(mappedBy = "rentalArea",fetch = FetchType.LAZY)
+    List<Booking> bookings;
+
+//    @OneToMany(mappedBy = "rentalArea")
+//    private List<Post> posts;
 }
