@@ -6,7 +6,7 @@ import type { RoomCardItem } from "./types";
 type Props = {
   loading?: boolean;
   data: RoomCardItem[];
-  onView: (postId: string) => void;
+  onView: (rentalAreaId: string) => void;
 };
 
 const RoomGrid: React.FC<Props> = ({ loading = false, data, onView }) => {
@@ -28,7 +28,7 @@ const RoomGrid: React.FC<Props> = ({ loading = false, data, onView }) => {
             </div>
           ))
         : data.map((item) => (
-            <RoomCard key={item.postId} item={item} onView={onView} />
+            <RoomCard key={item.rentalAreaId} item={item} onView={onView} />
           ))}
     </div>
   );

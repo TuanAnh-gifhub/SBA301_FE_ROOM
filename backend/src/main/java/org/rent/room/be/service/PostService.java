@@ -3,10 +3,7 @@ package org.rent.room.be.service;
 import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.dto.request.post.CreatePostRequest;
 import org.rent.room.be.dto.request.post.UpdatePostRequest;
-import org.rent.room.be.dto.response.post.PostDTOResponse;
-import org.rent.room.be.dto.response.post.PostDetailResponse;
-import org.rent.room.be.dto.response.post.PostResponse;
-import org.rent.room.be.dto.response.post.PostSummaryResponse;
+import org.rent.room.be.dto.response.post.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -53,4 +50,5 @@ public interface PostService {
     List<PostSummaryResponse> adminGetPosts(String status);
     PostResponse adminUpdatePostStatus(UUID postId, String status);
     void adminDeletePost(UUID postId);
+    PostIdResponse getPostIdByRoomId(String roomId);
 }

@@ -11,6 +11,7 @@ import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.dto.request.post.CreatePostRequest;
 import org.rent.room.be.dto.request.post.UpdatePostRequest;
 import org.rent.room.be.dto.response.post.PostDetailResponse;
+import org.rent.room.be.dto.response.post.PostIdResponse;
 import org.rent.room.be.dto.response.post.PostResponse;
 import org.rent.room.be.dto.response.post.PostSummaryResponse;
 import org.rent.room.be.security.CustomUserDetails;
@@ -224,6 +225,14 @@ public class PostController {
 
         return currentUserId;
     }
+
+    @GetMapping("/detail/{roomId}")
+    public ApiResponse<PostIdResponse> getPostIdByRoomId(@PathVariable String roomId) {
+        return ApiResponse.<PostIdResponse>builder()
+                .result(postService.getPostIdByRoomId(roomId))
+                .build();
+    }
+
 @GetMapping("/all/customer")
     public ApiResponse<?> getAllPostsForCustomer(
             @RequestParam(required = false) String title,
@@ -246,6 +255,7 @@ public class PostController {
         }
 
     }
+
 
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
@@ -287,4 +297,6 @@ public class PostController {
                 .result(null)
                 .build());
     }
+
+
 }

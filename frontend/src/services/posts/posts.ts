@@ -13,6 +13,14 @@ export type PostStatus =
   | "DELETED"
   | string;
 
+export type RoomStatus = "ACTIVE" | "INACTIVE" | string;
+export type RoomCopyStatus =
+  | "AVAILABLE"
+  | "BOOKED"
+  | "MAINTENANCE"
+  | "INACTIVE"
+  | string;
+
 export interface PostSummaryResponse {
   postId: string;
   title: string;
@@ -40,14 +48,70 @@ export interface PostResponse {
   postStatus: PostStatus;
 }
 
+export interface AmenityItem {
+  amenityId: number;
+  amenityName: string;
+  iconKey: string;
+}
+
+export interface RoomImageResponse {
+  roomImageId: string;
+  imageUrl: string;
+  isCover: boolean;
+  sortOrder: number;
+}
+
+export interface RoomCopyResponse {
+  roomCopyId: string;
+  roomCode: string;
+  roomCopyStatus: RoomCopyStatus;
+}
+
+export interface RoomDetailResponse {
+  roomId: string;
+  rentalAreaId: string;
+  roomName: string;
+  description: string;
+  price: number;
+  roomStatus: RoomStatus;
+  capacity: number;
+  area: number;
+  categoryId: number;
+  categoryName: string;
+  amenities: AmenityItem[];
+  images: RoomImageResponse[];
+  roomCopies: RoomCopyResponse[];
+}
+
+export interface RentalAreaImageResponse {
+  rentalAreaImageId: string;
+  imageUrl: string;
+  isCover: boolean;
+  sortOrder: number;
+}
+
+export interface RentalAreaDetailResponse {
+  rentalAreaId: string;
+  rentalAreaName: string;
+  address: string;
+  contactName: string;
+  contactPhone: string;
+  status: string;
+  cityId: number;
+  cityName: string;
+  ownerId: string;
+  ownerName: string;
+  images: RentalAreaImageResponse[];
+  rooms: RoomDetailResponse[];
+}
+
 export interface PostDetailResponse {
   postId: string;
   title: string;
   content: string;
   postStatus: PostStatus;
-
-  room?: any; 
-  rentalArea?: any;
+  room: RoomDetailResponse;
+  rentalArea: RentalAreaDetailResponse;
 }
 
 export interface CreatePostRequest {
@@ -60,6 +124,7 @@ export interface UpdatePostRequest {
   title: string;
   content: string;
 }
+
 export interface RentalAreaResponse {
   rentalAreaId: string;
   rentalAreaName: string;
@@ -77,16 +142,6 @@ export interface PostDTOResponse {
   postStatus: PostStatus;
   rentalArea: RentalAreaResponse;
 }
-
-export interface PageResponse<T> {
-  content: T[];
-  page: number;
-  size: number;
-  totalPages: number;
-  totalElements: number;
-}
-
-export type CapacityLevel = "SMALL" | "MEDIUM" | "LARGE";
 
 export type RoomCardItem = {
   postId: string;
@@ -113,12 +168,9 @@ export interface PageResponse<T> {
 export interface PublicPostQuery {
   page?: number;
   size?: number;
-
   city?: number;
   categoryId?: number;
   amenityIds?: number[];
-
-
   keyword?: string;
   sort?: string;
 }
@@ -152,6 +204,15 @@ const postsService = {
   ): Promise<ApiResponse<PostDetailResponse>> => {
     const response = await api.get<ApiResponse<PostDetailResponse>>(
       `/posts/me/${postId}`,
+    );
+    return response.data;
+  },
+
+  getPublicPostDetail: async (
+    postId: string,
+  ): Promise<ApiResponse<PostDetailResponse>> => {
+    const response = await api.get<ApiResponse<PostDetailResponse>>(
+      `/posts/${postId}`,
     );
     return response.data;
   },
@@ -221,6 +282,11 @@ const postsService = {
     return res.data;
   },
 
+  getPostIdByRoomId: async (roomId: string) => {
+    const res = await api.get(`/posts/detail/${roomId}`);
+    return res.data;
+  },
+
   getPublicPosts: async (params: {
   page: number;
   size: number;
@@ -255,5 +321,7 @@ const postsService = {
   return res.data;
 },
 };
+
+
 
 export default postsService;

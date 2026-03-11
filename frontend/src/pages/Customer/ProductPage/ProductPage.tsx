@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, Pagination, message } from "antd";
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
 
 import FilterSidebar from "./FilterSidebar";
 import RoomGrid from "./RoomGrid";
@@ -33,6 +34,7 @@ const toSortParam = (sort: SortValue): string | undefined => {
 
 const mapPostToCard = (p: PostSummaryResponse): RoomCardItem => ({
   postId: p.postId,
+  rentalAreaId: p.rentalAreaId,
   title: p.title,
   roomName: p.roomName,
   price: p.price != null ? Number(p.price) : null,
@@ -176,8 +178,10 @@ const ProductsPage: React.FC = () => {
     );
   }, [rawPosts, capacityRange, sort]);
 
-  const onView = (postId: string) => {
-    console.log("view", postId);
+  const navigate = useNavigate();
+
+  const onView = (rentalAreaId: string) => {
+    navigate(`/rentals/${rentalAreaId}`);
   };
 
   return (

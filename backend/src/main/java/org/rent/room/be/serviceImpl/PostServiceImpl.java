@@ -9,15 +9,14 @@ import org.rent.room.be.constant.PostStatus;
 import org.rent.room.be.dto.request.post.CreatePostRequest;
 import org.rent.room.be.dto.request.post.UpdatePostRequest;
 import org.rent.room.be.dto.response.amenity.AmenityResponse;
-import org.rent.room.be.dto.response.post.PostDTOResponse;
-import org.rent.room.be.dto.response.post.PostDetailResponse;
-import org.rent.room.be.dto.response.post.PostResponse;
-import org.rent.room.be.dto.response.post.PostSummaryResponse;
+import org.rent.room.be.dto.response.post.*;
 import org.rent.room.be.dto.response.rental_area.RentalAreaImageResponse;
 import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.dto.response.room.RoomImageResponse;
 import org.rent.room.be.dto.response.room.RoomResponse;
 import org.rent.room.be.entity.*;
+import org.rent.room.be.exception.AppException;
+import org.rent.room.be.exception.ErrorCode;
 import org.rent.room.be.repository.*;
 import org.rent.room.be.service.PostService;
 import org.springframework.data.domain.Page;
@@ -53,6 +52,8 @@ public class PostServiceImpl implements PostService {
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new NoSuchElementException("Room not found"));
 
+        RentalArea rentalArea = room.getRentalArea();
+
         // check owner (owner là rentalArea.owner)
         UUID ownerId = room.getRentalArea().getOwner().getUserId();
         if (ownerId == null || !ownerId.equals(currentUserId)) {
@@ -72,6 +73,7 @@ public class PostServiceImpl implements PostService {
                 .content(request.getContent())
                 .postStatus(PostStatus.PENDING)
                 .room(room)
+                .rentalArea(rentalArea)
                 .user(user)
                 .build();
 
@@ -416,6 +418,7 @@ public class PostServiceImpl implements PostService {
                 .map(a -> RoomResponse.AmenityItem.builder()
                         .amenityId(a.getAmenityId())
                         .amenityName(a.getAmenityName())
+                        .iconKey(a.getIconKey())
                         .build())
                 .collect(Collectors.toSet());
 
@@ -510,5 +513,15 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new NoSuchElementException("Post not found"));
          post.setPostStatus(PostStatus.DELETED);
          postRepository.save(post);
+    }
+
+    @Override
+    public PostIdResponse getPostIdByRoomId(String roomId) {
+        Post post = postRepository.findFirstByRoom_RoomId(roomId)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+
+        return PostIdResponse.builder()
+                .postId(post.getPostId())
+                .build();
     }
 }

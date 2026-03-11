@@ -21,7 +21,6 @@ import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManag
 import CategoryManagementPage from "../pages/Admin/CategoryManagement/CategoryManagementPage";
 import PostManagementPage from "../pages/Admin/PostManagement/PostManagementPage";
 import ProductPage from "../pages/Customer/ProductPage/ProductPage";
-import PostManagePage from "../pages/Admin/PostManagement/PostManagePage";
 import RentalDetailPage from "../pages/Customer/LandingPage/RentalDetailPage";
 import PackagePage from "../pages/Customer/PackagePage";
 import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManagementPage";
@@ -34,6 +33,7 @@ import ManageRoomPage from "../pages/Customer/ManageRoomPage/ManageRoomPage";
 import ManageBookingPage from "../pages/Owner/ManageBookingPage/ManageBookingPage";
 import ManageSchedulePage from "../pages/Owner/ManageSchedule/ManageSchedulePage";
 import ManagePostPage from "../pages/Customer/ManagePostPage/ManagePostPage";
+import ProductDetailPage from "../pages/Customer/ProductDetail/ProductDetailPage";
 
 export const router = createBrowserRouter([
   {
@@ -73,11 +73,11 @@ export const router = createBrowserRouter([
         element: <PaymentSuccessPage />,
         handle: { breadcrumb: "Thanh toán thành công" },
       },
-      {
-        path: "product/:id",
-        element: <RoomDetailPage />,
-        handle: { breadcrumb: "Chi tiết phòng" },
-      },
+      // {
+      //   path: "product/:id",
+      //   element: <RoomDetailPage />,
+      //   handle: { breadcrumb: "Chi tiết phòng" },
+      // },
       {
         path: "chat",
         element: <ChatBoxHome />,
@@ -143,6 +143,11 @@ export const router = createBrowserRouter([
         path: "products",
         element: <ProductPage />,
       },
+      {
+        path: "products/:postId",
+        element: <ProductDetailPage />,
+        handle: { breadcrumb: "Chi tiết sản phẩm" },
+      },
     ],
   },
   // Admin routes
@@ -180,7 +185,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "posts",
-        element: <PostManagePage />,
+        element: <PostManagementPage />,
       },
 
       {
@@ -248,6 +253,5 @@ export const router = createBrowserRouter([
         element: <ManageSchedulePage />,
       },
     ],
-
   },
 ]);

@@ -41,6 +41,8 @@ public enum ErrorCode {
     SUBSCRIPTION_ALREADY_ACTIVE(4005, "User already has an active subscription", HttpStatus.BAD_REQUEST),
     SUBSCRIPTION_NOT_FOUND(4006, "Subscription not found", HttpStatus.NOT_FOUND),
 
+
+
     //QR
     QR_NOT_FOUND(4000, "QR không hợp lệ",HttpStatus.BAD_REQUEST),
     QR_INVALID(4000, "QR không hợp lệ",HttpStatus.BAD_REQUEST),
@@ -49,7 +51,12 @@ public enum ErrorCode {
     BOOKING_NOT_FOUND(4004, "Không tìm thấy booking",HttpStatus.NOT_FOUND),
     BOOKING_ALREADY_CHECKED_IN(4000, "Đã check-in rồi",HttpStatus.BAD_REQUEST),
     CANNOT_CHECKOUT_BEFORE_CHECKIN(4000, "Chưa check-in thì không thể check-out",HttpStatus.BAD_REQUEST),
+
+    // Post
+    POST_NOT_FOUND(4004, "Post not found", HttpStatus.NOT_FOUND);
     ;
+
+
 
 
 

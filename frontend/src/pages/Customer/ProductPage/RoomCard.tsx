@@ -95,7 +95,7 @@ const RoomCard: React.FC<Props> = ({ item, onView }) => {
           fontWeight: 600,
           borderRadius: 10,
         }}
-        onClick={() => onView(item.postId)}
+        onClick={() => onView(item.rentalAreaId)}
       >
         Xem chi tiết
       </Button>

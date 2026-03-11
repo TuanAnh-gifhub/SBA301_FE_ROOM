@@ -2,6 +2,8 @@ export type CapacityLevel = "SMALL" | "MEDIUM" | "LARGE";
 
 export type RoomCardItem = {
   postId: string;
+  rentalAreaId: string;
+
   title: string;
 
   roomName: string;
