@@ -3,6 +3,7 @@ import { FiMessageCircle, FiMoon, FiSun } from "react-icons/fi";
 import { FaHeart } from "react-icons/fa";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { message } from "antd";
 
 // Import components
 import LoginPage from "../../pages/Customer/LoginPage/LoginPage";
@@ -78,6 +79,32 @@ const Header = () => {
     // Không cần reload trang thủ công vì Context sẽ tự cập nhật state -> Re-render Header
     // Nhưng nếu muốn chắc chắn về trang chủ:
     navigate("/");
+  };
+
+  const handlePostRoomClick = () => {
+    requireAuth(() => {
+      const role = user?.role?.toUpperCase();
+
+      if (role === "OWNER") {
+        navigate("/owner/manage-posts");
+        return;
+      }
+
+      if (role === "RENTER") {
+        // Tạm thời chưa có UI/API flow renter -> owner
+        // Có thể đổi sang mở modal / toast sau
+        message.info("Sắp có luồng đăng phòng cho người thuê.");
+        return;
+      }
+
+      if (role === "ADMIN") {
+        navigate("/owner/manage-posts");
+        return;
+      }
+
+      // fallback
+      message.error("Vui lòng đăng nhập.");
+    });
   };
 
   // Logic đo chiều cao Header
@@ -288,9 +315,7 @@ const Header = () => {
 
                     {/* Đăng phòng */}
                     <button
-                      onClick={() =>
-                        requireAuth(() => navigate("/manage-posts"))
-                      }
+                      onClick={handlePostRoomClick}
                       className={`${PRIMARY_BUTTON_CLASS} inline-flex items-center justify-center h-10 md:h-11 px-3 md:px-5 py-2 md:py-2.5 bg-[#4da6ff]/70 hover:bg-[#4da6ff]/90 text-white border-[#4da6ff]/50 hover:border-[#4da6ff]`}
                       title="Đăng tin"
                     >
