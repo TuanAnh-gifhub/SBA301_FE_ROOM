@@ -11,18 +11,30 @@ import {
 } from "react-icons/fi";
 
 // Style lấy từ Header cũ của bạn để đồng bộ
-const PRIMARY_BUTTON_CLASS = "px-1.5 md:px-4 py-1.5 md:py-2 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-in-out border hover:border-[#4da6ff]";
-const BUTTON_TEXT_HOVER_CLASS = "text-[11px] md:text-xs whitespace-nowrap inline-block hover:scale-110 transition-transform duration-300 ease-in-out";
+const PRIMARY_BUTTON_CLASS =
+  "px-1.5 md:px-4 py-1.5 md:py-2 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-in-out border hover:border-[#4da6ff]";
+const BUTTON_TEXT_HOVER_CLASS =
+  "text-[11px] md:text-xs whitespace-nowrap inline-block hover:scale-110 transition-transform duration-300 ease-in-out";
 
 interface UserMenuProps {
   isLoggedIn: boolean;
-  user?: { name: string; avatar?: string } | null;
+  user?: {
+    userName: string;
+    avatar?: string;
+    role?: string;
+  } | null;
   onLoginClick: () => void;
   onLogoutClick: () => void;
   isHeaderTransparent?: boolean;
 }
 
-const UserMenu = ({ isLoggedIn, user, onLoginClick, onLogoutClick, isHeaderTransparent = false }: UserMenuProps) => {
+const UserMenu = ({
+  isLoggedIn,
+  user,
+  onLoginClick,
+  onLogoutClick,
+  isHeaderTransparent = false,
+}: UserMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -49,14 +61,22 @@ const UserMenu = ({ isLoggedIn, user, onLoginClick, onLogoutClick, isHeaderTrans
         }`}
         title="Đăng nhập"
       >
-        <span className={`${BUTTON_TEXT_HOVER_CLASS} leading-none`}>Đăng nhập</span>
+        <span className={`${BUTTON_TEXT_HOVER_CLASS} leading-none`}>
+          Đăng nhập
+        </span>
       </button>
     );
   }
 
   // TRƯỜNG HỢP 2: ĐÃ ĐĂNG NHẬP -> Hiện Avatar + Dropdown
+  const role = user?.role;
   const displayName = user?.name || "Member";
-  const displayAvatar = user?.avatar || `https://ui-avatars.com/api/?name=${displayName}&background=random`;
+  const displayAvatar =
+    user?.avatar ||
+    `https://ui-avatars.com/api/?name=${displayName}&background=random`;
+
+  console.log("UserMenu user =", user);
+  console.log("UserMenu role =", role);
 
   return (
     <div className="relative" ref={menuRef}>
@@ -97,7 +117,9 @@ const UserMenu = ({ isLoggedIn, user, onLoginClick, onLogoutClick, isHeaderTrans
             className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-[9999] overflow-hidden"
           >
             <div className="px-4 py-3 border-b border-gray-50 mb-1">
-              <p className="text-sm font-bold text-gray-800 truncate">{displayName}</p>
+              <p className="text-sm font-bold text-gray-800 truncate">
+                {displayName}
+              </p>
               <p className="text-xs text-gray-500">Thành viên EduRoom</p>
             </div>
 
@@ -128,14 +150,16 @@ const UserMenu = ({ isLoggedIn, user, onLoginClick, onLogoutClick, isHeaderTrans
               Ví cá nhân
             </Link>
 
-            <Link
-              to="/manage-posts"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
-            >
-              <FiFileText className="w-4 h-4" />
-              Quản lý cá nhân
-            </Link>
+            {role === "OWNER" && (
+              <Link
+                to="/owner/manage-posts"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
+              >
+                <FiFileText className="w-4 h-4" />
+                Quản lý cá nhân
+              </Link>
+            )}
 
             <div className="h-px bg-gray-100 my-1 mx-4" />
 

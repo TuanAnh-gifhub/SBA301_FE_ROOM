@@ -36,7 +36,12 @@ public interface PostRepository extends JpaRepository<Post, UUID>, JpaSpecificat
 
     List<Post> findAllByPostStatusIn(Collection<PostStatus> statuses);
 
-    Optional<Post> findFirstByRoom_RoomId(String roomId);
+    @Query("""
+    select p.postId
+    from Post p
+    where p.room.roomId = :roomId
+    """)
+    Optional<UUID> findPostIdByRoomId(@Param("roomId") UUID roomId);
 
     @Query("""
     select p

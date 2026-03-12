@@ -516,12 +516,12 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public PostIdResponse getPostIdByRoomId(String roomId) {
-        Post post = postRepository.findFirstByRoom_RoomId(roomId)
-                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+    public PostIdResponse getPostIdByRoomId(UUID roomId) {
+        UUID post = postRepository.findPostIdByRoomId(roomId)
+                .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
 
         return PostIdResponse.builder()
-                .postId(post.getPostId())
+                .postId(post)
                 .build();
     }
 }

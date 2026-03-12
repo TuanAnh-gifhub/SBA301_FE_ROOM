@@ -50,5 +50,5 @@ public interface PostService {
     List<PostSummaryResponse> adminGetPosts(String status);
     PostResponse adminUpdatePostStatus(UUID postId, String status);
     void adminDeletePost(UUID postId);
-    PostIdResponse getPostIdByRoomId(String roomId);
+    PostIdResponse getPostIdByRoomId(UUID roomId);
 }

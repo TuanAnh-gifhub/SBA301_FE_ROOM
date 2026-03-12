@@ -27,7 +27,6 @@ const RoomInfoCard: React.FC<Props> = ({
   capacity,
   area,
   roomStatus,
-  roomCount,
 }) => {
   return (
     <Card className="shadow-sm rounded-xl">
@@ -61,13 +60,6 @@ const RoomInfoCard: React.FC<Props> = ({
           <span className="text-gray-500">Diện tích</span>
           <span className="font-semibold text-gray-800 text-right">
             {area != null ? `${area} m²` : "—"}
-          </span>
-        </div>
-
-        <div className="flex items-start justify-between gap-4">
-          <span className="text-gray-500">Số lượng khả dụng</span>
-          <span className="font-semibold text-gray-800 text-right">
-            {roomCount ?? 0}
           </span>
         </div>
 

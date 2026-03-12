@@ -227,7 +227,7 @@ public class PostController {
     }
 
     @GetMapping("/detail/{roomId}")
-    public ApiResponse<PostIdResponse> getPostIdByRoomId(@PathVariable String roomId) {
+    public ApiResponse<PostIdResponse> getPostIdByRoomId(@PathVariable UUID roomId) {
         return ApiResponse.<PostIdResponse>builder()
                 .result(postService.getPostIdByRoomId(roomId))
                 .build();

@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Breadcrumb, Skeleton, message } from "antd";
-import { HomeOutlined } from "@ant-design/icons";
+import { Alert, Breadcrumb, Skeleton, message, Tag } from "antd";
+import {
+  HomeOutlined,
+  AppstoreOutlined,
+  TeamOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
 import { Link, useParams } from "react-router-dom";
 
 import postsService, {
@@ -10,7 +15,6 @@ import postsService, {
 } from "../../../services/posts/posts";
 
 import ImageGallery from "./ImageGallery";
-import BookingCard from "./BookingCard";
 import AmenitiesSection from "./AmenitiesSection";
 import OwnerCard from "./OwnerCard";
 import RoomInfoCard from "./RoomInfoCard";
@@ -91,21 +95,12 @@ const ProductDetailPage: React.FC = () => {
     }));
   }, [data]);
 
-  const availableRoomCount = useMemo(() => {
-    const copies = data?.room?.roomCopies || [];
-    return (
-      copies.filter((x) => x.roomCopyStatus === "AVAILABLE").length ||
-      copies.length ||
-      1
-    );
-  }, [data]);
-
   if (loading) {
     return (
       <div className="bg-gray-50 min-h-screen py-4">
         <div className="px-4">
-          <div className="max-w-[1600px] mx-auto">
-            <div className="bg-white rounded-xl shadow-sm p-4">
+          <div className="max-w-[1400px] mx-auto">
+            <div className="bg-white rounded-2xl shadow-sm p-4">
               <Skeleton active paragraph={{ rows: 10 }} />
             </div>
           </div>
@@ -118,7 +113,7 @@ const ProductDetailPage: React.FC = () => {
     return (
       <div className="bg-gray-50 min-h-screen py-4">
         <div className="px-4">
-          <div className="max-w-[1600px] mx-auto">
+          <div className="max-w-[1400px] mx-auto">
             <Alert
               type="warning"
               message="Không tìm thấy bài đăng"
@@ -132,10 +127,10 @@ const ProductDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-4">
+    <div className="bg-gray-50 min-h-screen py-6">
       <div className="px-4">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="mb-4">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="mb-5">
             <Breadcrumb
               items={[
                 {
@@ -155,34 +150,79 @@ const ProductDetailPage: React.FC = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-            <div className="xl:col-span-8 space-y-4">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <div className="xl:col-span-8 space-y-6">
               <ImageGallery title={data.title} images={galleryImages} />
 
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <div className="text-2xl md:text-3xl font-bold text-gray-800 mb-3">
-                  {data.title}
+              <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
+                <div className="flex flex-col gap-4 border-b border-gray-100 pb-6 mb-6">
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800 leading-snug">
+                      {data.title}
+                    </h1>
+
+                    <p className="text-base text-gray-500 mt-2">
+                      {data.rentalArea?.rentalAreaName} ·{" "}
+                      {data.rentalArea?.cityName}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="bg-blue-50 text-blue-600 px-4 py-3 rounded-xl">
+                      <div className="text-sm text-blue-500 font-medium">
+                        Giá thuê
+                      </div>
+                      <div className="text-2xl font-bold">
+                        {Number(data.room?.price || 0).toLocaleString("vi-VN")}{" "}
+                        VNĐ
+                        <span className="text-sm font-normal text-gray-500">
+                          {" "}
+                          / giờ
+                        </span>
+                      </div>
+                    </div>
+
+                    {data.room?.categoryName && (
+                      <div className="bg-gray-50 px-4 py-3 rounded-xl min-w-[140px]">
+                        <div className="text-sm text-gray-500">Loại phòng</div>
+                        <div className="font-semibold text-gray-800">
+                          {data.room.categoryName}
+                        </div>
+                      </div>
+                    )}
+
+                    {!!data.room?.capacity && (
+                      <div className="bg-gray-50 px-4 py-3 rounded-xl min-w-[140px]">
+                        <div className="text-sm text-gray-500">Sức chứa</div>
+                        <div className="font-semibold text-gray-800">
+                          {data.room.capacity} người
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {data.room?.categoryName && (
+                      <Tag icon={<AppstoreOutlined />} color="blue">
+                        {data.room.categoryName}
+                      </Tag>
+                    )}
+                    {!!data.room?.capacity && (
+                      <Tag icon={<TeamOutlined />} color="gold">
+                        {data.room.capacity} người
+                      </Tag>
+                    )}
+                  </div>
                 </div>
 
-                <div className="text-base text-gray-500 mb-4">
-                  {data.rentalArea?.rentalAreaName} ·{" "}
-                  {data.rentalArea?.cityName}
-                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                    Giới thiệu về phòng
+                  </h2>
 
-                <div className="text-3xl font-bold text-[#4da6ff] mb-5">
-                  {Number(data.room?.price || 0).toLocaleString("vi-VN")} VNĐ
-                  <span className="text-base font-normal text-gray-500">
-                    {" "}
-                    / giờ
-                  </span>
-                </div>
-
-                <div className="text-2xl font-bold text-gray-800 mb-3">
-                  Giới Thiệu Về Phòng
-                </div>
-
-                <div className="text-gray-700 leading-8 whitespace-pre-line">
-                  {data.content || data.room?.description || "Chưa có mô tả"}
+                  <div className="text-gray-700 leading-8 whitespace-pre-line text-[15px]">
+                    {data.content || data.room?.description || "Chưa có mô tả"}
+                  </div>
                 </div>
               </div>
 
@@ -195,30 +235,23 @@ const ProductDetailPage: React.FC = () => {
               />
             </div>
 
-            <div className="xl:col-span-4 space-y-4">
-              <BookingCard
-                title={data.title}
-                price={Number(data.room?.price || 0)}
-                categoryName={data.room?.categoryName}
-                capacity={data.room?.capacity}
-                availableRoomCount={availableRoomCount}
-              />
+            <div className="xl:col-span-4 space-y-6">
+              <div className="xl:sticky xl:top-6 space-y-6">
+                <OwnerCard
+                  ownerName={data.rentalArea?.ownerName}
+                  contactName={data.rentalArea?.contactName}
+                  contactPhone={data.rentalArea?.contactPhone}
+                  rentalAreaName={data.rentalArea?.rentalAreaName}
+                />
 
-              <OwnerCard
-                ownerName={data.rentalArea?.ownerName}
-                contactName={data.rentalArea?.contactName}
-                contactPhone={data.rentalArea?.contactPhone}
-                rentalAreaName={data.rentalArea?.rentalAreaName}
-              />
-
-              <RoomInfoCard
-                roomName={data.room?.roomName}
-                categoryName={data.room?.categoryName}
-                capacity={data.room?.capacity}
-                area={data.room?.area}
-                roomStatus={data.room?.roomStatus}
-                roomCount={availableRoomCount}
-              />
+                <RoomInfoCard
+                  roomName={data.room?.roomName}
+                  categoryName={data.room?.categoryName}
+                  capacity={data.room?.capacity}
+                  area={data.room?.area}
+                  roomStatus={data.room?.roomStatus}
+                />
+              </div>
             </div>
           </div>
         </div>

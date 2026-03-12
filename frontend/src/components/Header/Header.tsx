@@ -118,6 +118,7 @@ const Header = () => {
     ? {
         name: user.userName || "User",
         // avatar: user.avatar // Nếu sau này có avatar thì thêm vào
+        role: user.role,
       }
     : null;
 
@@ -299,21 +300,24 @@ const Header = () => {
                         Đăng phòng
                       </span>
                     </button>
-                    
+
                     {/* Gói Premium */}
                     <Link
-                    to="/packages"
-                    className={`${PRIMARY_BUTTON_CLASS} inline-flex items-center justify-center h-10 md:h-11 px-3 md:px-5 py-2 md:py-2.5
-                      ${isHeaderTransparent
-                        ? "bg-white/10 text-white border-white/30 hover:bg-white/20"
-                        : "bg-yellow-400/80 hover:bg-yellow-400 text-white border-yellow-400/50 hover:border-yellow-500"
+                      to="/packages"
+                      className={`${PRIMARY_BUTTON_CLASS} inline-flex items-center justify-center h-10 md:h-11 px-3 md:px-5 py-2 md:py-2.5
+                      ${
+                        isHeaderTransparent
+                          ? "bg-white/10 text-white border-white/30 hover:bg-white/20"
+                          : "bg-yellow-400/80 hover:bg-yellow-400 text-white border-yellow-400/50 hover:border-yellow-500"
                       }`}
-                    title="Gói Premium"
-                  >
-                    <span className={`${BUTTON_TEXT_HOVER_CLASS} leading-none`}>
-                      ⭐ Gói Premium
-                    </span>
-                  </Link>
+                      title="Gói Premium"
+                    >
+                      <span
+                        className={`${BUTTON_TEXT_HOVER_CLASS} leading-none`}
+                      >
+                        ⭐ Gói Premium
+                      </span>
+                    </Link>
 
                     {/* --- 5. USER MENU MỚI --- */}
                     {isLoading ? (

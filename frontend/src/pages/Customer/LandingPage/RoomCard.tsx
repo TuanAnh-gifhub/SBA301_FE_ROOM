@@ -24,7 +24,7 @@ export default function RoomCard({ room, onAddRoom }) {
     try {
       const res = await postsService.getPostIdByRoomId(room.roomId);
 
-      if (res.code !== 200 || !res.result?.postId) {
+      if (res.code !== 1000 || !res.result?.postId) {
         throw new Error(res.message || "Không tìm thấy bài đăng");
       }
 
@@ -80,9 +80,15 @@ export default function RoomCard({ room, onAddRoom }) {
           <div>
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-xl font-bold text-gray-800 leading-snug line-clamp-2">
-                  {room.roomName}
-                </h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-xl font-bold text-gray-800 leading-snug">
+                    {room.roomName}
+                  </h3>
+
+                  <span className="shrink-0 text-xs font-semibold bg-amber-50 text-amber-700 px-3 py-1 rounded-full">
+                    Còn lại {availableRooms} phòng
+                  </span>
+                </div>
 
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-500">
                   <span className="rounded-full bg-gray-100 px-3 py-1">
@@ -121,10 +127,7 @@ export default function RoomCard({ room, onAddRoom }) {
             </div>
 
             {/* PRICE + AVAILABILITY */}
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-xs font-medium bg-amber-50 text-amber-700 px-2 py-1 rounded-full w-fit">
-                Còn lại {availableRooms} phòng
-              </span>
+            <div className="flex flex-col items-end gap-1 mt-8">
               <div className="flex items-end justify-end gap-2">
                 <span className="text-[#4da6ff] text-2xl font-bold leading-none">
                   {formatPrice(room.price)} VNĐ
