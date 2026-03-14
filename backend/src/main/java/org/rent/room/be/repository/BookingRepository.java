@@ -92,6 +92,7 @@ ORDER BY DAY(b.createdAt)
     List<Object[]> revenueByDay(int year, int month);
 
 
+
     @Query("""
 SELECT COALESCE(SUM(b.totalPrice),0)
 FROM Booking b
@@ -129,10 +130,68 @@ AND b.createdAt BETWEEN :from AND :to
             LocalDateTime from,
             LocalDateTime to
     );
-    List<Booking> findByBookingStatusAndCheckOutIsNotNullAndCheckOutLessThanEqual(
-            BookingStatus bookingStatus,
-            LocalDateTime checkOut
+
+    @Query("""
+            SELECT COALESCE(SUM(b.totalPrice), 0)
+            FROM Booking b
+            WHERE b.bookingStatus = org.rent.room.be.constant.BookingStatus.COMPLETED
+            AND b.rentalArea.rentalAreaId IN :rentalAreaIds
+            AND b.createdAt BETWEEN :start AND :end
+            """)
+    BigDecimal revenueTodayByOwner(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("rentalAreaIds") List<UUID> rentalAreaIds
     );
+
+    @Query("""
+            SELECT DATE(b.createdAt), COALESCE(SUM(b.totalPrice), 0)
+            FROM Booking b
+            WHERE b.bookingStatus = org.rent.room.be.constant.BookingStatus.COMPLETED
+            AND b.rentalArea.rentalAreaId IN :rentalAreaIds
+            AND b.createdAt >= :from
+            GROUP BY DATE(b.createdAt)
+            ORDER BY DATE(b.createdAt)
+            """)
+    List<Object[]> revenueLast7DaysByOwner(
+            @Param("from") LocalDateTime from,
+            @Param("rentalAreaIds") List<UUID> rentalAreaIds
+    );
+
+    @Query("""
+            SELECT MONTH(b.createdAt), COALESCE(SUM(b.totalPrice), 0)
+            FROM Booking b
+            WHERE b.bookingStatus = org.rent.room.be.constant.BookingStatus.COMPLETED
+            AND b.rentalArea.rentalAreaId IN :rentalAreaIds
+            AND YEAR(b.createdAt) = :year
+            GROUP BY MONTH(b.createdAt)
+            ORDER BY MONTH(b.createdAt)
+            """)
+    List<Object[]> revenueByMonthByOwner(
+            @Param("year") int year,
+            @Param("rentalAreaIds") List<UUID> rentalAreaIds
+    );
+
+    @Query("""
+            SELECT DAY(b.createdAt), COALESCE(SUM(b.totalPrice), 0)
+            FROM Booking b
+            WHERE b.bookingStatus = org.rent.room.be.constant.BookingStatus.COMPLETED
+            AND b.rentalArea.rentalAreaId IN :rentalAreaIds
+            AND YEAR(b.createdAt) = :year
+            AND MONTH(b.createdAt) = :month
+            GROUP BY DAY(b.createdAt)
+            ORDER BY DAY(b.createdAt)
+            """)
+    List<Object[]> revenueByDayByOwner(
+            @Param("year") int year,
+            @Param("month") int month,
+            @Param("rentalAreaIds") List<UUID> rentalAreaIds
+    );
+
+
+
+
+
 
     List<Booking> findByBookingStatusAndCheckOutIsNotNullAndCheckOutLessThanEqualAndEscrowReleasedAtIsNullAndDisputeFlagFalse(
             BookingStatus bookingStatus,
