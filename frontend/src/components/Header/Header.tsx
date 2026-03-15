@@ -199,7 +199,9 @@ const Header = () => {
 
   const displayUser = user
     ? {
-        name: user.userName || "User",
+        name: user.userName ,
+        role: user.role 
+        || "User",
       }
     : null;
 

@@ -99,7 +99,12 @@ const SidebarOwner: React.FC<SidebarProps> = ({
       }}
     >
       {/* Logo Section */}
-      <div
+         <Link
+              to="/"
+             
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
+            >
+               <div
         className={`h-16 flex items-center justify-center border-b transition-colors ${
           isDark ? "border-gray-700 bg-[#001529]" : "border-gray-200 bg-white"
         }`}
@@ -119,6 +124,8 @@ const SidebarOwner: React.FC<SidebarProps> = ({
           )}
         </div>
       </div>
+      </Link>
+     
 
       <div className="h-[calc(100vh-64px)] overflow-y-auto custom-scrollbar py-2">
         <Menu
