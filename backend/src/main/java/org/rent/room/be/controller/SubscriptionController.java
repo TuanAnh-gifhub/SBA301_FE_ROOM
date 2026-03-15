@@ -22,7 +22,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Validated
-@Tag(name = "7. Subscription")
+@Tag(name = "14. Subscription")
 public class SubscriptionController {
 
     SubscriptionService subscriptionService;

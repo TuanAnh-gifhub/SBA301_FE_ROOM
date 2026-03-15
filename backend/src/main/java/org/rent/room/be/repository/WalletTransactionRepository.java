@@ -8,7 +8,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,5 +38,21 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
     );
 
     boolean existsByBookingIdAndType(UUID bookingId, WalletTxType type);
+
+    @Query("""
+            SELECT COALESCE(SUM(tx.amount), 0)
+            FROM WalletTransaction tx
+            WHERE tx.wallet = :wallet
+              AND tx.type = :type
+              AND tx.status = :status
+              AND tx.createdAt BETWEEN :from AND :to
+            """)
+    BigDecimal sumAmountByWalletTypeStatus(
+            @Param("wallet") Wallet wallet,
+            @Param("type") WalletTxType type,
+            @Param("status") WalletTxStatus status,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
 }
 
