@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 @RestController
 @RequestMapping("/booking-qr")
-@Tag(name = "7. Booking QR")
+@Tag(name = "8. Booking QR")
 public class BookingQrController {
     @Autowired
     private BookingQRService bookingQRService;
