@@ -19,6 +19,8 @@ import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
 import org.rent.room.be.dto.response.slot.SlotResponse;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.entity.BookingIntent;
+import org.rent.room.be.exception.AppException;
+import org.rent.room.be.exception.ErrorCode;
 import org.rent.room.be.repository.*;
 import org.rent.room.be.service.*;
 import org.rent.room.be.specification.BookingSpecification;
