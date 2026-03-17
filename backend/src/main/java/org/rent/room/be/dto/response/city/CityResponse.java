@@ -1,4 +1,4 @@
-package org.rent.room.be.dto.response;
+package org.rent.room.be.dto.response.city;
 
 import lombok.*;
 

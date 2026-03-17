@@ -32,6 +32,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -121,79 +122,7 @@ public class RentalAreaServiceImpl implements RentalAreaService {
                 .build();
     }
 
-    @Override
-    public PageResponse<BookingResponse> getBookingsByRentalAreaId(
-            UUID rentalAreaId,
-            BookingStatus bookingStatus,
-            LocalDate fromDate,
-            LocalDate toDate,
-            int page,
-            int size
-    ) {
 
-        Pageable pageable =
-                PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-
-        Specification<Booking> spec =
-                BookingSpecification.filterBookings(
-                        rentalAreaId,
-                        bookingStatus,
-                        fromDate,
-                        toDate
-                );
-
-        Page<Booking> bookingPage = bookingRepository.findAll(spec, pageable);
-
-        List<BookingResponse> responses =
-                bookingPage.getContent().stream()
-                        .map(booking -> {
-
-                            List<SlotResponse> slotResponses = booking.getSlots().stream()
-                                    .map(slot -> {
-                                        RoomCopy roomCopy = slot.getRoomCopy();
-                                        Room room = roomCopy.getRoom();
-                                        RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
-                                                .roomCopyId(roomCopy.getRoomCopyId())
-                                                .roomCode(roomCopy.getRoomCode())
-                                                .build();
-
-                                        return SlotResponse.builder()
-                                                .slotId(slot.getSlotId())
-                                                .startTime(slot.getStartTime())
-                                                .endTime(slot.getEndTime())
-                                                .roomCopy(roomCopyResponse)
-                                                .status(slot.getSlotStatus())
-
-                                                .build();
-                                    })
-                                    .toList();
-
-
-                            return BookingResponse.builder()
-                                    .bookingId(booking.getBookingId())
-                                    .userName(booking.getRenter().getUserName())
-                                    .phoneNumber(booking.getRenter().getPhone())
-                                    .startTime(booking.getStartTime())
-                                    .endTime(booking.getEndTime())
-                                    .totalPrice(booking.getTotalPrice())
-                                    .note(booking.getNote())
-                                    .createdAt(booking.getCreatedAt())
-                                    .status(booking.getBookingStatus())
-                                    .bookingType(booking.getBookingType())
-                                    .statusPayment("")
-                                    .slots(slotResponses)
-                                    .build();
-                        })
-                        .toList();
-
-        return PageResponse.<BookingResponse>builder()
-                .currentPage(bookingPage.getNumber() + 1)
-                .totalPages(bookingPage.getTotalPages())
-                .pageSize(bookingPage.getSize())
-                .totalElements(bookingPage.getTotalElements())
-                .data(responses)
-                .build();
-    }
 
     @Override
     public PageResponse<RentalAreaResponse> getAllRentalAreas(int page, int size,

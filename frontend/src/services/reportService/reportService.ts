@@ -13,7 +13,8 @@ export const reportService = {
     email?: string;
     address?: string;
     roomName?: string;
-    reportedId?: string;
+    reportId?: string;
+    bookingId?: string;
   }) => {
     const res = await api.post<ApiResponse<null>>("/reports", data);
     return res.data;

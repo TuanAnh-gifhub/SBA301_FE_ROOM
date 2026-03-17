@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { userService, type UserResponse } from "../services/usersService";
 // 1. Import websocketService và tokenService
-import websocketService from "../services/chats/websocketService";
+import websocketService from "../services/websocketService";
 import { tokenService } from "../services/auth/tokenService";
 
 interface AuthContextType {
@@ -21,9 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // 2. Thêm useEffect quản lý kết nối WebSocket
   useEffect(() => {
-    // Nếu có user và chưa kết nối thì tiến hành connect
     if (user && user.userId) {
       const token = tokenService.getAccessToken();
       const wsUrl =
@@ -31,19 +29,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         "http://localhost:8080/api/v1/rent-room/ws";
 
       if (!websocketService.isConnected()) {
-        console.log("🚀 AuthProvider: Đang khởi tạo kết nối WebSocket...");
         websocketService.connect(wsUrl, token);
       }
     }
 
-    // Cleanup: Khi unmount hoặc khi user logout (user trở thành null)
     return () => {
       if (!user && websocketService.isConnected()) {
-        console.log("🔌 AuthProvider: Đang ngắt kết nối WebSocket...");
         websocketService.disconnect();
       }
     };
-  }, [user]); // Theo dõi sự thay đổi của user
+  }, [user]);
 
   const fetchCurrentUser = async () => {
     const token = localStorage.getItem("accessToken");

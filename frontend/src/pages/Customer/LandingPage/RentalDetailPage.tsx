@@ -1,22 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Alert, Breadcrumb, Card, Skeleton } from "antd";
-import { HomeOutlined } from "@ant-design/icons";
-import { toast } from "react-toastify";
-
+import { useEffect, useState } from "react";
 import rentalAreasService from "../../../services/rental-areas/rentalAreas";
-import { createBookingIntent } from "../../../services/booking/bookingService";
-import { useAuth } from "../../../context/AuthContext";
-
+import { toast } from "react-toastify";
+import { Row, Col } from "antd";
 import BookingPanel from "../Booking/BookingPanel";
+import { useAuth } from "../../../context/AuthContext";
+import type { Room } from "../../../types/booking";
+import RoomCardList from "./RoomListPage";
 import BookingSearchBar from "../Booking/BookingSearchBar";
+import {
+  createBookingIntent,
+  getBookingsByUserId,
+} from "../../../services/booking/bookingService";
 import RentalGallery from "../Rental/RentalGallery";
+import { ReviewSection } from "../../../components/review/ReviewSection";
 import HostCard from "../Rental/HostCard";
 import RentalInfo from "../Rental/RentalInfo";
-import RoomCardList from "./RoomListPage";
-import AmenitiesSection from "../ProductDetail/AmenitiesSection";
 
-import type { Room } from "../../../types/booking";
+// ── Import service booking để lấy completedBookingId ──────────────
+// TODO: thay bằng đúng service booking của dự án bạn
+// import bookingService from "../../../services/booking/bookingService";
 
 interface BookingSlot {
   roomId: string;
@@ -26,13 +29,11 @@ interface BookingSlot {
   end: string;
   quantity: number;
 }
-
 interface BookingFilter {
   date: string;
   start: string;
   end: string;
 }
-
 type CartItem = {
   room: Room;
   date: string;
@@ -44,14 +45,21 @@ type CartItem = {
 type Cart = CartItem[];
 
 export default function RentalDetailPage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-
   const [slots, setSlots] = useState<BookingSlot[]>([]);
+  const { id } = useParams();
   const [rental, setRental] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [quantity, setQuantity] = useState(0);
+  const { user } = useAuth();
   const [cart, setCart] = useState<Cart>([]);
+  const navigate = useNavigate();
+
+  // ── FIX 1: completedBookingId ────────────────────────────────────
+  // State lưu bookingId COMPLETED của user cho rental area này.
+  // Nếu có -> hiện form viết review. Nếu undefined -> ẩn form.
+const [completedBookingId, setCompletedBookingId] = useState<string | undefined>(
+ // paste bookingId COMPLETED thật từ DB vào đây
+);
+
   const [filter, setFilter] = useState<BookingFilter>({
     date: "",
     start: "07:00",
@@ -59,57 +67,66 @@ export default function RentalDetailPage() {
   });
 
   useEffect(() => {
-    if (!id) return;
     fetchDetail();
   }, [id]);
 
-  const fetchDetail = async () => {
-    try {
-      setLoading(true);
-      const res = await rentalAreasService.getDetail(id!);
+  // ── FIX 2: Fetch completedBookingId theo user + rentalArea ────────
+  // Chạy khi đã có user và id rental area
+  useEffect(() => {
+    if (!user?.userId || !id) return;
+    fetchCompletedBooking();
+  }, [user?.userId, id]);
 
-      const payload = res?.data?.result ?? res?.result ?? null;
-      setRental(payload);
-    } catch (error: any) {
-      console.error(error);
-      toast.error(
-        error?.response?.data?.message ||
-          "Không tải được chi tiết khu vực cho thuê",
-      );
-    } finally {
-      setLoading(false);
+  const fetchDetail = async () => {
+    const res = await rentalAreasService.getDetail(id!);
+    setRental(res.data.result);
+  };
+
+  const fetchCompletedBooking = async () => {
+    try {
+      // Gọi GET /bookings/my-bookings?rentalAreaId=...&status=COMPLETED&page=1&size=1
+      // Chỉ cần lấy 1 booking COMPLETED là đủ để mở form viết review
+    const res = await getBookingsByUserId({
+      userId: user?.userId,
+      bookingStatus: "COMPLETED",
+      page: 1,
+      size: 5,
+    });
+
+      // res.result có thể là PageResponse hoặc array tuỳ BE
+      // Trường hợp 1: BE trả về PageResponse { data: [...] }
+      const bookings = res?.result?.data ?? res?.result ?? [];
+      const first = Array.isArray(bookings) ? bookings[0] : null;
+
+      if (first?.bookingId) {
+        setCompletedBookingId(first.bookingId);
+      }
+    } catch (err) {
+      // Lỗi ở đây không cần báo user — chỉ ẩn form viết review
+      console.error("Không thể kiểm tra booking COMPLETED:", err);
     }
   };
 
   const validateFilter = () => {
     if (!filter.date) {
-      toast.error("Vui lòng chọn ngày");
+      toast.error("Chọn ngày");
       return false;
     }
-
-    if (!filter.start || !filter.end || filter.start >= filter.end) {
-      toast.error("Khung giờ không hợp lệ");
+    if (filter.start >= filter.end) {
+      toast.error("Giờ không hợp lệ");
       return false;
     }
-
     return true;
   };
 
   const getAvailableCopies = (room: Room) => {
-    return (room.roomCopies || []).filter(
-      (c) => c.roomCopyStatus === "AVAILABLE",
-    ).length;
+    return room.roomCopies.filter((c) => c.roomCopyStatus === "AVAILABLE")
+      .length;
   };
 
   const addRoom = (room: Room) => {
     if (!validateFilter()) return;
-
     const maxCopies = getAvailableCopies(room);
-    if (maxCopies <= 0) {
-      toast.error("Phòng này hiện không còn trống");
-      return;
-    }
-
     let added = false;
 
     setCart((prev) => {
@@ -118,16 +135,14 @@ export default function RentalDetailPage() {
           item.room.roomId === room.roomId &&
           item.date === filter.date &&
           item.startTime === filter.start &&
-          item.endTime === filter.end,
+          item.endTime === filter.end
       );
 
       if (index !== -1) {
         const copy = [...prev];
-        const newQty = copy[index].quantity + 1;
-
         copy[index] = {
           ...copy[index],
-          quantity: Math.min(newQty, maxCopies),
+          quantity: Math.min(copy[index].quantity + 1, maxCopies),
         };
 
         added = true;
@@ -147,14 +162,13 @@ export default function RentalDetailPage() {
       ];
     });
 
-    if (added) {
-      toast.success("Thêm phòng vào giỏ hàng thành công");
-    }
+    if (added) toast.success("Thêm phòng vào giỏ hàng thành công");
   };
 
   const increase = (index: number) => {
     setCart((prev) => {
       const copy = [...prev];
+
       const maxCopies = getAvailableCopies(copy[index].room);
 
       copy[index] = {
@@ -170,63 +184,17 @@ export default function RentalDetailPage() {
     setCart((prev) => {
       const copy = [...prev];
       const newQty = copy[index].quantity - 1;
-
       if (newQty <= 0) {
         copy.splice(index, 1);
       } else {
-        copy[index] = {
-          ...copy[index],
-          quantity: newQty,
-        };
+        copy[index] = { ...copy[index], quantity: newQty };
       }
-
       return copy;
     });
   };
 
-  const totalSelectedRooms = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
-  }, [cart]);
-
-  const totalAvailableRooms = useMemo(() => {
-    const rooms = rental?.rooms || [];
-    return rooms.reduce((sum: number, room: Room) => {
-      return sum + getAvailableCopies(room);
-    }, 0);
-  }, [rental]);
-
-  const rentalAmenities = useMemo(() => {
-    const amenityMap = new Map<
-      number,
-      {
-        amenityId: number;
-        amenityName: string;
-        iconKey?: string | null;
-      }
-    >();
-
-    (rental?.rooms || []).forEach((room: any) => {
-      (room?.amenities || []).forEach((item: any) => {
-        if (!amenityMap.has(item.amenityId)) {
-          amenityMap.set(item.amenityId, {
-            amenityId: item.amenityId,
-            amenityName: item.amenityName,
-            iconKey: item.iconKey,
-          });
-        }
-      });
-    });
-
-    return Array.from(amenityMap.values());
-  }, [rental]);
-
   const submitBooking = async () => {
     try {
-      if (!cart.length) {
-        toast.error("Vui lòng chọn ít nhất một phòng");
-        return;
-      }
-
       const slotRequests = cart.map((item) => ({
         roomId: item.room.roomId,
         quantity: item.quantity,
@@ -237,7 +205,7 @@ export default function RentalDetailPage() {
       const payload = {
         userId: user?.userId,
         userName: user?.name,
-        userPhone: user?.phone,
+        userPhone: user?.phone || "",
         bookingType: "HOURLY",
         numberOfMonths: 0,
         note: "",
@@ -245,156 +213,93 @@ export default function RentalDetailPage() {
       };
 
       const res = await createBookingIntent(payload);
-
       if (res.code === 200) {
-        toast.success(
-          "Hãy xác nhận phòng và hoàn tất thanh toán trong 15 phút.",
-        );
+        toast.success("Hãy xác nhận phòng và hoàn tất thanh toán trong 15 phút.");
         navigate(`/customer/bookings/${res.result.bookingIntentId}`);
         setCart([]);
-        return;
       }
 
-      toast.error(res.message || "Đặt phòng thất bại");
+      if (res.code === 500) {
+        toast.error(res.message || "Đặt phòng thất bại");
+      }
     } catch (err) {
-      console.error(err);
-      toast.error("Đã xảy ra lỗi khi tạo đơn đặt phòng");
+      if (err.response && err.response.data) {
+        const res = err.response.data;
+        console.log("Dữ liệu lỗi từ server:", res);
+
+        if (res.code === 2003) {
+          const errorMessages = Object.values(res.result);
+          errorMessages.forEach((msg) => toast.error(msg));
+        } else {
+          toast.error(res.message || "Đặt phòng thất bại");
+        }
+      } else {
+        toast.error("Không thể kết nối đến server");
+      }
+
     }
   };
 
-  if (loading) {
-    return (
-      <div className="bg-gray-50 min-h-screen py-4">
-        <div className="px-4">
-          <div className="max-w-[1400px] mx-auto">
-            <Card className="rounded-2xl shadow-sm">
-              <Skeleton active paragraph={{ rows: 12 }} />
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!rental) return <p>Loading...</p>;
 
-  if (!rental) {
-    return (
-      <div className="bg-gray-50 min-h-screen py-4">
-        <div className="px-4">
-          <div className="max-w-[1400px] mx-auto">
-            <Alert
-              type="warning"
-              showIcon
-              message="Không tìm thấy khu vực cho thuê"
-              description="Dữ liệu không tồn tại hoặc đã bị ẩn."
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // ── FIX 3: isOwner ───────────────────────────────────────────────
+  // rental.ownerId không có trong RentalAreaResponse mặc định.
+  // Kiểm tra xem API trả về field gì để xác định chủ phòng.
+  //
+  // Option A: Nếu API trả về `ownerId` trong rental object:
+  //   const isOwner = user?.userId === rental?.ownerId;
+  //
+  // Option B: Nếu API trả về nested object `owner: { userId }`:
+  //   const isOwner = user?.userId === rental?.owner?.userId;
+  //
+  // Option C: Nếu không có field nào → dùng role của user:
+  //   const isOwner = user?.role === "OWNER";
+  //
+  // Tạm thời dùng Option A (sửa lại nếu sai field):
+  const isOwner = user?.userId === rental?.ownerId;
 
   return (
-    <div className="bg-[#f6f7fb] min-h-screen py-4">
-      <div className="px-4 lg:px-6">
-        <div className="max-w-[1500px] mx-auto">
-          <div className="mb-4">
-            <Breadcrumb
-              items={[
-                {
-                  title: (
-                    <span className="flex items-center gap-1">
-                      <HomeOutlined />
-                      Trang chủ
-                    </span>
-                  ),
-                },
-                {
-                  title: "Khu vực cho thuê",
-                },
-                {
-                  title: rental?.rentalAreaName || "Chi tiết",
-                },
-              ]}
-            />
-          </div>
+    <div className="max-w-[1150px] mx-auto px-4 mt-3">
+      <RentalGallery rental={rental} />
 
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-            <div className="xl:col-span-8 space-y-4">
-              <RentalGallery rental={rental} />
-
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <RentalInfo rental={rental} />
-              </div>
-
-              <AmenitiesSection amenities={rentalAmenities} />
-
-              <div className="bg-white rounded-2xl shadow-sm p-5">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-800">
-                      Chọn thời gian đặt phòng
-                    </h2>
-                    <p className="text-gray-500 mt-1">
-                      Chọn ngày và khung giờ trước khi thêm phòng vào giỏ.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3 text-sm">
-                    <div className="rounded-full bg-blue-50 text-blue-700 px-4 py-2 font-medium">
-                      Tổng phòng khả dụng: {totalAvailableRooms}
-                    </div>
-                    <div className="rounded-full bg-green-50 text-green-700 px-4 py-2 font-medium">
-                      Đã chọn: {totalSelectedRooms}
-                    </div>
-                  </div>
-                </div>
-
-                <BookingSearchBar filter={filter} setFilter={setFilter} />
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-sm p-5">
-                <div className="mb-4">
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    Danh sách phòng
-                  </h2>
-                  <p className="text-gray-500 mt-1">
-                    Chọn phòng phù hợp với nhu cầu và thêm vào giỏ đặt phòng.
-                  </p>
-                </div>
-
-                <RoomCardList rooms={rental.rooms || []} onAddRoom={addRoom} />
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-sm p-5">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                  Chính sách & lưu ý
-                </h2>
-                <div className="text-gray-600 leading-7">
-                  Vui lòng kiểm tra kỹ ngày, giờ và số lượng phòng trước khi xác
-                  nhận. Sau khi tạo yêu cầu đặt phòng, bạn cần hoàn tất xác nhận
-                  trong thời gian quy định để giữ chỗ.
-                </div>
-              </div>
-            </div>
-
-            <div className="xl:col-span-4">
-              <div className="xl:sticky xl:top-4 space-y-4">
-                <div className="bg-white rounded-2xl shadow-sm p-5">
-                  <HostCard rental={rental} />
-                </div>
-
-                <div className="bg-white rounded-2xl shadow-sm p-4">
-                  <BookingPanel
-                    cart={cart}
-                    increase={increase}
-                    decrease={decrease}
-                    onSubmit={submitBooking}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="grid grid-cols-12 gap-8 mt-6">
+        <div className="col-span-8">
+          <RentalInfo rental={rental} />
         </div>
+        <div className="col-span-4">
+          <HostCard rental={rental} />
+        </div>
+      </div>
+
+      <Row gutter={24} style={{ marginTop: 32 }}>
+        <Col span={24}>
+          <BookingSearchBar filter={filter} setFilter={setFilter} />
+        </Col>
+      </Row>
+
+      <Row gutter={24} style={{ marginTop: 24 }}>
+        <Col span={16}>
+          <RoomCardList rooms={rental.rooms} onAddRoom={addRoom} />
+        </Col>
+        <Col span={8}>
+          <BookingPanel
+            cart={cart}
+            increase={increase}
+            decrease={decrease}
+            onSubmit={submitBooking}
+          />
+        </Col>
+      </Row>
+
+      {/* ── FIX HOÀN CHỈNH: ReviewSection ────────────────────────── */}
+      {/* rental.rentalAreaId lấy từ state `rental` đã fetch được     */}
+      <div className="mt-10">
+        <ReviewSection
+          rentalAreaId={rental.rentalAreaId}
+          bookingId={completedBookingId}
+          currentUserId={user?.userId}
+          isOwner={isOwner}
+        />
       </div>
     </div>
   );

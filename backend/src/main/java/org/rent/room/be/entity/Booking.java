@@ -30,6 +30,7 @@ public class Booking extends BaseEntity {
     @Column(name = "booking_title")
     private String bookingTitle;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "booking_status", length = 20)
     BookingStatus bookingStatus;
 
@@ -51,6 +52,15 @@ public class Booking extends BaseEntity {
     @Column(name = "check_out")
     LocalDateTime checkOut;
 
+    @Column(name = "escrow_released_at")
+    LocalDateTime escrowReleasedAt;
+
+    @Column(name = "dispute_flag")
+    Boolean disputeFlag;
+
+    @Column(name = "dispute_note", length = 500)
+    String disputeNote;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "renter_id")
     User renter;
@@ -59,8 +69,7 @@ public class Booking extends BaseEntity {
     @JoinColumn(name = "wallet_id")
     Wallet wallet;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "review_id")
+    @OneToOne(mappedBy = "booking", fetch = FetchType.LAZY)
     Review review;
 
     @OneToMany(mappedBy = "booking", fetch = FetchType.LAZY, cascade = CascadeType.ALL)

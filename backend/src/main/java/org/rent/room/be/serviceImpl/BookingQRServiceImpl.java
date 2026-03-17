@@ -10,11 +10,13 @@ import org.rent.room.be.dto.response.slot.SlotResponse;
 import org.rent.room.be.entity.Booking;
 import org.rent.room.be.entity.BookingQR;
 import org.rent.room.be.entity.RoomCopy;
+import org.rent.room.be.entity.User;
 import org.rent.room.be.exception.AppException;
 import org.rent.room.be.exception.ErrorCode;
 import org.rent.room.be.repository.BookingQRRepository;
 import org.rent.room.be.repository.BookingRepository;
 import org.rent.room.be.service.BookingQRService;
+import org.rent.room.be.service.UserService;
 import org.rent.room.be.utils.ZXingHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -34,6 +36,8 @@ public class BookingQRServiceImpl implements BookingQRService {
     private String baseUrl;
    @Autowired
     private BookingRepository bookingRepository;
+   @Autowired
+   private UserService userService;
 
     @Override
     public byte[] generateBookingQr(UUID bookingId, QRType type) {
@@ -56,9 +60,20 @@ public class BookingQRServiceImpl implements BookingQRService {
     @Transactional
     public String scanBookingQR(String qrToken) {
 
+
+
         BookingQR qr = bookingQRRepository.findByQrToken(qrToken)
                 .orElseThrow(() ->
                         new AppException(ErrorCode.QR_INVALID));
+
+        User userqr = qr.getBooking().getRenter();
+        if(userqr.getUserId() == null){
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        if(!userqr.getUserId().equals(userService.getCurrentUserEntity().getUserId())){
+            throw new AppException(ErrorCode.QR_INVALID);
+        }
 
         if (qr.getUsedAt() != null) {
             throw new AppException(ErrorCode.QR_ALREADY_USED);
@@ -68,18 +83,25 @@ public class BookingQRServiceImpl implements BookingQRService {
             throw new AppException(ErrorCode.QR_EXPIRED);
         }
 
+
         Booking booking = bookingRepository
                 .findById(qr.getBooking().getBookingId())
                 .orElseThrow(() ->
                         new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
+//        LocalDateTime now = LocalDateTime.now();
+
         if (qr.getQrType() == QRType.CHECK_IN) {
+
+//            if (now.isBefore(booking.getStartTime())) {
+//                throw new AppException(ErrorCode.CANNOT_CHECKIN_BEFORE_START_TIME);
+//            }
 
             if (booking.getBookingStatus() == BookingStatus.CHECKED_IN) {
                 throw new AppException(ErrorCode.BOOKING_ALREADY_CHECKED_IN);
             }
 
-            booking.setCheckIn(LocalDateTime.now());
+//            booking.setCheckIn(now);
             booking.setBookingStatus(BookingStatus.CHECKED_IN);
 
         } else {
@@ -88,7 +110,7 @@ public class BookingQRServiceImpl implements BookingQRService {
                 throw new AppException(ErrorCode.CANNOT_CHECKOUT_BEFORE_CHECKIN);
             }
 
-            booking.setCheckOut(LocalDateTime.now());
+//            booking.setCheckOut(now);
             booking.setBookingStatus(BookingStatus.COMPLETED);
         }
 

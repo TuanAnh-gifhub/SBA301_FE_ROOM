@@ -29,7 +29,7 @@ const UserFilter: React.FC<UserFilterProps> = ({
         value={filters.role}
       >
         <Option value="ADMIN">Quản trị viên (ADMIN)</Option>
-        <Option value="OWNER">Chủ xe (OWNER)</Option>
+        <Option value="OWNER">Chủ nhà (OWNER)</Option>
         <Option value="RENTER">Khách thuê (RENTER)</Option>
       </Select>
 

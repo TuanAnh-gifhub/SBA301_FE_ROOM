@@ -18,8 +18,8 @@ const BUTTON_TEXT_HOVER_CLASS =
 
 interface UserMenuProps {
   isLoggedIn: boolean;
-  user?: {
-    userName: string;
+user?: {
+    name: string;
     avatar?: string;
     role?: string;
   } | null;
@@ -69,14 +69,10 @@ const UserMenu = ({
   }
 
   // TRƯỜNG HỢP 2: ĐÃ ĐĂNG NHẬP -> Hiện Avatar + Dropdown
-  const role = user?.role;
   const displayName = user?.name || "Member";
   const displayAvatar =
     user?.avatar ||
     `https://ui-avatars.com/api/?name=${displayName}&background=random`;
-
-  console.log("UserMenu user =", user);
-  console.log("UserMenu role =", role);
 
   return (
     <div className="relative" ref={menuRef}>
@@ -131,7 +127,14 @@ const UserMenu = ({
               <FiUser className="w-4 h-4" />
               Thông tin cá nhân
             </Link>
-
+            <Link
+              to="/my-booking-history"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
+            >
+              <FiUser className="w-4 h-4" />
+              Lịch sử đặt lịch
+            </Link>
             <Link
               to="/wishlist"
               onClick={() => setIsOpen(false)}
@@ -150,16 +153,20 @@ const UserMenu = ({
               Ví cá nhân
             </Link>
 
-            {role === "OWNER" && (
-              <Link
-                to="/owner/manage-posts"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
-              >
-                <FiFileText className="w-4 h-4" />
-                Quản lý cá nhân
-              </Link>
-            )}
+            <Link
+              to="/owner"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
+            >
+            
+            
+         {user?.role === "OWNER" && (
+  <div className="flex items-center gap-2">
+    <FiFileText className="w-4 h-4" />
+    Quản lí tòa nhà
+  </div>
+)}
+            </Link>
 
             <div className="h-px bg-gray-100 my-1 mx-4" />
 
