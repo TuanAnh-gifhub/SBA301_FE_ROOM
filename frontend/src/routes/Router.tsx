@@ -10,6 +10,7 @@ import NotFound from "../components/Error/NotFound";
 import AdminPage from "../pages/Admin/AdminPage";
 import LoginAdmin from "../pages/Admin/LoginAdmin";
 import { ProtectedAdminRoute } from "./ProtectedAdminRouter";
+import { ProtectedOwnerRoute } from "./ProtectedOwnerRouter";
 import AboutUs from "../pages/Customer/AboutUs/AboutUs";
 import ReportPage from "../pages/Admin/ReportAdmin/ReportPage";
 import ReportForm from "../pages/Customer/ReportPage/ReportForm";
@@ -256,9 +257,9 @@ export const router = createBrowserRouter([
   {
     path: "/owner",
     element: (
-      // <ProtectedAdminRoute>
+      <ProtectedOwnerRoute >
       <OwnerPage />
-      // </ProtectedAdminRoute>
+       </ProtectedOwnerRoute>
     ),
     children: [
       {

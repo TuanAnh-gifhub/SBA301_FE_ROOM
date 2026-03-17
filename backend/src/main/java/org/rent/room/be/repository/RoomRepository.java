@@ -1,5 +1,6 @@
 package org.rent.room.be.repository;
 
+import org.rent.room.be.constant.RoomStatus;
 import org.rent.room.be.entity.Room;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -32,5 +33,25 @@ List<Room> findAllRoomsByOwnerId(@Param("userId") UUID userId);
     """)
     List<Room> findByRentalAreaIdNotInactive(@Param("rentalAreaId") UUID rentalAreaId);
 
+    @Query("""
+            SELECT COUNT(r)
+            FROM Room r
+            WHERE r.rentalArea.owner.userId = :ownerId
+            """)
+    long countByOwnerId(@Param("ownerId") UUID ownerId);
+
+    /**
+     * Đếm số phòng theo owner và trạng thái cụ thể.
+     */
+    @Query("""
+            SELECT COUNT(r)
+            FROM Room r
+            WHERE r.rentalArea.owner.userId = :ownerId
+              AND r.roomStatus = :status
+            """)
+    long countByOwnerIdAndStatus(
+            @Param("ownerId") UUID ownerId,
+            @Param("status") RoomStatus status
+    );
 
 }
