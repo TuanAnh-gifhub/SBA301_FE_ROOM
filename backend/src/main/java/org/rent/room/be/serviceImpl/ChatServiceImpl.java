@@ -2,7 +2,9 @@ package org.rent.room.be.serviceImpl;
 
 import jakarta.transaction.Transactional;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.rent.room.be.constant.MessageStatus;
+import org.rent.room.be.constant.NotificationType;
 import org.rent.room.be.dto.request.chat.MessageRequest;
 import org.rent.room.be.dto.response.chat.ConversationResponse;
 import org.rent.room.be.dto.response.chat.MessageResponse;
@@ -10,13 +12,18 @@ import org.rent.room.be.dto.response.chat.ReadReceiptResponse;
 import org.rent.room.be.entity.Conversation;
 import org.rent.room.be.entity.Message;
 import org.rent.room.be.entity.User;
+import org.rent.room.be.exception.ResourceNotFoundException;
 import org.rent.room.be.mapper.ChatMapper;
 import org.rent.room.be.repository.ConversationRepository;
 import org.rent.room.be.repository.MessageRepository;
 import org.rent.room.be.service.ChatService;
+import org.rent.room.be.service.NotificationService;
 import org.rent.room.be.service.UploadService;
 import org.rent.room.be.service.UserService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,6 +35,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ChatServiceImpl implements ChatService {
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -36,30 +44,26 @@ public class ChatServiceImpl implements ChatService {
     private final ChatMapper chatMapper;
     private final UserService userService;
     private final UploadService uploadService;
+    private final NotificationService notificationService;
 
     @Transactional
     @Override
-    public void saveMessage(MessageRequest request, String currentUserIdStr) {
-        UUID currentUserId = UUID.fromString(currentUserIdStr);
-        if (currentUserId.equals(request.getRecipientId())) {
-            throw new RuntimeException("Cannot send message to yourself");
+    public void saveMessage(MessageRequest request, String currentUser) {
+        User sender = userService.findByUserId(UUID.fromString(currentUser));
+        createAndBroadcastMessage(sender, request, null);
+    }
+
+    @Transactional
+    @Override
+    public MessageResponse saveMessageWithFile(MessageRequest request, String currentUser, MultipartFile file) {
+        User sender = userService.findByUserId(UUID.fromString(currentUser));
+        String imageUrl = null;
+
+        if (file != null && !file.isEmpty()) {
+            imageUrl = uploadFile(file);
         }
 
-        User sender = userService.findByUserId(currentUserId);
-        User recipient = userService.findByUserId(request.getRecipientId());
-        Conversation conversation = getOrCreateConversation(sender, recipient);
-
-        Message newMessage = Message.builder()
-                .messageBody(request.getContent())
-                .sender(sender)
-                .recipient(recipient)
-                .conversation(conversation)
-                .status(MessageStatus.SENT)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        Message saved = messageRepository.save(newMessage);
-        broadcastMessage(chatMapper.toMessageResponse(saved), sender.getUserId(), recipient.getUserId());
+        return createAndBroadcastMessage(sender, request, imageUrl);
     }
 
     @Override
@@ -72,14 +76,22 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public List<MessageResponse> getMessagesByConversation(UUID conversationId) {
-        if (!conversationRepository.existsById(conversationId)) {
-            throw new RuntimeException("Conversation not found");
+    public List<MessageResponse> getMessagesByConversation(
+            UUID conversationId, String currentUser, int page, int size) {
+
+        Conversation conv = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Phòng chat không tồn tại"));
+
+        if (!conv.getUser1().getEmail().equals(currentUser) &&
+                !conv.getUser2().getEmail().equals(currentUser)) {
+            throw new AccessDeniedException("Bạn không có quyền xem cuộc hội thoại này");
         }
 
-        return messageRepository.findByConversationConversationIdOrderByCreatedAtAsc(conversationId)
+        Pageable pageable = PageRequest.of(page, size);
+        return messageRepository.findByConversation_ConversationIdOrderByCreatedAtDesc(conversationId, pageable)
+                .getContent()
                 .stream()
-                .map(chatMapper::toMessageResponse) // Dùng mapper cho thống nhất
+                .map(chatMapper::toMessageResponse)
                 .toList();
     }
 
@@ -104,7 +116,6 @@ public class ChatServiceImpl implements ChatService {
         });
         messageRepository.saveAll(unreadMessages);
 
-        // Thông báo cho người gửi rằng tin nhắn của họ đã được đọc
         UUID originalSenderId = unreadMessages.getFirst().getSender().getUserId();
         messagingTemplate.convertAndSendToUser(
                 originalSenderId.toString(),
@@ -113,31 +124,14 @@ public class ChatServiceImpl implements ChatService {
         );
     }
 
-    @Transactional
-    @Override
-    public MessageResponse saveMessageWithFile(MessageRequest request, String currentUserEmail, MultipartFile file) throws IOException {
-
-        // Tìm người gửi dựa trên Email (vì principal.getName() là email)
-        User sender = userService.findByEmail(currentUserEmail);
+    private MessageResponse createAndBroadcastMessage(User sender, MessageRequest request, String imageUrl) {
+        if (sender.getUserId().equals(request.getRecipientId())) {
+            throw new IllegalArgumentException("Cannot send message to yourself");
+        }
 
         User recipient = userService.findByUserId(request.getRecipientId());
-
-        // Kiểm tra không gửi cho chính mình bằng UUID sau khi đã tìm thấy User
-        if (sender.getUserId().equals(recipient.getUserId())) {
-            throw new RuntimeException("Cannot send message to yourself");
-        }
-
-        // 1. Upload ảnh lên Cloudinary
-        String imageUrl = null;
-        if (file != null && !file.isEmpty()) {
-            Map<?, ?> uploadResult = uploadService.uploadImage(file);
-            imageUrl = uploadResult.get("secure_url").toString();
-        }
-
-        // 2. Lấy/Tạo hội thoại
         Conversation conversation = getOrCreateConversation(sender, recipient);
 
-        // 3. Lưu tin nhắn
         Message newMessage = Message.builder()
                 .messageBody(request.getContent())
                 .imageUrl(imageUrl)
@@ -149,12 +143,27 @@ public class ChatServiceImpl implements ChatService {
                 .build();
 
         Message saved = messageRepository.save(newMessage);
+
+        conversation.setUpdatedAt(LocalDateTime.now());
+        conversationRepository.save(conversation);
+
         MessageResponse response = chatMapper.toMessageResponse(saved);
 
-        // 4. Phát WebSocket
         broadcastMessage(response, sender.getUserId(), recipient.getUserId());
 
+        notificationService.createAndSendNotification(sender, recipient, NotificationType.CHAT, response.getContent());
+
         return response;
+    }
+
+    private String uploadFile(MultipartFile file) {
+        try {
+            Map<?, ?> uploadResult = uploadService.uploadImage(file);
+            return uploadResult.get("secure_url").toString();
+        } catch (IOException e) {
+            log.error("Failed to upload image", e);
+            throw new RuntimeException("Image upload failed");
+        }
     }
 
     private Conversation getOrCreateConversation(User sender, User recipient) {
@@ -174,15 +183,14 @@ public class ChatServiceImpl implements ChatService {
         return conversationRepository.save(conversation);
     }
 
-    // Helper method để gửi thông báo qua WebSocket
     private void broadcastMessage(MessageResponse response, UUID senderId, UUID recipientId) {
-        // Gửi cho người nhận
+
         messagingTemplate.convertAndSendToUser(
                 recipientId.toString(),
                 "/queue/messages",
                 response
         );
-        // Gửi cho chính người gửi (đồng bộ tab)
+
         messagingTemplate.convertAndSendToUser(
                 senderId.toString(),
                 "/queue/messages",

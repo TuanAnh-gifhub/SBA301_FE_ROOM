@@ -18,7 +18,11 @@ const BUTTON_TEXT_HOVER_CLASS =
 
 interface UserMenuProps {
   isLoggedIn: boolean;
-  user?: { name: string; avatar?: string } | null;
+user?: {
+    name: string;
+    avatar?: string;
+    role?: string;
+  } | null;
   onLoginClick: () => void;
   onLogoutClick: () => void;
   isHeaderTransparent?: boolean;
@@ -150,12 +154,18 @@ const UserMenu = ({
             </Link>
 
             <Link
-              to="/manage-posts"
+              to="/owner"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
             >
-              <FiFileText className="w-4 h-4" />
-              Quản lý cá nhân
+            
+            
+         {user?.role === "OWNER" && (
+  <div className="flex items-center gap-2">
+    <FiFileText className="w-4 h-4" />
+    Quản lí tòa nhà
+  </div>
+)}
             </Link>
 
             <div className="h-px bg-gray-100 my-1 mx-4" />

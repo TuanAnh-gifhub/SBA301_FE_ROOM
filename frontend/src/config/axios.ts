@@ -4,10 +4,6 @@ export const AXIOS_AUTH_ERROR_EVENT = "axios-auth-error";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  // ❌ KHÔNG set Content-Type mặc định ở đây
-  // headers: {
-  //   "Content-Type": "application/json",
-  // },
 });
 
 api.interceptors.request.use(
@@ -17,17 +13,14 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
 
-    // ✅ FIX multipart: nếu là FormData thì KHÔNG ép Content-Type
     const isFormData =
       typeof FormData !== "undefined" && config.data instanceof FormData;
 
     if (config.headers) {
       if (isFormData) {
-        // Browser sẽ tự set multipart/form-data; boundary=...
         delete (config.headers as any)["Content-Type"];
         delete (config.headers as any)["content-type"];
       } else {
-        // Các request JSON thông thường
         (config.headers as any)["Content-Type"] = "application/json";
       }
     }
@@ -46,10 +39,8 @@ api.interceptors.response.use(
     const url = originalRequest.url || "";
     if (url.startsWith("/auth")) return Promise.reject(error);
 
-    // Nếu không phải 401 thì bỏ qua
     if (error.response?.status !== 401) return Promise.reject(error);
 
-    // Tránh loop vô hạn
     if (originalRequest._retry) return Promise.reject(error);
     originalRequest._retry = true;
 
@@ -57,7 +48,6 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem("refreshToken");
       if (!refreshToken) throw new Error("No refresh token");
 
-      // Gọi API refresh
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/auth/refresh`,
         null,
@@ -66,15 +56,12 @@ api.interceptors.response.use(
 
       const { accessToken, refreshToken: newRefreshToken } = res.data.result;
 
-      // Lưu token mới
       localStorage.setItem("accessToken", accessToken);
       if (newRefreshToken)
         localStorage.setItem("refreshToken", newRefreshToken);
 
-      // FIX CHÍNH: Ép token mới vào header của request bị lỗi
       originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
 
-      // ✅ FIX thêm: nếu request cũ là FormData thì không được ép JSON
       const isFormData =
         typeof FormData !== "undefined" &&
         originalRequest.data instanceof FormData;
@@ -84,7 +71,6 @@ api.interceptors.response.use(
         delete originalRequest.headers["content-type"];
       }
 
-      // FIX CHÍNH: Dùng axios(originalRequest) thay vì api(...) để ép nó dùng header mới này
       return axios(originalRequest);
     } catch (refreshError: any) {
       console.log("❌ REFRESH TOKEN FAIL:", refreshError.response?.status);
