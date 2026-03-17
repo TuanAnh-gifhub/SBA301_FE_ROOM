@@ -28,21 +28,9 @@ const PageHeader: React.FC<Props> = ({ onCreate }) => {
                   </h1>
                   <p className="text-slate-500 mt-1 text-sm md:text-base">
                     Tạo tòa nhà, thêm phòng học và quản lý toàn bộ trạng thái
-                    trong một giao diện hiện đại hơn
+                    trong một cách hiệu quả
                   </p>
                 </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-600 text-sm">
-                  Dashboard quản lý
-                </span>
-                <span className="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-600 text-sm">
-                  Theo dõi trạng thái tòa nhà
-                </span>
-                <span className="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-600 text-sm">
-                  Quản lý phòng học tập trung
-                </span>
               </div>
             </div>
 
