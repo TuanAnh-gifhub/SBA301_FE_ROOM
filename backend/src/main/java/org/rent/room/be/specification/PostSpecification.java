@@ -2,6 +2,7 @@ package org.rent.room.be.specification;
 
 
 import jakarta.persistence.criteria.Predicate;
+import org.rent.room.be.constant.PostStatus;
 import org.rent.room.be.entity.Post;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -34,6 +35,9 @@ public class PostSpecification {
            if(toDate != null){
                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), toDate));
            }
+
+            predicates.add(cb.equal(root.get("postStatus"), PostStatus.PUBLISHED));
+
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
