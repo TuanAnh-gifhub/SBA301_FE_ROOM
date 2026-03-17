@@ -7,6 +7,10 @@ import {
   EyeInvisibleOutlined,
   ExportOutlined,
   EyeOutlined,
+  EnvironmentOutlined,
+  HomeOutlined,
+  TeamOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import type {
   PostSummaryResponse,
@@ -23,7 +27,7 @@ type Props = {
   onToggleStatus: (item: PostSummaryResponse, next: PostStatus) => void;
 };
 
-const brandColor = "#1677ff";
+const brandColor = "#0ea5e9";
 const hideColor = "#d97706";
 const showColor = "#059669";
 const editColor = "#7c3aed";
@@ -44,13 +48,29 @@ const formatVND = (value?: number | string | null) => {
 const statusTag = (s: PostStatus) => {
   switch (s) {
     case "PENDING":
-      return <Tag color="gold">Chờ duyệt</Tag>;
+      return (
+        <Tag className="!rounded-full !border-0 !bg-amber-100 !px-3 !py-1 !text-amber-700">
+          Chờ duyệt
+        </Tag>
+      );
     case "PUBLISHED":
-      return <Tag color="green">Đã đăng</Tag>;
+      return (
+        <Tag className="!rounded-full !border-0 !bg-emerald-100 !px-3 !py-1 !text-emerald-700">
+          Đã đăng
+        </Tag>
+      );
     case "HIDDEN":
-      return <Tag color="default">Đang ẩn</Tag>;
+      return (
+        <Tag className="!rounded-full !border-0 !bg-slate-200 !px-3 !py-1 !text-slate-700">
+          Đang ẩn
+        </Tag>
+      );
     case "DELETED":
-      return <Tag color="red">Đã xóa</Tag>;
+      return (
+        <Tag className="!rounded-full !border-0 !bg-rose-100 !px-3 !py-1 !text-rose-700">
+          Đã xóa
+        </Tag>
+      );
     default:
       return <Tag>{s}</Tag>;
   }
@@ -60,7 +80,7 @@ const filledButtonStyle = (bg: string) => ({
   background: bg,
   borderColor: bg,
   color: "#fff",
-  boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+  boxShadow: "0 8px 18px rgba(15, 23, 42, 0.08)",
 });
 
 const softButtonStyle = (color: string) => ({
@@ -87,9 +107,9 @@ const PostCardList: React.FC<Props> = ({
       title: "Xóa tin đăng",
       icon: <ExclamationCircleOutlined style={{ color: deleteColor }} />,
       content: (
-        <div className="text-gray-600">
+        <div className="text-slate-600">
           Hành động này <b>không thể hoàn tác</b>. Bạn chắc chắn muốn xóa bài:
-          <div className="mt-1 font-semibold text-gray-800 line-clamp-2">
+          <div className="mt-2 font-semibold text-slate-800 line-clamp-2">
             {p.title}
           </div>
         </div>
@@ -98,7 +118,11 @@ const PostCardList: React.FC<Props> = ({
       cancelText: "Hủy",
       okButtonProps: {
         danger: true,
+        className: "!rounded-xl !font-semibold !h-10",
         style: filledButtonStyle(deleteColor),
+      },
+      cancelButtonProps: {
+        className: "!rounded-xl !h-10",
       },
       maskClosable: false,
       onOk: async () => {
@@ -116,9 +140,9 @@ const PostCardList: React.FC<Props> = ({
       title: isHide ? "Ẩn tin đăng" : "Hiện tin đăng",
       icon: <ExclamationCircleOutlined style={{ color: actionColor }} />,
       content: (
-        <div className="text-gray-600">
+        <div className="text-slate-600">
           Bạn chắc chắn muốn <b>{isHide ? "ẩn" : "hiện"}</b> bài đăng:
-          <div className="mt-1 font-semibold text-gray-800 line-clamp-2">
+          <div className="mt-2 font-semibold text-slate-800 line-clamp-2">
             {p.title}
           </div>
         </div>
@@ -126,7 +150,11 @@ const PostCardList: React.FC<Props> = ({
       okText: isHide ? "Ẩn bài" : "Hiện bài",
       cancelText: "Hủy",
       okButtonProps: {
+        className: "!rounded-xl !font-semibold !h-10",
         style: filledButtonStyle(actionColor),
+      },
+      cancelButtonProps: {
+        className: "!rounded-xl !h-10",
       },
       onOk: async () => onToggleStatus(p, next),
     });
@@ -147,47 +175,42 @@ const PostCardList: React.FC<Props> = ({
           <Card
             key={p.postId}
             loading={loading}
-            className="shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl overflow-hidden border border-gray-100"
-            styles={{ body: { padding: 16 } }}
+            className="group overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+            styles={{ body: { padding: 18 } }}
             cover={
               cover ? (
-                <div className="relative h-48 w-full overflow-hidden bg-gray-100">
+                <div className="relative h-52 w-full overflow-hidden bg-slate-100">
                   <img
                     src={cover}
                     alt={p.title}
-                    className="h-48 w-full object-cover transition-transform duration-500 hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
 
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute left-3 top-3">
                     {statusTag(p.postStatus)}
                   </div>
 
                   {priceText ? (
-                    <div
-                      className="absolute top-3 right-3 px-3 py-1 rounded-full text-sm font-semibold shadow"
-                      style={{
-                        background: "rgba(22,119,255,0.95)",
-                        color: "#fff",
-                      }}
-                    >
+                    <div className="absolute right-3 top-3 rounded-full bg-white/95 px-3 py-1 text-sm font-semibold text-sky-600 shadow">
                       {priceText}
                     </div>
                   ) : null}
 
-                  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-900/55 via-slate-900/10 to-transparent" />
                 </div>
               ) : (
-                <div className="p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">{statusTag(p.postStatus)}</div>
+                <div className="bg-gradient-to-br from-sky-50 via-cyan-50 to-blue-50 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>{statusTag(p.postStatus)}</div>
                     {priceText ? (
-                      <div
-                        className="px-3 py-1 rounded-full text-white text-sm font-semibold"
-                        style={{ background: brandColor }}
-                      >
+                      <div className="rounded-full bg-sky-500 px-3 py-1 text-sm font-semibold text-white shadow-sm">
                         {priceText}
                       </div>
                     ) : null}
+                  </div>
+
+                  <div className="mt-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm">
+                    <HomeOutlined className="text-xl text-sky-500" />
                   </div>
                 </div>
               )
@@ -196,57 +219,65 @@ const PostCardList: React.FC<Props> = ({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Tooltip title={p.title}>
-                  <div className="font-semibold text-gray-900 text-base line-clamp-2 leading-6">
+                  <div className="line-clamp-2 text-lg font-bold leading-7 text-slate-800">
                     {p.title}
                   </div>
                 </Tooltip>
 
-                <div className="mt-2 text-gray-600">
-                  <Text className="text-gray-600">
-                    <span className="font-medium" style={{ color: brandColor }}>
-                      {p.roomName || "—"}
-                    </span>
-                    <span className="mx-2 text-gray-300">•</span>
-                    <span className="line-clamp-1">
-                      {p.rentalAreaName || "—"}
-                    </span>
-                  </Text>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-sky-700">
+                    <HomeOutlined />
+                    {p.roomName || "—"}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 text-violet-700">
+                    <AppstoreOutlined />
+                    {p.rentalAreaName || "—"}
+                  </span>
                 </div>
 
-                <div className="mt-1 text-gray-500 text-sm line-clamp-1">
-                  {p.address || "—"}
+                <div className="mt-3 flex items-start gap-2 text-sm text-slate-500">
+                  <EnvironmentOutlined className="mt-0.5 text-slate-400" />
+                  <span className="line-clamp-2">{p.address || "—"}</span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-gray-50 px-3 py-2">
-                <div className="text-xs text-gray-500">Sức chứa</div>
-                <div className="font-semibold text-gray-900">
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                <div className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                  <TeamOutlined />
+                  Sức chứa
+                </div>
+                <div className="font-semibold text-slate-800">
                   {p.capacity ?? "—"}
                 </div>
               </div>
-              <div className="rounded-xl bg-gray-50 px-3 py-2">
-                <div className="text-xs text-gray-500">Diện tích</div>
-                <div className="font-semibold text-gray-900">
+
+              <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                <div className="mb-1 flex items-center gap-1 text-xs text-slate-500">
+                  <AppstoreOutlined />
+                  Diện tích
+                </div>
+                <div className="font-semibold text-slate-800">
                   {p.area != null ? `${p.area} m²` : "—"}
                 </div>
               </div>
-              <div className="rounded-xl bg-gray-50 px-3 py-2">
-                <div className="text-xs text-gray-500">Giá</div>
-                <div className="font-semibold text-gray-900">
+
+              <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                <div className="mb-1 text-xs text-slate-500">Giá thuê</div>
+                <div className="font-semibold text-slate-800">
                   {priceText ?? "—"}
                 </div>
               </div>
             </div>
 
-            <div className="mt-5 pt-4 border-t border-gray-100 grid grid-cols-2 gap-2">
+            <div className="mt-5 border-t border-slate-100 pt-4 grid grid-cols-2 gap-2.5">
               <Button
                 block
                 icon={<ExportOutlined />}
                 onClick={() => onView(p.rentalAreaId)}
                 style={softButtonStyle(brandColor)}
-                className="rounded-xl font-medium h-10"
+                className="!h-10 !rounded-xl !font-medium"
               >
                 Xem chi tiết
               </Button>
@@ -265,7 +296,7 @@ const PostCardList: React.FC<Props> = ({
                       ? filledButtonStyle(showColor)
                       : undefined
                 }
-                className="rounded-xl font-medium h-10"
+                className="!h-10 !rounded-xl !font-medium"
               >
                 {canHide ? "Ẩn bài" : "Hiện bài"}
               </Button>
@@ -275,7 +306,7 @@ const PostCardList: React.FC<Props> = ({
                 icon={<EditOutlined />}
                 onClick={() => onEdit(p)}
                 style={softButtonStyle(editColor)}
-                className="rounded-xl font-medium h-10"
+                className="!h-10 !rounded-xl !font-medium"
               >
                 Chỉnh sửa
               </Button>
@@ -286,7 +317,7 @@ const PostCardList: React.FC<Props> = ({
                 danger
                 onClick={() => confirmDelete(p)}
                 style={softButtonStyle(deleteColor)}
-                className="rounded-xl font-medium h-10"
+                className="!h-10 !rounded-xl !font-medium"
               >
                 Xóa
               </Button>
