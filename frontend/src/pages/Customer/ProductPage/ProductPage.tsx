@@ -52,7 +52,7 @@ const ProductsPage: React.FC = () => {
 
   // slider sức chứa
   const [capacityRange, setCapacityRange] = useState<[number, number]>([
-    10, 30,
+    0, 100,
   ]);
 
   const [amenityIds, setAmenityIds] = useState<number[]>([]);
@@ -234,7 +234,7 @@ const ProductsPage: React.FC = () => {
 
           <div className="lg:col-span-8 xl:col-span-9">
             <TopBar
-              total={total}
+              total={items.length}
               sort={sort}
               onSortChange={(v) => {
                 setSort(v);

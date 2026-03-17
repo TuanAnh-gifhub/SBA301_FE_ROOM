@@ -28,7 +28,7 @@ const RoomGrid: React.FC<Props> = ({ loading = false, data, onView }) => {
             </div>
           ))
         : data.map((item) => (
-            <RoomCard key={item.rentalAreaId} item={item} onView={onView} />
+            <RoomCard key={item.postId} item={item} onView={onView} />
           ))}
     </div>
   );

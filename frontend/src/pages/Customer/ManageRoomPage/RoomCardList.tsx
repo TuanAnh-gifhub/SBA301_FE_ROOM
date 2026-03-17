@@ -220,16 +220,24 @@ const RoomCardList: React.FC<Props> = ({ rentalAreaId, onChanged }) => {
                     <Image
                       src={r.coverImageUrl}
                       preview={false}
-                      className="!h-48 !w-full object-cover transition-transform duration-500 hover:scale-105"
+                      width="100%"
+                      height="100%"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                      className="transition-transform duration-500 hover:scale-105"
                     />
-                    <div className="absolute top-3 left-3">
+                    <div className="absolute top-3 left-3 z-10">
                       <Tag color={statusTagColor(r.roomStatus)}>
                         {r.roomStatus}
                       </Tag>
                     </div>
                     {priceText ? (
                       <div
-                        className="absolute top-3 right-3 px-3 py-1 rounded-full text-sm font-semibold shadow"
+                        className="absolute top-3 right-3 z-10 px-3 py-1 rounded-full text-sm font-semibold shadow"
                         style={{
                           background: "rgba(22,119,255,0.95)",
                           color: "#fff",
