@@ -17,9 +17,10 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler(value = AppException.class)
-    ResponseEntity<ApiResponse<?>> handleRuntimeException(AppException e) {
 
+    // 1. Xử lý lỗi nghiệp vụ định nghĩa trước (AppException)
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ApiResponse<?>> handleAppException(AppException e) {
         ErrorCode errorCode = e.getErrorCode();
 
         return ResponseEntity
@@ -27,6 +28,16 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.builder()
                         .code(errorCode.getCode())
                         .message(errorCode.getMessage())
+                        .build());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleResourceNotFound(ResourceNotFoundException e) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.builder()
+                        .code(404)
+                        .message(e.getMessage())
                         .build());
     }
 
@@ -114,4 +125,5 @@ public class GlobalExceptionHandler {
                         .build()
         );
     }
+
 }

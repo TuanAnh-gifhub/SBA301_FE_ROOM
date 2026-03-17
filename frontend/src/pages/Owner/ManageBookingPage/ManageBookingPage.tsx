@@ -12,7 +12,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { getBookingsByRentalId } from "../../../services/booking/bookingService";
-
+import { useAuth } from "../../../context/AuthContext";
 import { MoreOutlined } from "@ant-design/icons";
 const BOOKING_STATUS = {
   BOOKED: { text: "Đã đặt", color: "orange" },
@@ -23,8 +23,11 @@ const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const ManageBookingPage = () => {
-  const rentalId = "bb59378b-c153-4b5f-b961-6d54432b0f27";
 
+  const {user} = useAuth();
+
+  const userId = user?.userId;
+if (!userId) return;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -43,7 +46,7 @@ const ManageBookingPage = () => {
       setLoading(true);
 
       const params = {
-        rentalId,
+        userId: userId,
         page,
         size: pageSize,
       };

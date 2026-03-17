@@ -112,6 +112,9 @@ public class InvoicePdfServiceImpl implements InvoicePdfService {
         infoTable.addCell(createLabelCell("Check-out:", PRIMARY));
         infoTable.addCell(createValueCell(booking.getEndTime().toString()));
 
+        infoTable.addCell(createLabelCell("Địa chỉ:", PRIMARY));
+        infoTable.addCell(createValueCell(booking.getRentalArea().getAddress()));
+
         document.add(infoTable);
 
         document.add(new Paragraph("\n"));

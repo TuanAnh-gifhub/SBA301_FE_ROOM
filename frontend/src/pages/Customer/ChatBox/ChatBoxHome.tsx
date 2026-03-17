@@ -35,6 +35,11 @@ const ChatBoxHome = () => {
                 messages={chatLogic.messages}
                 messagesEndRef={chatLogic.messagesEndRef}
                 currentUserId={currentUserId}
+                hasMore={chatLogic.hasMore}
+                loadMoreMessages={chatLogic.loadMoreMessages}
+                isFetchingMore={
+                  chatLogic.loading && chatLogic.messages.length > 0
+                }
               />
             </div>
             <MessageInput

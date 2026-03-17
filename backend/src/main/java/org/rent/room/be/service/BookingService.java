@@ -31,7 +31,7 @@ public interface BookingService {
 
     PageResponse<BookingResponse> getAllBookings(BookingStatus bookingStatus, String keyword, LocalDate from, LocalDate to, int page, int size);
 
-    PageResponse<BookingResponse> getBookingsRentalId(UUID rentalId, BookingStatus bookingStatus, String keyword, LocalDate from, LocalDate to, int page, int size);
+    PageResponse<BookingResponse> getBookingsRentalId(UUID userId, BookingStatus bookingStatus, String keyword, LocalDate from, LocalDate to, int page, int size);
 
     PageResponse<BookingResponse> getMyBookings(UUID userId, BookingStatus bookingStatus, String keyword, LocalDate from, LocalDate to, int page, int size);
 

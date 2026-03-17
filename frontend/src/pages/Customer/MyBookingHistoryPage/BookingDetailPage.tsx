@@ -78,6 +78,9 @@ export default function BookingDetailPage() {
           <p>
             <b>Khu vực:</b> {booking.rentalArea.rentalAreaName}
           </p>
+           <p>
+            <b>Địa chỉ:</b> {booking.rentalArea.address}
+          </p>
           <p>
             <b>Người đặt:</b> {booking.userName}
           </p>

@@ -4,6 +4,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.entity.Booking;
+import org.rent.room.be.entity.RentalArea;
 import org.rent.room.be.entity.User;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -16,7 +17,65 @@ import java.util.UUID;
 
 
 public class BookingSpecification {
+    public static Specification<Booking> filterBookingsByOwner(
+            UUID ownerId,
+            BookingStatus bookingStatus,
+            String keyword,
+            LocalDate fromDate,
+            LocalDate toDate
+    ) {
 
+        return (root, query, cb) -> {
+
+            List<Predicate> predicates = new ArrayList<>();
+
+
+            Join<Booking, RentalArea> rentalJoin = root.join("rentalArea");
+
+
+            if (ownerId != null) {
+                predicates.add(
+                        cb.equal(
+                                rentalJoin.get("owner").get("userId"),
+                                ownerId
+                        )
+                );
+            }
+
+            if (bookingStatus != null) {
+                predicates.add(
+                        cb.equal(root.get("bookingStatus"), bookingStatus)
+                );
+            }
+
+            if (keyword != null && !keyword.isBlank()) {
+
+                Join<Booking, User> renterJoin = root.join("renter");
+
+                predicates.add(
+                        cb.like(
+                                cb.lower(renterJoin.get("userName")),
+                                "%" + keyword.toLowerCase() + "%"
+                        )
+                );
+            }
+
+            if (fromDate != null && toDate != null) {
+
+                LocalDateTime from = fromDate.atStartOfDay();
+                LocalDateTime to = toDate.atTime(23, 59, 59);
+
+                predicates.add(
+                        cb.and(
+                                cb.lessThanOrEqualTo(root.get("startTime"), to),
+                                cb.greaterThanOrEqualTo(root.get("endTime"), from)
+                        )
+                );
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
     public static Specification<Booking> filterBookingsByUserId(
             UUID userId,
             BookingStatus bookingStatus,

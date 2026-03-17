@@ -772,7 +772,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public PageResponse<BookingResponse> getBookingsRentalId(
-            UUID rentalAreaId,
+            UUID userId,
             BookingStatus bookingStatus,
             String keyword,
             LocalDate fromDate,
@@ -780,13 +780,12 @@ public class BookingServiceImpl implements BookingService {
             int page,
             int size
     ) {
-
         Pageable pageable =
                 PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         Specification<Booking> spec =
-                BookingSpecification.filterBookingsByRentalId(
-                        rentalAreaId,
+                BookingSpecification.filterBookingsByOwner(
+                        userId,
                         bookingStatus,
                         keyword,
                         fromDate,
@@ -797,44 +796,7 @@ public class BookingServiceImpl implements BookingService {
 
         List<BookingResponse> responses =
                 bookingPage.getContent().stream()
-                        .map(booking -> {
-
-                            List<SlotResponse> slotResponses = booking.getSlots().stream()
-                                    .map(slot -> {
-                                        RoomCopy roomCopy = slot.getRoomCopy();
-                                        Room room = roomCopy.getRoom();
-                                        RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
-                                                .roomCopyId(roomCopy.getRoomCopyId())
-                                                .roomCode(roomCopy.getRoomCode())
-                                                .build();
-
-                                        return SlotResponse.builder()
-                                                .slotId(slot.getSlotId())
-                                                .startTime(slot.getStartTime())
-                                                .endTime(slot.getEndTime())
-                                                .roomCopy(roomCopyResponse)
-                                                .status(slot.getSlotStatus())
-
-                                                .build();
-                                    })
-                                    .toList();
-
-
-                            return BookingResponse.builder()
-                                    .bookingId(booking.getBookingId())
-                                    .userName(booking.getRenter().getUserName())
-                                    .phoneNumber(booking.getRenter().getPhone())
-                                    .startTime(booking.getStartTime())
-                                    .endTime(booking.getEndTime())
-                                    .totalPrice(booking.getTotalPrice())
-                                    .note(booking.getNote())
-                                    .createdAt(booking.getCreatedAt())
-                                    .status(booking.getBookingStatus())
-                                    .bookingType(booking.getBookingType())
-                                    .statusPayment("")
-                                    .slots(slotResponses)
-                                    .build();
-                        })
+                        .map(this::mapToBookingResponse)
                         .toList();
 
         return PageResponse.<BookingResponse>builder()
@@ -846,5 +808,41 @@ public class BookingServiceImpl implements BookingService {
                 .build();
     }
 
+    private BookingResponse mapToBookingResponse(Booking booking) {
 
+        List<SlotResponse> slotResponses = booking.getSlots().stream()
+                .map(slot -> {
+
+                    RoomCopy roomCopy = slot.getRoomCopy();
+
+                    RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
+                            .roomCopyId(roomCopy.getRoomCopyId())
+                            .roomCode(roomCopy.getRoomCode())
+                            .build();
+
+                    return SlotResponse.builder()
+                            .slotId(slot.getSlotId())
+                            .startTime(slot.getStartTime())
+                            .endTime(slot.getEndTime())
+                            .roomCopy(roomCopyResponse)
+                            .status(slot.getSlotStatus())
+                            .build();
+                })
+                .toList();
+
+        return BookingResponse.builder()
+                .bookingId(booking.getBookingId())
+                .userName(booking.getRenter().getUserName())
+                .phoneNumber(booking.getRenter().getPhone())
+                .startTime(booking.getStartTime())
+                .endTime(booking.getEndTime())
+                .totalPrice(booking.getTotalPrice())
+                .note(booking.getNote())
+                .createdAt(booking.getCreatedAt())
+                .status(booking.getBookingStatus())
+                .bookingType(booking.getBookingType())
+                .statusPayment("")
+                .slots(slotResponses)
+                .build();
+    }
 }

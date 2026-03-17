@@ -15,6 +15,7 @@ import java.util.UUID;
 public class RentPackageResponse {
     private UUID rentPackageId;
     private String rentPackageName;
+    private String description;
     private double price;
     private int durationDays;
     private LocalDateTime createdAt;

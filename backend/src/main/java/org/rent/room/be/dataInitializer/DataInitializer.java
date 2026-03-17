@@ -3,6 +3,10 @@ package org.rent.room.be.dataInitializer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.rent.room.be.constant.BookingStatus;
+import org.rent.room.be.constant.BookingType;
+import org.rent.room.be.constant.RentalAreaStatus;
 import org.rent.room.be.constant.RoomCopyStatus;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.repository.*;
@@ -12,12 +16,15 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class DataInitializer implements CommandLineRunner {
 
@@ -30,6 +37,9 @@ public class DataInitializer implements CommandLineRunner {
     RoomCopyRepository roomCopyRepository;
     RoomRepository roomRepository;
     RentalAreaRepository rentalAreaRepository;
+    RentPackageRepository rentPackageRepository;
+    BookingRepository bookingRepository;
+
     @Override
     public void run(String... args) throws Exception {
         seedUsers();
@@ -37,6 +47,8 @@ public class DataInitializer implements CommandLineRunner {
         seedCategories();
         seedAmenities();
         seedRooms();
+        seedPackages();
+        seedBookings();
     }
 
 
@@ -45,13 +57,16 @@ public class DataInitializer implements CommandLineRunner {
         List<Amenity> amenities = amenityRepository.findAll();
         Set<Amenity> amenitySet = new HashSet<>(amenities);
         List<Category> categories = categoryRepository.findAll();
+        User owner = userRepository.findByEmail("owner@gmail.com").orElse(null);
         RentalArea rentalArea =RentalArea.builder()
                 .address("90 Phạm Đăng Giảng, phường Bình Hưng Hòa")
                 .contactName("Quang B")
                 .contactPhone("0777964742")
+                .owner(owner)
                 .city(cities.getFirst() != null ? cities.getFirst() : City.builder()
                         .cityName("Thành phố Huế")
                         .build())
+                .status(RentalAreaStatus.ACTIVE)
                 .build();
         rentalAreaRepository.save(rentalArea);
         RoomCopy roomCopy1 = RoomCopy.builder()
@@ -312,6 +327,193 @@ public class DataInitializer implements CommandLineRunner {
                                 .active(true)
                                 .build()
                 ));
+    }
+
+    private void seedPackages() {
+        List<RentPackage> packages = new ArrayList<>();
+
+        // 1. Gói dùng thử (Trial) - Đánh vào tâm lý muốn thử nhưng sợ tốn tiền
+        // Giá ngày rất cao (15k/ngày) so với các gói khác, nhưng tổng tiền bỏ ra nhỏ.
+        packages.add(RentPackage.builder()
+                .rentPackageName("Trial 1 Day") // Hoặc "Starter"
+                .price(new BigDecimal("15000"))
+                .durationDays(1)
+                .description("Trải nghiệm đầy đủ tính năng trong 24h")
+                .build());
+
+        // 2. Gói Tuần (Basic) - Dành cho nhu cầu ngắn hạn
+        // ~14k/ngày -> Khách thấy hời hơn hẳn gói 1 ngày
+        packages.add(RentPackage.builder()
+                .rentPackageName("Weekly Pass")
+                .price(new BigDecimal("99000"))
+                .durationDays(7)
+                .description("Phù hợp cho nhu cầu ngắn hạn")
+                .build());
+
+        // 3. Gói Tháng (Standard) - Gói Hero (Gói muốn bán nhất)
+        // ~10k/ngày -> Rẻ hơn 30% so với gói tuần. Số tiền 299k là ngưỡng tâm lý dễ chấp nhận.
+        packages.add(RentPackage.builder()
+                .rentPackageName("Monthly Standard")
+                .price(new BigDecimal("299000"))
+                .durationDays(30)
+                .description("Tiết kiệm 30% - Lựa chọn phổ biến nhất") // Gắn tag Best Seller ở Frontend
+                .build());
+
+        // 4. Gói Quý (Quarterly) - Thay vì Premium, gọi là Quarterly nghe rõ nghĩa hơn
+        // ~8.8k/ngày -> Giảm thêm chút ít.
+        packages.add(RentPackage.builder()
+                .rentPackageName("Quarterly Pro")
+                .price(new BigDecimal("799000"))
+                .durationDays(90)
+                .description("Dành cho người dùng thường xuyên")
+                .build());
+
+        // 5. Gói Năm (Yearly) - Đổi tên từ Enterprise
+        // Đây là gói "khóa chân" khách hàng. Giá nên cực sốc.
+        // Mình đề xuất giảm xuống 1.999.000 hoặc 2.499.000 để tạo cảm giác "Deal hời".
+        // Nếu để 2.999.000 (gần 3tr), người ta sẽ thà mua gói tháng cho linh hoạt.
+        packages.add(RentPackage.builder()
+                .rentPackageName("Yearly Saver")
+                .price(new BigDecimal("2499000")) // ~6.8k/ngày -> Siêu rẻ
+                .durationDays(365)
+                .description("Tiết kiệm tối đa - Chỉ 6.8k/ngày")
+                .build());
+
+        for (RentPackage rp : packages) {
+            if (!rentPackageRepository.existsByRentPackageName(rp.getRentPackageName())) {
+                rentPackageRepository.save(rp);
+            }
+        }
+    }
+
+
+    // ================================================================
+    // SEED BOOKINGS (MOI) - Tao du lieu de test Review API
+    // ================================================================
+
+    /**
+     * Tao 5 booking voi cac trang thai khac nhau de test tat ca case:
+     *
+     * booking_completed_1  -> COMPLETED -> dung de test TAO REVIEW thanh cong
+     * booking_completed_2  -> COMPLETED -> dung de test TAO REVIEW thu 2 (khac booking)
+     * booking_completed_3  -> COMPLETED -> dung de test XOA review roi kiem tra stats
+     * booking_pending      -> PENDING   -> dung de test loi BOOKING_NOT_COMPLETED
+     * booking_cancelled    -> CANCELLED -> dung de test loi BOOKING_NOT_COMPLETED
+     */
+    private void seedBookings() {
+        // Tranh seed lai neu da co booking roi
+        if (bookingRepository.count() > 0) {
+            log.info("[DataInitializer] Bookings da ton tai, bo qua seedBookings()");
+            return;
+        }
+        System.out.println();
+
+        // Lay user can thiet
+        User renter = userRepository.findByEmail("renter@gmail.com")
+                .orElseThrow(() -> new RuntimeException("Khong tim thay renter, chay seedUsers() truoc"));
+        User owner = userRepository.findByEmail("owner@gmail.com")
+                .orElseThrow(() -> new RuntimeException("Khong tim thay owner"));
+
+        // Lay rental area dau tien (duoc tao trong seedRooms())
+        List<RentalArea> rentalAreas = rentalAreaRepository.findAll();
+        if (rentalAreas.isEmpty()) {
+            log.warn("[DataInitializer] Chua co RentalArea, bo qua seedBookings()");
+            return;
+        }
+        RentalArea rentalArea = rentalAreas.getFirst();
+
+        // ---- FIX: Dam bao RentalArea co owner (bug trong seedRooms() cu) ----
+        if (rentalArea.getOwner() == null) {
+            rentalArea.setOwner(owner);
+            rentalAreaRepository.save(rentalArea);
+            log.info("[DataInitializer] Da gan owner cho RentalArea: {}", rentalArea.getRentalAreaId());
+        }
+
+        // ---- BOOKING 1: COMPLETED - Happy path test ----
+        Booking booking1 = Booking.builder()
+                .bookingTitle("Phong hoc sang 8h-12h")
+                .bookingStatus(BookingStatus.COMPLETED)
+                .totalPrice(BigDecimal.valueOf(200000))
+                .note("Can phong yen tinh de on thi")
+                .startTime(LocalDateTime.now().minusDays(10))
+                .endTime(LocalDateTime.now().minusDays(10).plusHours(4))
+                .checkIn(LocalDateTime.now().minusDays(10))
+                .checkOut(LocalDateTime.now().minusDays(10).plusHours(4))
+                .renter(renter)
+                .rentalArea(rentalArea)
+                .bookingType(BookingType.HOURLY)
+                .build();
+
+        // ---- BOOKING 2: COMPLETED - Test review thu 2 (khac booking) ----
+        Booking booking2 = Booking.builder()
+                .bookingTitle("Phong hop nhom du an")
+                .bookingStatus(BookingStatus.COMPLETED)
+                .totalPrice(BigDecimal.valueOf(300000))
+                .note("Hop nhom 5 nguoi")
+                .startTime(LocalDateTime.now().minusDays(5))
+                .endTime(LocalDateTime.now().minusDays(5).plusHours(6))
+                .checkIn(LocalDateTime.now().minusDays(5))
+                .checkOut(LocalDateTime.now().minusDays(5).plusHours(6))
+                .renter(renter)
+                .rentalArea(rentalArea)
+                .bookingType(BookingType.HOURLY)
+                .build();
+
+        // ---- BOOKING 3: COMPLETED - Test xoa review roi kiem tra stats ----
+        Booking booking3 = Booking.builder()
+                .bookingTitle("Phong thuyet trinh")
+                .bookingStatus(BookingStatus.COMPLETED)
+                .totalPrice(BigDecimal.valueOf(150000))
+                .note("Thuyet trinh seminar")
+                .startTime(LocalDateTime.now().minusDays(3))
+                .endTime(LocalDateTime.now().minusDays(3).plusHours(3))
+                .checkIn(LocalDateTime.now().minusDays(3))
+                .checkOut(LocalDateTime.now().minusDays(3).plusHours(3))
+                .renter(renter)
+                .rentalArea(rentalArea)
+                .bookingType(BookingType.HOURLY)
+                .build();
+
+        // ---- BOOKING 4: PENDING - Test loi BOOKING_NOT_COMPLETED ----
+        Booking booking4 = Booking.builder()
+                .bookingTitle("Phong hoc toi nay")
+                .bookingStatus(BookingStatus.PENDING)
+                .totalPrice(BigDecimal.valueOf(100000))
+                .note("Booking chua duoc duyet")
+                .startTime(LocalDateTime.now().plusHours(2))
+                .endTime(LocalDateTime.now().plusHours(6))
+                .renter(renter)
+                .rentalArea(rentalArea)
+                .bookingType(BookingType.HOURLY)
+                .build();
+
+        // ---- BOOKING 5: CANCELLED - Test loi BOOKING_NOT_COMPLETED ----
+        Booking booking5 = Booking.builder()
+                .bookingTitle("Phong bi huy")
+                .bookingStatus(BookingStatus.CANCELLED)
+                .totalPrice(BigDecimal.valueOf(100000))
+                .note("Khach tu huy")
+                .startTime(LocalDateTime.now().minusDays(1))
+                .endTime(LocalDateTime.now().minusDays(1).plusHours(4))
+                .renter(renter)
+                .rentalArea(rentalArea)
+                .bookingType(BookingType.HOURLY)
+                .build();
+
+        bookingRepository.saveAll(List.of(booking1, booking2, booking3, booking4, booking5));
+
+        log.info("========================================================");
+        log.info("[DataInitializer] Da seed {} bookings thanh cong!", 5);
+        log.info("  booking_completed_1 id = {}", booking1.getBookingId());
+        log.info("  booking_completed_2 id = {}", booking2.getBookingId());
+        log.info("  booking_completed_3 id = {}", booking3.getBookingId());
+        log.info("  booking_pending     id = {}", booking4.getBookingId());
+        log.info("  booking_cancelled   id = {}", booking5.getBookingId());
+        log.info("  rentalArea          id = {}", rentalArea.getRentalAreaId());
+        log.info("  owner               id = {}", owner.getUserId());
+        log.info("  renter              id = {}", renter.getUserId());
+        log.info("========================================================");
+        log.info("[DataInitializer] Copy cac ID tren de dung trong Postman!");
     }
 
 }

@@ -1,7 +1,7 @@
 package org.rent.room.be.serviceImpl;
 
 import lombok.RequiredArgsConstructor;
-import org.rent.room.be.dto.response.CityResponse;
+import org.rent.room.be.dto.response.city.CityResponse;
 import org.rent.room.be.repository.CityRepository;
 import org.rent.room.be.service.CityService;
 import org.springframework.stereotype.Service;
