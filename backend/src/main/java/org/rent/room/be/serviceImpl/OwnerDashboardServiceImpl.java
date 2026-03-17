@@ -27,14 +27,18 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
     // Rooms Summary
     // ----------------------------------------------------------------
 
-    @Override
+    /**
+     * Thống kê phòng của owner đang đăng nhập.
+     */
     @Transactional(readOnly = true)
     public OwnerRoomSummaryResponse getRoomSummary() {
         User currentUser = userService.getCurrentUserEntity();
         return buildRoomSummary(currentUser.getUserId());
     }
 
-    @Override
+    /**
+     * Thống kê phòng theo userId — dùng cho Admin xem hộ owner.
+     */
     @Transactional(readOnly = true)
     public OwnerRoomSummaryResponse getRoomSummaryByUserId(UUID userId) {
         return buildRoomSummary(userId);
@@ -58,21 +62,25 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
     // Review Stats
     // ----------------------------------------------------------------
 
-    @Override
+    /**
+     * Thống kê review của owner đang đăng nhập trong khoảng thời gian.
+     * from/to null → mặc định 30 ngày gần nhất.
+     */
     @Transactional(readOnly = true)
     public OwnerReviewStatsResponse getReviewStats(LocalDateTime from, LocalDateTime to) {
         User currentUser = userService.getCurrentUserEntity();
         return buildReviewStats(currentUser.getUserId(), from, to);
     }
 
-    @Override
+    /**
+     * Thống kê review theo userId — dùng cho Admin xem hộ owner.
+     */
     @Transactional(readOnly = true)
     public OwnerReviewStatsResponse getReviewStatsByUserId(UUID userId, LocalDateTime from, LocalDateTime to) {
         return buildReviewStats(userId, from, to);
     }
 
     private OwnerReviewStatsResponse buildReviewStats(UUID ownerId, LocalDateTime from, LocalDateTime to) {
-
         if (from == null) from = LocalDateTime.now().minusDays(30);
         if (to == null)   to   = LocalDateTime.now();
 
