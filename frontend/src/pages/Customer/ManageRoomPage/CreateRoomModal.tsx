@@ -1,11 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { Form, Input, InputNumber, Modal, Select, Upload, message } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Upload,
+  message,
+} from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
-import { Row, Col, Divider } from "antd";
+import {
+  AppstoreOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  PictureOutlined,
+  ReadOutlined,
+  TagsOutlined,
+} from "@ant-design/icons";
 import categoriesService from "../../../services/categories/categories";
 import amenitiesService from "../../../services/amenities/amenities";
 import roomsService from "../../../services/rooms/rooms";
-import { MdDeleteOutline } from "react-icons/md";
+import BlockingLoadingOverlay from "./BlockingLoadingOverlay";
 
 type Props = {
   open: boolean;
@@ -13,6 +29,9 @@ type Props = {
   onClose: () => void;
   onCreated: () => void;
 };
+
+const sectionTitleClass = "text-sm font-semibold text-slate-800 mb-3";
+const cardClass = "rounded-2xl border border-slate-100 bg-slate-50 p-4";
 
 const CreateRoomModal: React.FC<Props> = ({
   open,
@@ -22,6 +41,7 @@ const CreateRoomModal: React.FC<Props> = ({
 }) => {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<
@@ -30,6 +50,8 @@ const CreateRoomModal: React.FC<Props> = ({
   const [amenityOptions, setAmenityOptions] = useState<
     { label: string; value: number }[]
   >([]);
+
+  const isBusy = submitting || saving;
 
   const fetchOptions = async () => {
     try {
@@ -64,6 +86,13 @@ const CreateRoomModal: React.FC<Props> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const handleCancel = () => {
+    if (isBusy) return;
+    form.resetFields();
+    setFileList([]);
+    onClose();
+  };
+
   const onSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -72,11 +101,13 @@ const CreateRoomModal: React.FC<Props> = ({
         .filter((f) => f.status !== "removed")
         .map((f) => f.originFileObj)
         .filter(Boolean) as File[];
+
       if (images.length < 1 || images.length > 5) {
         message.error("Vui lòng upload từ 1 đến 5 ảnh");
         return;
       }
 
+      setSubmitting(true);
       setSaving(true);
 
       await roomsService.createRoom(rentalAreaId, {
@@ -92,6 +123,8 @@ const CreateRoomModal: React.FC<Props> = ({
       });
 
       message.success("Tạo phòng thành công");
+      form.resetFields();
+      setFileList([]);
       onCreated();
     } catch (e: any) {
       if (e?.errorFields) return;
@@ -99,156 +132,259 @@ const CreateRoomModal: React.FC<Props> = ({
       message.error(e?.response?.data?.message || "Tạo phòng thất bại");
     } finally {
       setSaving(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <Modal
-      title="Thêm phòng"
-      open={open}
-      onCancel={onClose}
-      onOk={onSubmit}
-      okText="Tạo"
-      cancelText="Hủy"
-      confirmLoading={saving}
-      destroyOnClose
-      width={900}
-      style={{ top: 10 }}
-    >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{
-          amenityIds: [],
-          roomCodes: [""],
+    <>
+      <BlockingLoadingOverlay
+        open={open && isBusy}
+        title="Đang khởi tạo phòng học"
+        description="Hệ thống đang tải ảnh và thiết lập thông tin phòng học. Quá trình này có thể mất vài giây, vui lòng đợi trong giây lát."
+      />
+
+      <Modal
+        title={
+          <div>
+            <div className="text-lg font-semibold text-slate-800">
+              Thêm phòng học
+            </div>
+            <div className="text-sm text-slate-500 font-normal">
+              Tạo phòng mới và gán danh sách mã phòng nhanh chóng
+            </div>
+          </div>
+        }
+        open={open}
+        onCancel={handleCancel}
+        onOk={onSubmit}
+        okText="Tạo phòng"
+        cancelText="Hủy"
+        confirmLoading={false}
+        destroyOnClose
+        width={1000}
+        style={{ top: 12 }}
+        maskClosable={!isBusy}
+        keyboard={!isBusy}
+        closable={!isBusy}
+        okButtonProps={{
+          disabled: isBusy,
+          style: {
+            background: "#1677ff",
+            borderColor: "#1677ff",
+            borderRadius: 12,
+            fontWeight: 600,
+          },
+        }}
+        cancelButtonProps={{
+          disabled: isBusy,
+          style: {
+            borderRadius: 12,
+            fontWeight: 500,
+          },
+        }}
+        styles={{
+          body: {
+            background: "#f8fafc",
+            paddingTop: 12,
+          },
         }}
       >
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="roomName"
-              label="Tên phòng"
-              rules={[{ required: true, message: "Nhập tên phòng" }]}
-            >
-              <Input placeholder="VD: Phòng học 20 người" />
-            </Form.Item>
-          </Col>
-
-          <Col span={12}>
-            <Form.Item name="categoryId" label="Loại phòng">
-              <Select
-                placeholder="Chọn loại phòng"
-                options={categoryOptions}
-                allowClear
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <h3>Danh sách mã phòng</h3>
-        <div
-          style={{
-            maxHeight: 200,
-            overflowY: "auto",
-            paddingRight: 6,
+        <Form
+          form={form}
+          layout="vertical"
+          disabled={isBusy}
+          initialValues={{
+            amenityIds: [],
+            roomCodes: [""],
           }}
         >
-          <Form.List name="roomCodes">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map(({ key, name }) => (
-                  <Row
-                    key={key}
-                    gutter={8}
-                    align="middle"
-                    style={{ marginBottom: 8 }}
-                  >
-                    {/* INPUT */}
-                    <Col span={14}>
-                      <Form.Item
-                        name={name}
-                        rules={[{ required: true, message: "Nhập mã phòng" }]}
-                        style={{ marginBottom: 0 }}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className={cardClass}>
+              <div className={sectionTitleClass}>Thông tin cơ bản</div>
+
+              <Form.Item
+                name="roomName"
+                label="Tên phòng"
+                rules={[{ required: true, message: "Nhập tên phòng" }]}
+              >
+                <Input
+                  size="large"
+                  prefix={<ReadOutlined className="text-slate-400" />}
+                  placeholder="VD: Phòng học 20 người"
+                  className="rounded-xl"
+                />
+              </Form.Item>
+
+              <Form.Item name="categoryId" label="Loại phòng">
+                <Select
+                  size="large"
+                  placeholder="Chọn loại phòng"
+                  options={categoryOptions}
+                  allowClear
+                  className="rounded-xl"
+                />
+              </Form.Item>
+
+              <Form.Item name="description" label="Mô tả">
+                <Input.TextArea
+                  rows={4}
+                  placeholder="Mô tả ngắn về phòng, thiết bị, không gian học..."
+                  className="rounded-xl"
+                />
+              </Form.Item>
+            </div>
+
+            <div className={cardClass}>
+              <div className={sectionTitleClass}>Thông số phòng</div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Form.Item name="price" label="Giá / giờ">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={0}
+                    size="large"
+                    placeholder="0"
+                  />
+                </Form.Item>
+
+                <Form.Item name="capacity" label="Sức chứa">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={1}
+                    size="large"
+                    placeholder="0"
+                  />
+                </Form.Item>
+
+                <Form.Item name="area" label="Diện tích (m²)">
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={0}
+                    size="large"
+                    placeholder="0"
+                  />
+                </Form.Item>
+              </div>
+
+              <Form.Item name="amenityIds" label="Tiện ích">
+                <Select
+                  mode="multiple"
+                  placeholder="Chọn tiện ích"
+                  options={amenityOptions}
+                  className="rounded-xl"
+                />
+              </Form.Item>
+
+              <div className="rounded-xl bg-white border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500">
+                <div className="flex items-center gap-2 font-medium text-slate-700 mb-1">
+                  <AppstoreOutlined className="text-[#1677ff]" />
+                  Gợi ý
+                </div>
+                <span>
+                  Bạn có thể thêm nhiều tiện ích để phòng hiển thị hấp dẫn hơn
+                  với người dùng.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className={`${cardClass} mt-4`}>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <div className={sectionTitleClass + " mb-1"}>
+                  Danh sách mã phòng
+                </div>
+                <div className="text-sm text-slate-500">
+                  Thêm các mã phòng tương ứng trong cùng một loại phòng
+                </div>
+              </div>
+            </div>
+
+            <Form.List name="roomCodes">
+              {(fields, { add, remove }) => (
+                <>
+                  <div className="space-y-3">
+                    {fields.map(({ key, name }) => (
+                      <div
+                        key={key}
+                        className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-start"
                       >
-                        <Input placeholder="VD: 301" />
-                      </Form.Item>
-                    </Col>
+                        <Form.Item
+                          name={name}
+                          rules={[{ required: true, message: "Nhập mã phòng" }]}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Input
+                            size="large"
+                            prefix={<TagsOutlined className="text-slate-400" />}
+                            placeholder="VD: A101, B202, P301..."
+                            className="rounded-xl"
+                          />
+                        </Form.Item>
 
-                    {/* ACTION */}
-                    <Col span={5}>
-                      <div className="flex items-center justify-between gap-4">
-                        <a onClick={() => add()}>+ Thêm phòng</a>
-
-                        {fields.length > 1 && (
-                          <a
-                            style={{ color: "red" }}
-                            onClick={() => remove(name)}
-                            className="flex items-center gap-1"
-                          >
-                            <MdDeleteOutline size={16} />
-                            <span>Xóa</span>
-                          </a>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {fields.length > 1 && (
+                            <Button
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => remove(name)}
+                              className="rounded-xl h-10"
+                              disabled={isBusy}
+                            >
+                              Xóa
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </Col>
-                  </Row>
-                ))}
-              </>
-            )}
-          </Form.List>
-        </div>
-        <Form.Item name="description" label="Mô tả">
-          <Input.TextArea rows={2} />
-        </Form.Item>
+                    ))}
+                  </div>
 
-        <Row gutter={16}>
-          <Col span={8}>
-            <Form.Item name="price" label="Giá / giờ">
-              <InputNumber style={{ width: "100%" }} min={0} />
-            </Form.Item>
-          </Col>
+                  <Button
+                    type="dashed"
+                    icon={<PlusOutlined />}
+                    onClick={() => add()}
+                    className="mt-4 rounded-xl h-10"
+                    disabled={isBusy}
+                  >
+                    Thêm mã phòng
+                  </Button>
+                </>
+              )}
+            </Form.List>
+          </div>
 
-          <Col span={8}>
-            <Form.Item name="capacity" label="Sức chứa">
-              <InputNumber style={{ width: "100%" }} min={1} />
-            </Form.Item>
-          </Col>
+          <div className={`${cardClass} mt-4`}>
+            <div className={sectionTitleClass}>Ảnh phòng</div>
 
-          <Col span={8}>
-            <Form.Item name="area" label="Diện tích (m²)">
-              <InputNumber style={{ width: "100%" }} min={0} />
-            </Form.Item>
-          </Col>
-        </Row>
+            <Upload
+              listType="picture-card"
+              fileList={fileList}
+              beforeUpload={() => false}
+              disabled={isBusy}
+              onChange={({ fileList: next }) => {
+                const alive = next.filter((f) => f.status !== "removed");
+                const uniq = new Map();
+                alive.forEach((f) => uniq.set(f.uid, f));
+                setFileList(Array.from(uniq.values()).slice(0, 5));
+              }}
+            >
+              {fileList.length >= 5 ? null : (
+                <div className="flex flex-col items-center justify-center">
+                  <PictureOutlined />
+                  <div className="mt-2">Tải ảnh lên</div>
+                </div>
+              )}
+            </Upload>
 
-        <Form.Item name="amenityIds" label="Tiện ích">
-          <Select
-            mode="multiple"
-            placeholder="Chọn tiện ích"
-            options={amenityOptions}
-          />
-        </Form.Item>
-
-        <h3>Ảnh phòng</h3>
-
-        <Form.Item required>
-          <Upload
-            listType="picture-card"
-            fileList={fileList}
-            beforeUpload={() => false}
-            onChange={({ fileList: next }) => {
-              const alive = next.filter((f) => f.status !== "removed");
-
-              const uniq = new Map();
-              alive.forEach((f) => uniq.set(f.uid, f));
-
-              setFileList(Array.from(uniq.values()).slice(0, 5));
-            }}
-          >
-            {fileList.length >= 5 ? null : "Upload"}
-          </Upload>
-        </Form.Item>
-      </Form>
-    </Modal>
+            <div className="text-xs text-slate-500 mt-2">
+              Chọn từ <b>1 đến 5 ảnh</b> để hiển thị đẹp hơn trong danh sách
+              phòng.
+            </div>
+          </div>
+        </Form>
+      </Modal>
+    </>
   );
 };
 

@@ -1,17 +1,20 @@
 import React from "react";
-import { Button, Space, Popconfirm, Dropdown } from "antd";
-import type { MenuProps } from "antd";
-import { DownOutlined } from "@ant-design/icons";
+import { Button, Card, Modal, Tag } from "antd";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  ExclamationCircleOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import type { RentalAreaResponse } from "../../../services/rental-areas/rentalAreas";
-import { EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
-import { Tooltip } from "antd";
 
 type NextStatus = "ACTIVE" | "INACTIVE";
 
 type Props = {
   data: RentalAreaResponse[];
   onAddRoom: (rentalArea: RentalAreaResponse) => void;
-
   onToggleStatus: (
     rentalArea: RentalAreaResponse,
     nextStatus: NextStatus,
@@ -21,17 +24,50 @@ type Props = {
   onDelete: (rentalArea: RentalAreaResponse) => void;
 };
 
-function statusBadge(status: string) {
-  if (status === "ACTIVE") return "bg-green-100 text-green-700";
-  if (status === "INACTIVE") return "bg-red-100 text-red-700";
-  return "bg-red-100 text-red-700"; // SUSPENDED
-}
+const brandColor = "#1677ff";
+const addRoomColor = "#0f766e";
+const editColor = "#7c3aed";
+const hideColor = "#d97706";
+const showColor = "#059669";
+const deleteColor = "#dc2626";
 
-function statusLabel(status: string) {
-  if (status === "ACTIVE") return "Đang hoạt động";
-  if (status === "INACTIVE") return "Ngưng hoạt động";
-  return "Bị khóa";
-}
+const filledButtonStyle = (bg: string) => ({
+  background: bg,
+  borderColor: bg,
+  color: "#fff",
+  boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+});
+
+const softButtonStyle = (color: string) => ({
+  color,
+  borderColor: color,
+  background: "#fff",
+});
+
+const statusMeta = (status: string) => {
+  switch (status) {
+    case "ACTIVE":
+      return {
+        label: "Đang hoạt động",
+        color: "success",
+      };
+    case "INACTIVE":
+      return {
+        label: "Ngưng hoạt động",
+        color: "default",
+      };
+    case "SUSPENDED":
+      return {
+        label: "Bị khóa",
+        color: "error",
+      };
+    default:
+      return {
+        label: status,
+        color: "default",
+      };
+  }
+};
 
 const RentalAreaTable: React.FC<Props> = ({
   data,
@@ -41,192 +77,176 @@ const RentalAreaTable: React.FC<Props> = ({
   onEdit,
   onDelete,
 }) => {
+  const confirmDelete = (ra: RentalAreaResponse) => {
+    Modal.confirm({
+      centered: true,
+      title: "Xóa tòa nhà",
+      icon: <ExclamationCircleOutlined style={{ color: deleteColor }} />,
+      content: (
+        <div className="text-gray-600">
+          Hành động này <b>không thể hoàn tác</b>. Bạn chắc chắn muốn xóa tòa
+          nhà:
+          <div className="mt-1 font-semibold text-gray-800 line-clamp-2">
+            {ra.rentalAreaName}
+          </div>
+        </div>
+      ),
+      okText: "Xóa",
+      cancelText: "Hủy",
+      okButtonProps: {
+        danger: true,
+        style: filledButtonStyle(deleteColor),
+      },
+      onOk: async () => onDelete(ra),
+    });
+  };
+
+  const confirmToggle = (ra: RentalAreaResponse, next: NextStatus) => {
+    const isHide = next === "INACTIVE";
+    const actionColor = isHide ? hideColor : showColor;
+
+    Modal.confirm({
+      centered: true,
+      title: isHide ? "Ngưng hoạt động tòa nhà" : "Kích hoạt tòa nhà",
+      icon: <ExclamationCircleOutlined style={{ color: actionColor }} />,
+      content: (
+        <div className="text-gray-600">
+          Bạn chắc chắn muốn <b>{isHide ? "ngưng hoạt động" : "kích hoạt"}</b>:
+          <div className="mt-1 font-semibold text-gray-800 line-clamp-2">
+            {ra.rentalAreaName}
+          </div>
+        </div>
+      ),
+      okText: isHide ? "Ngưng hoạt động" : "Kích hoạt",
+      cancelText: "Hủy",
+      okButtonProps: {
+        style: filledButtonStyle(actionColor),
+      },
+      onOk: async () => onToggleStatus(ra, next),
+    });
+  };
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b">
-            <th className="text-center p-4 font-semibold text-gray-700">
-              Tên tòa nhà
-            </th>
-            <th className="text-center p-4 font-semibold text-gray-700">
-              Địa chỉ
-            </th>
-            <th className="text-center p-4 font-semibold text-gray-700">
-              Liên hệ
-            </th>
-            <th className="text-center p-4 font-semibold text-gray-700">
-              Trạng thái
-            </th>
-            <th className="text-center p-4 font-semibold text-gray-700">
-              Xem chi tiết
-            </th>
-            <th className="text-center p-4 font-semibold text-gray-700">
-              Thao tác
-            </th>
-          </tr>
-        </thead>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      {data.map((ra) => {
+        const contact = [ra.contactName, ra.contactPhone]
+          .filter(Boolean)
+          .join(" • ");
 
-        <tbody>
-          {data.map((ra) => {
-            const contact = [ra.contactName, ra.contactPhone]
-              .filter(Boolean)
-              .join(" • ");
-            const isSuspended = ra.status === "SUSPENDED";
-            const nextStatus: NextStatus =
-              ra.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+        const canHide = ra.status === "ACTIVE";
+        const canShow = ra.status === "INACTIVE";
+        const isSuspended = ra.status === "SUSPENDED";
+        const status = statusMeta(ra.status);
 
-            const statusActionLabel =
-              ra.status === "ACTIVE" ? "Ngưng hoạt động" : "Kích hoạt";
+        return (
+          <Card
+            key={ra.rentalAreaId}
+            className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100"
+            styles={{ body: { padding: 16 } }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-semibold text-slate-800 text-[17px] line-clamp-2 leading-6">
+                  {ra.rentalAreaName}
+                </div>
+                <div className="mt-1 text-sm text-slate-500 line-clamp-2">
+                  {ra.address}
+                </div>
+                <div className="mt-1 text-xs text-slate-400">
+                  {ra.cityName || "—"}
+                </div>
+              </div>
 
-            const statusActionClass =
-              ra.status === "ACTIVE"
-                ? "text-red-600 bg-red-50"
-                : "text-green-700 bg-green-50";
+              <Tag color={status.color as any}>{status.label}</Tag>
+            </div>
 
-            const menuItems: MenuProps["items"] = [
-              {
-                key: "toggle",
-                disabled: isSuspended,
-                label: (
-                  <Popconfirm
-                    title="Xác nhận đổi trạng thái?"
-                    description={
-                      ra.status === "ACTIVE"
-                        ? "Bạn có chắc muốn ngưng hoạt động tòa nhà này?"
-                        : "Bạn có chắc muốn kích hoạt lại tòa nhà này?"
-                    }
-                    okText="Đồng ý"
-                    cancelText="Hủy"
-                    onConfirm={() => onToggleStatus(ra, nextStatus)}
-                  >
-                    <div
-                      className={`px-2 py-1 rounded text-sm font-medium inline-block ${statusActionClass}`}
-                    >
-                      {statusActionLabel}
-                    </div>
-                  </Popconfirm>
-                ),
-              },
-              ...(isSuspended
-                ? [
-                    {
-                      key: "hint",
-                      disabled: true,
-                      label: (
-                        <span className="text-gray-500 text-sm">
-                          Tòa nhà đang bị khóa
-                        </span>
-                      ),
-                    },
-                  ]
-                : []),
-            ];
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-slate-50 px-3 py-3">
+                <div className="text-xs text-slate-500">Người liên hệ</div>
+                <div className="mt-1 font-medium text-slate-800 line-clamp-1">
+                  {ra.contactName || "—"}
+                </div>
+              </div>
 
-            return (
-              <tr key={ra.rentalAreaId} className="border-b hover:bg-gray-50">
-                <td className="p-4 align-top">
-                  <div className="font-medium text-gray-800 text-center">
-                    {ra.rentalAreaName}
-                  </div>
-                </td>
+              <div className="rounded-xl bg-slate-50 px-3 py-3">
+                <div className="text-xs text-slate-500">Số điện thoại</div>
+                <div className="mt-1 font-medium text-slate-800 line-clamp-1">
+                  {ra.contactPhone || "—"}
+                </div>
+              </div>
+            </div>
 
-                <td className="p-4 align-top text-center">
-                  <span className="text-gray-600">{ra.address}</span>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {ra.cityName}
-                  </div>
-                </td>
+            {contact ? (
+              <div className="mt-3 text-sm text-slate-500 line-clamp-1">
+                Liên hệ:{" "}
+                <span className="text-slate-700 font-medium">{contact}</span>
+              </div>
+            ) : null}
 
-                <td className="p-4 align-top text-center">
-                  <span className="text-gray-600">{contact || "—"}</span>
-                </td>
+            <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2">
+              <Button
+                block
+                icon={<EyeOutlined />}
+                onClick={() => onView?.(ra)}
+                style={softButtonStyle(brandColor)}
+                className="rounded-xl font-medium h-10"
+              >
+                Xem chi tiết
+              </Button>
 
-                {/* Status cell: badge + dropdown action */}
-                <td className="p-4 align-top text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${statusBadge(ra.status)}`}
-                    >
-                      {statusLabel(ra.status)}
-                    </span>
+              <Button
+                block
+                icon={<PlusOutlined />}
+                onClick={() => onAddRoom(ra)}
+                style={filledButtonStyle(addRoomColor)}
+                className="rounded-xl font-medium h-10"
+              >
+                Thêm phòng
+              </Button>
 
-                    <Dropdown
-                      menu={{ items: menuItems }}
-                      trigger={["click"]}
-                      placement="bottom"
-                    >
-                      <Button
-                        size="small"
-                        type="text"
-                        disabled={isSuspended}
-                        className="text-gray-600"
-                      >
-                        Thay đổi <DownOutlined />
-                      </Button>
-                    </Dropdown>
-                  </div>
-                </td>
+              <Button
+                block
+                icon={canHide ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                disabled={isSuspended || (!canHide && !canShow)}
+                onClick={() =>
+                  confirmToggle(ra, canHide ? "INACTIVE" : "ACTIVE")
+                }
+                style={
+                  canHide
+                    ? filledButtonStyle(hideColor)
+                    : canShow
+                      ? filledButtonStyle(showColor)
+                      : undefined
+                }
+                className="rounded-xl font-medium h-10"
+              >
+                {canHide ? "Ẩn tòa nhà" : "Hiện tòa nhà"}
+              </Button>
 
-                <td className="p-4 align-top text-center">
-                  {onView ? (
-                    <Tooltip title="Xem chi tiết">
-                      <Button
-                        size="small"
-                        type="text"
-                        icon={<EyeOutlined />}
-                        onClick={() => onView(ra)}
-                      />
-                    </Tooltip>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  )}
-                </td>
+              <Button
+                block
+                icon={<EditOutlined />}
+                onClick={() => onEdit?.(ra)}
+                style={softButtonStyle(editColor)}
+                className="rounded-xl font-medium h-10"
+              >
+                Chỉnh sửa
+              </Button>
 
-                <td className="p-4 align-top text-center">
-                  <Space size="middle">
-                    {/* Thêm phòng học */}
-                    <Button size="small" onClick={() => onAddRoom(ra)}>
-                      Thêm phòng học
-                    </Button>
-
-                    {/* Chỉnh sửa */}
-                    {onEdit && (
-                      <Tooltip title="Chỉnh sửa thông tin">
-                        <Button
-                          size="small"
-                          type="text"
-                          icon={<EditOutlined />}
-                          onClick={() => onEdit(ra)}
-                        />
-                      </Tooltip>
-                    )}
-
-                    {/* Xóa */}
-                    <Popconfirm
-                      title="Xóa tòa nhà?"
-                      description="Thao tác này sẽ xóa tòa nhà khỏi danh sách của bạn."
-                      okText="Xóa"
-                      cancelText="Hủy"
-                      okButtonProps={{ danger: true }}
-                      onConfirm={() => onDelete(ra)}
-                    >
-                      <Tooltip title="Xóa tòa nhà">
-                        <Button
-                          size="small"
-                          type="text"
-                          danger
-                          icon={<DeleteOutlined />}
-                        />
-                      </Tooltip>
-                    </Popconfirm>
-                  </Space>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+              <Button
+                block
+                icon={<DeleteOutlined />}
+                danger
+                onClick={() => confirmDelete(ra)}
+                style={softButtonStyle(deleteColor)}
+                className="rounded-xl font-medium h-10 col-span-2"
+              >
+                Xóa tòa nhà
+              </Button>
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 };

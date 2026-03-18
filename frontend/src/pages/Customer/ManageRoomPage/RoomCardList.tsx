@@ -4,14 +4,18 @@ import {
   Card,
   Empty,
   Image,
-  Popconfirm,
-  Space,
-  Spin,
+  Modal,
+  Skeleton,
   Tag,
-  Tooltip,
   message,
 } from "antd";
-import { DeleteOutlined, EditOutlined, EyeOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  ExclamationCircleOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
+} from "@ant-design/icons";
 
 import roomsService, {
   type RoomCardResponse,
@@ -24,11 +28,42 @@ type Props = {
   onChanged?: () => void;
 };
 
-const statusColor = (s: RoomStatus) => {
+const brandColor = "#1677ff";
+const hideColor = "#d97706";
+const showColor = "#059669";
+const editColor = "#7c3aed";
+const deleteColor = "#dc2626";
+
+const statusTagColor = (s: RoomStatus) => {
   if (s === "ACTIVE") return "green";
   if (s === "HIDDEN") return "gold";
   if (s === "INACTIVE") return "red";
   return "blue";
+};
+
+const filledButtonStyle = (bg: string) => ({
+  background: bg,
+  borderColor: bg,
+  color: "#fff",
+  boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+});
+
+const softButtonStyle = (color: string) => ({
+  color,
+  borderColor: color,
+  background: "#fff",
+});
+
+const formatVND = (value?: number | string | null) => {
+  if (value === null || value === undefined) return null;
+  const num = typeof value === "string" ? Number(value) : value;
+  if (Number.isNaN(num)) return null;
+
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(num);
 };
 
 const RoomCardList: React.FC<Props> = ({ rentalAreaId, onChanged }) => {
@@ -58,7 +93,6 @@ const RoomCardList: React.FC<Props> = ({ rentalAreaId, onChanged }) => {
 
   useEffect(() => {
     fetchList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rentalAreaId]);
 
   const openDrawer = (roomId: string, mode: "view" | "edit") => {
@@ -72,141 +106,223 @@ const RoomCardList: React.FC<Props> = ({ rentalAreaId, onChanged }) => {
     setSelectedRoomId(null);
   };
 
-  const onToggleStatus = async (room: RoomCardResponse) => {
+  const confirmToggleStatus = (room: RoomCardResponse) => {
     const next = room.roomStatus === "ACTIVE" ? "HIDDEN" : "ACTIVE";
-    try {
-      await roomsService.updateRoomStatus(room.roomId, next);
-      message.success("Cập nhật trạng thái thành công");
-      await fetchList();
-      onChanged?.();
-    } catch (e: any) {
-      console.error(e);
-      message.error(
-        e?.response?.data?.message || "Cập nhật trạng thái thất bại",
-      );
-    }
+    const isHide = next === "HIDDEN";
+    const actionColor = isHide ? hideColor : showColor;
+
+    Modal.confirm({
+      centered: true,
+      title: isHide ? "Ẩn phòng học" : "Hiện phòng học",
+      icon: <ExclamationCircleOutlined style={{ color: actionColor }} />,
+      content: (
+        <div className="text-gray-600">
+          Bạn chắc chắn muốn <b>{isHide ? "ẩn" : "hiện"}</b> phòng:
+          <div className="mt-1 font-semibold text-gray-800 line-clamp-2">
+            {room.roomName}
+          </div>
+        </div>
+      ),
+      okText: isHide ? "Ẩn phòng" : "Hiện phòng",
+      cancelText: "Hủy",
+      okButtonProps: {
+        style: filledButtonStyle(actionColor),
+      },
+      onOk: async () => {
+        try {
+          await roomsService.updateRoomStatus(room.roomId, next);
+          message.success("Cập nhật trạng thái thành công");
+          await fetchList();
+          onChanged?.();
+        } catch (e: any) {
+          console.error(e);
+          message.error(
+            e?.response?.data?.message || "Cập nhật trạng thái thất bại",
+          );
+        }
+      },
+    });
   };
 
-  const onDelete = async (roomId: string) => {
-    try {
-      await roomsService.deleteRoom(roomId);
-      message.success("Xóa phòng thành công");
-      await fetchList();
-      onChanged?.();
-    } catch (e: any) {
-      console.error(e);
-      message.error(e?.response?.data?.message || "Xóa phòng thất bại");
-    }
+  const confirmDelete = (room: RoomCardResponse) => {
+    Modal.confirm({
+      centered: true,
+      title: "Xóa phòng học",
+      icon: <ExclamationCircleOutlined style={{ color: deleteColor }} />,
+      content: (
+        <div className="text-gray-600">
+          Hành động này <b>không thể hoàn tác</b>. Bạn chắc chắn muốn xóa phòng:
+          <div className="mt-1 font-semibold text-gray-800 line-clamp-2">
+            {room.roomName}
+          </div>
+        </div>
+      ),
+      okText: "Xóa",
+      cancelText: "Hủy",
+      okButtonProps: {
+        danger: true,
+        style: filledButtonStyle(deleteColor),
+      },
+      onOk: async () => {
+        try {
+          await roomsService.deleteRoom(room.roomId);
+          message.success("Xóa phòng thành công");
+          await fetchList();
+          onChanged?.();
+        } catch (e: any) {
+          console.error(e);
+          message.error(e?.response?.data?.message || "Xóa phòng thất bại");
+        }
+      },
+    });
   };
 
   const content = useMemo(() => {
-    if (loading) return <Spin />;
+    if (loading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="rounded-2xl">
+              <Skeleton active paragraph={{ rows: 4 }} />
+            </Card>
+          ))}
+        </div>
+      );
+    }
 
     if (!items.length) {
       return (
-        <Empty
-          description="Chưa có phòng nào trong tòa nhà này"
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
+        <div className="py-12">
+          <Empty
+            description="Chưa có phòng nào trong tòa nhà này"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        </div>
       );
     }
 
     return (
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: 16,
-        }}
-      >
-        {items.map((r) => (
-          <Card
-            key={r.roomId}
-            hoverable
-            cover={
-              r.coverImageUrl ? (
-                <Image
-                  src={r.coverImageUrl}
-                  preview={false}
-                  height={160}
-                  style={{ objectFit: "cover" }}
-                />
-              ) : (
-                <div
-                  style={{
-                    height: 160,
-                    display: "grid",
-                    placeItems: "center",
-                    background: "#fafafa",
-                  }}
-                >
-                  <span style={{ color: "#999" }}>No image</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {items.map((r) => {
+          const priceText = formatVND(r.price);
+          const roomCount = r.roomCopyResponseList?.length ?? 0;
+          const canHide = r.roomStatus === "ACTIVE";
+          const canShow = r.roomStatus === "HIDDEN";
+
+          return (
+            <Card
+              key={r.roomId}
+              className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100"
+              styles={{ body: { padding: 16 } }}
+              cover={
+                r.coverImageUrl ? (
+                  <div className="relative h-48 w-full overflow-hidden bg-slate-100">
+                    <Image
+                      src={r.coverImageUrl}
+                      preview={false}
+                      width="100%"
+                      height="100%"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                      className="transition-transform duration-500 hover:scale-105"
+                    />
+                    <div className="absolute top-3 left-3 z-10">
+                      <Tag color={statusTagColor(r.roomStatus)}>
+                        {r.roomStatus}
+                      </Tag>
+                    </div>
+                    {priceText ? (
+                      <div
+                        className="absolute top-3 right-3 z-10 px-3 py-1 rounded-full text-sm font-semibold shadow"
+                        style={{
+                          background: "rgba(22,119,255,0.95)",
+                          color: "#fff",
+                        }}
+                      >
+                        {priceText}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="h-48 w-full bg-slate-100 flex items-center justify-center text-slate-400">
+                    Không có ảnh
+                  </div>
+                )
+              }
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-semibold text-slate-800 text-[16px] line-clamp-2 leading-6">
+                    {r.roomName}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-500 line-clamp-2">
+                    {r.description || "Phòng học tiêu chuẩn"}
+                  </div>
                 </div>
-              )
-            }
-            actions={[
-              <Tooltip title="Xem chi tiết" key="view">
-                <EyeOutlined onClick={() => openDrawer(r.roomId, "view")} />
-              </Tooltip>,
-              <Tooltip title="Chỉnh sửa" key="edit">
-                <EditOutlined onClick={() => openDrawer(r.roomId, "edit")} />
-              </Tooltip>,
-              <Popconfirm
-                key="delete"
-                title="Xóa phòng này?"
-                okText="Xóa"
-                cancelText="Hủy"
-                onConfirm={() => onDelete(r.roomId)}
-              >
-                <DeleteOutlined />
-              </Popconfirm>,
-            ]}
-          >
-            <Space direction="vertical" size={6} style={{ width: "100%" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 8,
-                }}
-              >
-                <div style={{ fontWeight: 600, lineHeight: 1.2 }}>
-                  {r.roomName}
+              </div>
+
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="rounded-xl bg-slate-50 px-3 py-2">
+                  <div className="text-xs text-slate-500">Sức chứa</div>
+                  <div className="font-semibold text-slate-800">
+                    {r.capacity ?? "—"} người
+                  </div>
                 </div>
-                <Tag
-                  color={statusColor(r.roomStatus)}
-                  style={{ marginInlineEnd: 0 }}
+
+                <div className="rounded-xl bg-slate-50 px-3 py-2">
+                  <div className="text-xs text-slate-500">Giá</div>
+                  <div className="font-semibold text-slate-800">
+                    {priceText ?? "—"}
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 px-3 py-2">
+                  <div className="text-xs text-slate-500">Số phòng</div>
+                  <div className="font-semibold text-slate-800">
+                    {roomCount}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2">
+                <Button
+                  block
+                  icon={<EyeOutlined />}
+                  onClick={() => openDrawer(r.roomId, "view")}
+                  style={softButtonStyle(brandColor)}
+                  className="col-span-2 rounded-xl font-medium h-11"
                 >
-                  {r.roomStatus}
-                </Tag>
-              </div>
+                  Xem chi tiết
+                </Button>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  color: "#666",
-                }}
-              >
-                <span>Sức chứa: {r.capacity ?? "--"} người</span>
+                <Button
+                  block
+                  icon={<EditOutlined />}
+                  onClick={() => openDrawer(r.roomId, "edit")}
+                  style={softButtonStyle(editColor)}
+                  className="rounded-xl font-medium h-10"
+                >
+                  Chỉnh sửa
+                </Button>
 
-                <span>
-                  {r.price ? `${Number(r.price).toLocaleString()} đ` : "--"}
-                </span>
+                <Button
+                  block
+                  icon={<DeleteOutlined />}
+                  danger
+                  onClick={() => confirmDelete(r)}
+                  style={softButtonStyle(deleteColor)}
+                  className="rounded-xl font-medium h-10"
+                >
+                  Xóa
+                </Button>
               </div>
-              <div>
-                <span>
-                  {" "}
-                  Số lượng phòng : {r.roomCopyResponseList?.length ?? 0}
-                </span>
-              </div>
-
-              <Button block onClick={() => onToggleStatus(r)}>
-                {r.roomStatus === "ACTIVE" ? "Ẩn phòng" : "Kích hoạt"}
-              </Button>
-            </Space>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
     );
   }, [items, loading]);

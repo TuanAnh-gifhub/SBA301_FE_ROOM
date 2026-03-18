@@ -42,6 +42,8 @@ public enum ErrorCode {
     SUBSCRIPTION_ALREADY_ACTIVE(4005, "User already has an active subscription", HttpStatus.BAD_REQUEST),
     SUBSCRIPTION_NOT_FOUND(4006, "Subscription not found", HttpStatus.NOT_FOUND),
 
+
+
     //QR
     QR_NOT_FOUND(4000, "QR không hợp lệ",HttpStatus.BAD_REQUEST),
     QR_INVALID(4000, "QR không hợp lệ",HttpStatus.BAD_REQUEST),
@@ -75,8 +77,13 @@ public enum ErrorCode {
     TOO_MANY_TAGS(5041, "Tối đa 5 tags mỗi review", HttpStatus.BAD_REQUEST),
 
     // MEDIA
-    TOO_MANY_MEDIA(5050, "Tối đa 5 file mỗi review", HttpStatus.BAD_REQUEST);
+    TOO_MANY_MEDIA(5050, "Tối đa 5 file mỗi review", HttpStatus.BAD_REQUEST),
+
+    // Post
+    POST_NOT_FOUND(4004, "Post not found", HttpStatus.NOT_FOUND),
     ;
+
+
 
 
 

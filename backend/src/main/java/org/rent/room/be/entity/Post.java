@@ -46,7 +46,7 @@ public class Post extends BaseEntity {
 //    @ManyToOne
 //    @JoinColumn(name = "area_id")
 //    private RentalArea rentalArea;
-   @OneToOne
+    @ManyToOne
     @JoinColumn(name = "area_id", nullable = false)
     private RentalArea rentalArea;
 }

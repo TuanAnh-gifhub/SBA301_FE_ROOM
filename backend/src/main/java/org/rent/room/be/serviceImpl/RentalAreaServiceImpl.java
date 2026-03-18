@@ -219,6 +219,7 @@ public class RentalAreaServiceImpl implements RentalAreaService {
                     .map(a -> RoomResponse.AmenityItem.builder()
                             .amenityId(a.getAmenityId())
                             .amenityName(a.getAmenityName())
+                            .iconKey(a.getIconKey())
                             .build())
                     .collect(Collectors.toSet());
 
