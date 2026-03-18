@@ -5,6 +5,9 @@ import org.rent.room.be.constant.*;
 
 import org.rent.room.be.dto.request.booking.BookingRequest;
 import org.rent.room.be.dto.request.booking.SlotRequest;
+import org.rent.room.be.dto.response.booking.BookingIntentResponse;
+import org.rent.room.be.dto.response.booking.BookingResponse;
+import org.rent.room.be.dto.response.booking.IntentSlotResponse;
 import org.rent.room.be.dto.request.booking.UpdateBookingRequest;
 
 import org.rent.room.be.dto.response.booking.*;
@@ -90,7 +93,7 @@ public class BookingServiceImpl implements BookingService {
                             .map(amenity -> RoomResponse.AmenityItem.builder()
                                     .amenityId(amenity.getAmenityId())
                                     .amenityName(amenity.getAmenityName())
-                                    .icon(amenity.getIconKey())
+                                    .iconKey(amenity.getIconKey())
                                     .build()
                             ).collect(Collectors.toSet());
 

@@ -3,10 +3,7 @@ package org.rent.room.be.service;
 import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.dto.request.post.CreatePostRequest;
 import org.rent.room.be.dto.request.post.UpdatePostRequest;
-import org.rent.room.be.dto.response.post.PostDTOResponse;
-import org.rent.room.be.dto.response.post.PostDetailResponse;
-import org.rent.room.be.dto.response.post.PostResponse;
-import org.rent.room.be.dto.response.post.PostSummaryResponse;
+import org.rent.room.be.dto.response.post.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,6 +14,13 @@ public interface PostService {
     PostResponse createPost(CreatePostRequest request, UUID currentUserId);
 
     // public
+    PageResponse<PostSummaryResponse> getPublicFeed(
+            int page,
+            int size,
+            Long cityId,
+            Long categoryId,
+            List<Long> amenityIds
+    );
     PageResponse<PostDTOResponse> getAllPostsForCustomer(int page,
                                                          int size,
                                                          String title,
@@ -24,7 +28,7 @@ public interface PostService {
                                                          LocalDate fromDate,
                                                          LocalDate toDate);
 
-    List<PostSummaryResponse> getAllPosts();
+//    List<PostSummaryResponse> getAllPosts();
 
     PostDetailResponse getPostDetail(UUID postId);
 
@@ -41,4 +45,10 @@ public interface PostService {
 
     // check theo room
     PostResponse getMyPostByRoom(UUID roomId, UUID currentUserId);
+
+    // Admin
+    List<PostSummaryResponse> adminGetPosts(String status);
+    PostResponse adminUpdatePostStatus(UUID postId, String status);
+    void adminDeletePost(UUID postId);
+    PostIdResponse getPostIdByRoomId(UUID roomId);
 }

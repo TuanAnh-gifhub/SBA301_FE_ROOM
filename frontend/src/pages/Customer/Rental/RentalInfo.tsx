@@ -1,56 +1,35 @@
-export default function RentalInfo({ rental }: any) {
-  const amenities =
-    rental.rooms?.[0]?.amenities?.slice(0, 6) || [];
+import React from "react";
+import { EnvironmentOutlined } from "@ant-design/icons";
 
+type Props = {
+  rental: {
+    rentalAreaName?: string;
+    address?: string;
+    description?: string;
+  };
+};
+
+const RentalInfo: React.FC<Props> = ({ rental }) => {
   return (
-    <div className="bg-white rounded-xl shadow-md rounded-2xl p-6 space-y-5">
-
-    
-      <div>
-        <h1 className="text-2xl font-bold">
-          {rental.rentalAreaName}
-        </h1>
-
-        <p className="text-gray-500 mt-1">
-           {rental.address}
-        </p>
+    <div>
+      <div className="text-3xl font-bold text-gray-800">
+        {rental?.rentalAreaName || "Khu vực cho thuê"}
       </div>
 
-      <hr />
+      <div className="mt-2 flex items-start gap-2 text-gray-500">
+        <EnvironmentOutlined className="mt-1 text-[#4da6ff]" />
+        <span>{rental?.address || "Chưa cập nhật địa chỉ"}</span>
+      </div>
 
-    
-      <div>
-        <h3 className="font-semibold mb-3">
-          Tiện ích
-        </h3>
-
-        <div className="flex gap-6 flex-wrap text-gray-600">
-          {amenities.map((a: any) => (
-            <div
-              key={a.amenityId}
-              className="flex items-center gap-2"
-            >
-              ⭐
-              <span>{a.amenityName}</span>
-            </div>
-          ))}
+      <div className="border-t pt-4 mt-4">
+        <div className="text-xl font-bold text-gray-800 mb-3">Mô tả</div>
+        <div className="text-gray-700 leading-7">
+          {rental?.description ||
+            "Không gian học tập hiện đại, đầy đủ tiện nghi, phù hợp học nhóm, workshop và meeting."}
         </div>
       </div>
-
-      <hr />
-
-     
-      <div>
-        <h3 className="font-semibold mb-2">
-          Mô tả
-        </h3>
-
-        <p className="text-gray-600 leading-relaxed">
-          Không gian học tập hiện đại, đầy đủ tiện nghi,
-          phù hợp cho nhóm học tập, workshop và meeting.
-        </p>
-      </div>
-
     </div>
   );
-}
+};
+
+export default RentalInfo;

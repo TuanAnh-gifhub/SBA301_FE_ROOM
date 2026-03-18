@@ -3,6 +3,7 @@ import { FiMessageCircle, FiMoon, FiSun } from "react-icons/fi";
 import { FaBell } from "react-icons/fa";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { message } from "antd";
 
 import LoginPage from "../../pages/Customer/LoginPage/LoginPage";
 import ScrambleText from "./ScrambleText";
@@ -200,7 +201,7 @@ const Header = () => {
   const displayUser = user
     ? {
         name: user.userName ,
-        role: user.role 
+        role: user.role
         || "User",
       }
     : null;
