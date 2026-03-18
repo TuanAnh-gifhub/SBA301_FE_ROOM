@@ -25,7 +25,7 @@ import java.util.UUID;
 @RestController
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/reviews")
-@Tag(name = "5. Review")
+@Tag(name = "16. Review")
 public class ReviewController {
 
     ReviewService reviewService;

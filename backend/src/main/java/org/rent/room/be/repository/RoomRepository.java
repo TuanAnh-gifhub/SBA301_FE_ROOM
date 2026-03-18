@@ -33,6 +33,9 @@ List<Room> findAllRoomsByOwnerId(@Param("userId") UUID userId);
     """)
     List<Room> findByRentalAreaIdNotInactive(@Param("rentalAreaId") UUID rentalAreaId);
 
+    /**
+     * Đếm tổng số phòng theo owner (mọi trạng thái).
+     */
     @Query("""
             SELECT COUNT(r)
             FROM Room r
