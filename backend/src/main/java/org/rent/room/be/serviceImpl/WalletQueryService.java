@@ -115,35 +115,47 @@ public class WalletQueryService {
         Wallet wallet = walletServiceImpl.getOrCreateWallet(currentUser);
 
         LocalDateTime from = parseDateOrDefault(fromDate, LocalDate.now().minusMonths(1).atStartOfDay());
-        LocalDateTime to = parseDateOrDefault(toDate, LocalDateTime.now());
+        LocalDateTime to   = parseDateOrDefault(toDate, LocalDateTime.now());
 
-        Pageable pageable = PageRequest.of(0, 1000,
-                Sort.by(Sort.Direction.DESC, "createdAt"));
+        // FIX: dùng SUM query trực tiếp trên DB
+        // Cũ: load Pageable(0, 1000) vào memory rồi reduce → SAI khi > 1000 transactions
+        // Mới: SELECT SUM() → luôn đúng dù có bao nhiêu records
+        BigDecimal totalIncome = walletTransactionRepository.sumAmountByWalletTypeStatus(
+                wallet,
+                WalletTxType.BOOKING_INCOME,
+                WalletTxStatus.COMPLETED,
+                from,
+                to
+        );
 
-        Page<WalletTransaction> txPage =
-                walletTransactionRepository.findByWalletAndCreatedAtBetween(wallet, from, to, pageable);
+        BigDecimal totalCommission = walletTransactionRepository.sumAmountByWalletTypeStatus(
+                wallet,
+                WalletTxType.COMMISSION,
+                WalletTxStatus.COMPLETED,
+                from,
+                to
+        );
 
-        // Lọc giao dịch BOOKING_INCOME hoàn thành
-        List<WalletTransaction> incomeTransactions = txPage.getContent().stream()
-                .filter(tx -> tx.getType() == WalletTxType.BOOKING_INCOME
-                        && tx.getStatus() == WalletTxStatus.COMPLETED)
-                .toList();
-
-        BigDecimal totalIncome = incomeTransactions.stream()
-                .map(WalletTransaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        List<WalletTransactionItemResponse> incomeTx = incomeTransactions.stream()
-                .map(this::toItemResponse)
-                .toList();
-
-        BigDecimal totalCommission = txPage.getContent().stream()
-                .filter(tx -> tx.getType() == WalletTxType.COMMISSION
-                        && tx.getStatus() == WalletTxStatus.COMPLETED)
-                .map(WalletTransaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (totalIncome == null)      totalIncome = BigDecimal.ZERO;
+        if (totalCommission == null)  totalCommission = BigDecimal.ZERO;
 
         BigDecimal netRevenue = totalIncome.subtract(totalCommission);
+
+        // Lấy 50 transaction gần nhất để hiển thị (tách biệt với tính tổng)
+        Pageable pageable = PageRequest.of(0, 50, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<WalletTransaction> recentTx = walletTransactionRepository
+                .findByWalletAndTypeAndStatusAndCreatedAtBetween(
+                        wallet,
+                        WalletTxType.BOOKING_INCOME,
+                        WalletTxStatus.COMPLETED,
+                        from,
+                        to,
+                        pageable
+                );
+
+        List<WalletTransactionItemResponse> incomeTx = recentTx.getContent().stream()
+                .map(this::toItemResponse)
+                .toList();
 
         return RevenueOverviewResponse.builder()
                 .totalIncome(totalIncome)

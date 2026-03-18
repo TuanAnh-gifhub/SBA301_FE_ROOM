@@ -45,7 +45,7 @@ import java.util.UUID;
 @RequestMapping("/wallet")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Tag(name = "4. Wallet")
+@Tag(name = "9. Wallet")
 public class WalletController {
 
     WalletDepositService walletDepositService;

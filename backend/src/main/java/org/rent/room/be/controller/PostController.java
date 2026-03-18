@@ -31,7 +31,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @RequestMapping("/posts")
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Tag(name = "8. Post")
+@Tag(name = "10. Post")
 public class PostController {
 
     PostService postService;

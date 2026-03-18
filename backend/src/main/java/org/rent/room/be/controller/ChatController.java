@@ -1,5 +1,6 @@
 package org.rent.room.be.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.dto.request.chat.MessageRequest;
@@ -20,6 +21,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/chat")
+@Tag(name = "18. Chat")
 public class ChatController {
 
     private final ChatService chatService;
