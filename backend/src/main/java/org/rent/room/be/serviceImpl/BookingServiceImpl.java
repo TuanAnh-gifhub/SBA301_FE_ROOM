@@ -4,8 +4,11 @@ import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.constant.*;
 
 import org.rent.room.be.dto.request.booking.BookingRequest;
+import org.rent.room.be.dto.request.booking.CheckSlotConflictRequest;
+import org.rent.room.be.dto.request.booking.GetAvailableSlotsRequest;
 import org.rent.room.be.dto.request.booking.SlotRequest;
 import org.rent.room.be.dto.request.booking.UpdateBookingRequest;
+import org.rent.room.be.dto.request.booking.UpdateBookingSlotRequest;
 
 import org.rent.room.be.dto.response.booking.*;
 
@@ -13,6 +16,7 @@ import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.dto.response.room.RoomImageResponse;
 import org.rent.room.be.dto.response.room.RoomResponse;
 import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
+import org.rent.room.be.dto.response.slot.SlotConflictResult;
 import org.rent.room.be.dto.response.slot.SlotResponse;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.entity.BookingIntent;
@@ -37,10 +41,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -70,7 +71,8 @@ public class BookingServiceImpl implements BookingService {
     @Autowired
     private InvoicePdfService invoicePdfService;
 
-
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Override
     public BookingIntentResponse getBookingIntentById(UUID bookingIntentId) {
@@ -385,7 +387,7 @@ public class BookingServiceImpl implements BookingService {
                 .status(BookingStatus.BOOKED)
                 .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
-                .statusPayment("")
+                .paymentMethod(payment.getPaymentMethod())
                 .slots(slotResponses)
                 .createdAt(booking.getCreatedAt())
                 .rentalArea(rentalAreaResponse)
@@ -440,7 +442,7 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getBookingStatus())
                 .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
-                .statusPayment("")
+                .paymentMethod(null)
                 .slots(slotResponses)
                 .createdAt(booking.getCreatedAt())
                 .rentalArea(rentalAreaResponse)
@@ -456,7 +458,11 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
                 new RuntimeException("Không tìm thấy booking với id " + bookingId));
 
-
+        Optional<Payment> payment = paymentRepository.findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
+        PaymentMethod paymentMethod = null;
+        if (payment.isPresent()) {
+            paymentMethod = payment.get().getPaymentMethod();
+        }
         List<SlotResponse> slotResponses = booking.getSlots().stream().map(slot -> {
 
             RoomCopy rc = slot.getRoomCopy();
@@ -491,7 +497,7 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getBookingStatus())
                 .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
-                .statusPayment("")
+                .paymentMethod(paymentMethod)
                 .slots(slotResponses)
                 .createdAt(booking.getCreatedAt())
                 .rentalArea(rentalAreaResponse)
@@ -525,6 +531,11 @@ public class BookingServiceImpl implements BookingService {
                 bookingPage.getContent().stream()
                         .map(booking -> {
 
+                            Optional<Payment> payment = paymentRepository.findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
+                            PaymentMethod paymentMethod = null;
+                            if (payment.isPresent()) {
+                                paymentMethod = payment.get().getPaymentMethod();
+                            }
                             List<SlotResponse> slotResponses = booking.getSlots().stream()
                                     .map(slot -> {
                                         RoomCopy roomCopy = slot.getRoomCopy();
@@ -557,7 +568,7 @@ public class BookingServiceImpl implements BookingService {
                                     .createdAt(booking.getCreatedAt())
                                     .status(booking.getBookingStatus())
                                     .bookingType(booking.getBookingType())
-                                    .statusPayment("")
+                                    .paymentMethod(paymentMethod)
                                     .slots(slotResponses)
                                     .build();
                         })
@@ -594,7 +605,11 @@ public class BookingServiceImpl implements BookingService {
         List<BookingResponse> responses =
                 bookingPage.getContent().stream()
                         .map(booking -> {
-
+                            Optional<Payment> payment = paymentRepository.findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
+                            PaymentMethod paymentMethod = null;
+                            if (payment.isPresent()) {
+                                paymentMethod = payment.get().getPaymentMethod();
+                            }
                             List<SlotResponse> slotResponses = booking.getSlots().stream()
                                     .map(slot -> {
                                         RoomCopy roomCopy = slot.getRoomCopy();
@@ -627,7 +642,7 @@ public class BookingServiceImpl implements BookingService {
                                     .createdAt(booking.getCreatedAt())
                                     .status(booking.getBookingStatus())
                                     .bookingType(booking.getBookingType())
-                                    .statusPayment("")
+                                    .paymentMethod(paymentMethod)
                                     .slots(slotResponses)
                                     .invoicePdfUrl(booking.getInvoiceUrl())
                                     .build();
@@ -810,6 +825,13 @@ public class BookingServiceImpl implements BookingService {
 
     private BookingResponse mapToBookingResponse(Booking booking) {
 
+
+        Optional<Payment> payment = paymentRepository.findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
+        PaymentMethod paymentMethod = null;
+        if (payment.isPresent()) {
+            paymentMethod = payment.get().getPaymentMethod();
+        }
+
         List<SlotResponse> slotResponses = booking.getSlots().stream()
                 .map(slot -> {
 
@@ -841,8 +863,13 @@ public class BookingServiceImpl implements BookingService {
                 .createdAt(booking.getCreatedAt())
                 .status(booking.getBookingStatus())
                 .bookingType(booking.getBookingType())
-                .statusPayment("")
+                .paymentMethod(paymentMethod)
                 .slots(slotResponses)
                 .build();
     }
+
+
+
+
+
 }

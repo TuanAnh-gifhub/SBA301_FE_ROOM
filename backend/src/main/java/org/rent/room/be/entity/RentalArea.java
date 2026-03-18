@@ -57,29 +57,11 @@ public class RentalArea extends BaseEntity {
     @OneToMany(mappedBy = "rentalArea",fetch = FetchType.LAZY)
     List<Room> room;
 
-    // ----------------------------------------------------------------
-    // THEM MOI: CACHE CHO REVIEW STATS
-    // ----------------------------------------------------------------
 
-    /**
-     * Diem danh gia trung binh. NULL = chua co review nao.
-     * DECIMAL(3,2): luu duoc gia tri tu 0.00 den 5.00.
-     *
-     * KHONG tinh truc tiep bang SQL AVG() moi lan hien trang.
-     * Gia tri nay duoc cap nhat boi ReviewStatService moi khi:
-     * - Co review moi duoc APPROVED
-     * - Review bi xoa (soft delete)
-     * - Admin thay doi status review (APPROVED <-> REJECTED/HIDDEN)
-     */
     @Column(name = "average_rating", precision = 3, scale = 2)
     BigDecimal averageRating;
 
-    /**
-     * Tong so review co status = APPROVED.
-     * Mac dinh: 0.
-     * Cap nhat cung luc voi averageRating.
-     */
-    @Column(name = "total_reviews", nullable = false)
+    @Column(name = "total_reviews")
     @Builder.Default
     Integer totalReviews = 0;
     @OneToMany(mappedBy = "rentalArea",fetch = FetchType.LAZY)

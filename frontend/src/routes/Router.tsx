@@ -44,6 +44,8 @@ import MyBookingHistoryPage from "../pages/Customer/MyBookingHistoryPage/MyBooki
 import BookingDetailPage from "../pages/Customer/MyBookingHistoryPage/BookingDetailPage";
 import OwnerDashBoard from "../pages/Owner/Dashboard/OwnerDashboard";
 import ProfilePage from "../pages/Customer/ProfilePage/ProfilePage";
+import ScanQR from "../pages/Owner/ScanQR";
+import SuccessQrPage from "../pages/Owner/SuccessQrPage";
 
 export const router = createBrowserRouter([
   {
@@ -62,6 +64,7 @@ export const router = createBrowserRouter([
         element: <LandingPage />,
         handle: { breadcrumb: "Trang chủ" },
       },
+
       {
         path: "landing",
         element: <LandingPage />,
@@ -189,7 +192,11 @@ export const router = createBrowserRouter([
         path: "notifications",
         element: <NotificationPage />,
         handle: { breadcrumb: "Thông báo mới" },
-      }
+      },
+      {
+        path: "qr-success",
+        element: <SuccessQrPage />,
+      },
     ],
   },
   // Admin routes
@@ -257,9 +264,9 @@ export const router = createBrowserRouter([
   {
     path: "/owner",
     element: (
-      <ProtectedOwnerRoute >
-      <OwnerPage />
-       </ProtectedOwnerRoute>
+      <ProtectedOwnerRoute>
+        <OwnerPage />
+      </ProtectedOwnerRoute>
     ),
     children: [
       {
@@ -279,8 +286,8 @@ export const router = createBrowserRouter([
         ),
       },
       {
-path:"dashboard",
-element: <OwnerDashBoard />,
+        path: "dashboard",
+        element: <OwnerDashBoard />,
       },
       {
         path: "manage-posts",
@@ -298,7 +305,10 @@ element: <OwnerDashBoard />,
         path: "schedules",
         element: <ManageSchedulePage />,
       },
+      {
+        path: "qr",
+        element: <ScanQR />,
+      },
     ],
- 
   },
 ]);

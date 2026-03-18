@@ -74,8 +74,16 @@ public enum ErrorCode {
     INVALID_TAG(5040, "Tag không hợp lệ", HttpStatus.BAD_REQUEST),
     TOO_MANY_TAGS(5041, "Tối đa 5 tags mỗi review", HttpStatus.BAD_REQUEST),
 
+    // SLOT EDITING
+    INVALID_TIME_RANGE(4100, "Thời gian kết thúc phải sau thời gian bắt đầu", HttpStatus.BAD_REQUEST),
+    BOOKING_NOT_EDITABLE(4101, "Booking không ở trạng thái có thể chỉnh sửa", HttpStatus.BAD_REQUEST),
+    SLOT_NOT_FOUND(4102, "Không tìm thấy slot", HttpStatus.NOT_FOUND),
+    SLOT_CONFLICT(4103, "Thời gian này bị xung đột với booking khác", HttpStatus.CONFLICT),
+
     // MEDIA
     TOO_MANY_MEDIA(5050, "Tối đa 5 file mỗi review", HttpStatus.BAD_REQUEST);
+
+
     ;
 
 
