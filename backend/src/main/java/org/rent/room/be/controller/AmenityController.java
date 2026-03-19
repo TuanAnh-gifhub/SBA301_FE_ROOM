@@ -19,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/amenities")
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Tag(name = "10. Amenity")
+@Tag(name = "13. Amenity")
 public class AmenityController {
 
     AmenityService amenityService;

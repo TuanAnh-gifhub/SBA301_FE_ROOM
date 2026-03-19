@@ -1,6 +1,6 @@
 import api from "../config/axios";
 
-// ── Types ────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────
 
 export interface ExtendCheckRequest {
   amount: number;
@@ -21,7 +21,7 @@ export interface ExtendCheckResponse {
 }
 
 export interface SwapCheckRequest {
-  newStartTime: string; // ISO: "2025-07-01T09:00:00"
+  newStartTime: string;
   newEndTime: string;
 }
 
@@ -37,30 +37,43 @@ export interface SwapCheckResponse {
   durationMinutes: number;
 }
 
-const BASE = (bookingId: string) => `/slots/${bookingId}`;
+// ❌ bỏ BASE cũ đi
+// const BASE = ...
 
 export const bookingSlotService = {
+  // ===== EXTEND =====
+
   checkExtend: (bookingId: string, slotId: string, req: ExtendCheckRequest) =>
     api
-      .post<{
-        result: ExtendCheckResponse;
-      }>(`${BASE(bookingId)}/extend/${slotId}/check`, req)
+      .post<{ result: ExtendCheckResponse }>(
+        `/slots/${bookingId}/${slotId}/extend/check`, // ✅ FIX
+        req,
+      )
       .then((r) => r.data.result),
 
   confirmExtend: (bookingId: string, slotId: string, req: ExtendCheckRequest) =>
     api
-      .post(`${BASE(bookingId)}/extend/${slotId}/confirm`, req)
+      .post(
+        `/slots/${bookingId}/${slotId}/extend/confirm`, // ✅ FIX
+        req,
+      )
       .then((r) => r.data),
+
+  // ===== SWAP =====
 
   checkSwap: (bookingId: string, slotId: string, req: SwapCheckRequest) =>
     api
-      .post<{
-        result: SwapCheckResponse;
-      }>(`${BASE(bookingId)}/swap/${slotId}/check`, req)
+      .post<{ result: SwapCheckResponse }>(
+        `/slots/${bookingId}/${slotId}/swap/check`, // ✅ FIX
+        req,
+      )
       .then((r) => r.data.result),
 
   confirmSwap: (bookingId: string, slotId: string, req: SwapCheckRequest) =>
     api
-      .post(`${BASE(bookingId)}/swap/${slotId}/confirm`, req)
+      .post(
+        `/slots/${bookingId}/${slotId}/swap/confirm`, // ✅ FIX
+        req,
+      )
       .then((r) => r.data),
 };

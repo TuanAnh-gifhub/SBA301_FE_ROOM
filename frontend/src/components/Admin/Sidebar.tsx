@@ -10,6 +10,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   StarOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import type { UserResponse } from "../../services/usersService";
 
@@ -82,12 +83,14 @@ const Sidebar: React.FC<SidebarProps> = ({
       "/admin/rooms",
       <ShopOutlined />,
     ),
-    //4. Quản lý bài đăng
+
+    // 4. Quản lý tin đăng
     getItem(
-      <Link to="/admin/posts">Quản lý Bài đăng</Link>,
+      <Link to="/admin/posts">Quản lý tin đăng</Link>,
       "/admin/posts",
-      <ShopOutlined />,
+      <FileTextOutlined />,
     ),
+
     // 5. Khách hàng
     getItem(
       <Link to="/admin/customers">Khách hàng</Link>,

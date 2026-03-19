@@ -51,6 +51,7 @@ server:
   tomcat:
     max-swallow-size: -1
     max-http-form-post-size: -1
+    max-part-count: 50
 
 cors:
   urls: ${CORS_URL}

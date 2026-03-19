@@ -2,10 +2,15 @@ package org.rent.room.be.repository;
 
 import org.rent.room.be.constant.PostStatus;
 import org.rent.room.be.entity.Post;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,5 +34,41 @@ public interface PostRepository extends JpaRepository<Post, UUID>, JpaSpecificat
 
     Optional<Post> findByPostIdAndRoom_RentalArea_Owner_UserId(UUID postId, UUID ownerId);
 
+    List<Post> findAllByPostStatusIn(Collection<PostStatus> statuses);
+
+    @Query("""
+    select p.postId
+    from Post p
+    where p.room.roomId = :roomId
+    """)
+    Optional<UUID> findPostIdByRoomId(@Param("roomId") UUID roomId);
+
+    @Query("""
+    select p
+    from Post p
+    join p.room r
+    join r.rentalArea ra
+    where p.postStatus = :status
+      and (:cityId is null or ra.city.cityId = :cityId)
+      and (:categoryId is null or r.category.categoryId = :categoryId)
+      and (
+            :amenityIds is null
+            or :amenityCount = (
+                select count(distinct a2.amenityId)
+                from Room r2
+                join r2.amenities a2
+                where r2 = r
+                  and a2.amenityId in :amenityIds
+            )
+      )
+""")
+    Page<Post> findPublicFeed(
+            @Param("status") PostStatus status,
+            @Param("cityId") Long cityId,
+            @Param("categoryId") Long categoryId,
+            @Param("amenityIds") List<Long> amenityIds,
+            @Param("amenityCount") long amenityCount,
+            Pageable pageable
+    );
 
 }

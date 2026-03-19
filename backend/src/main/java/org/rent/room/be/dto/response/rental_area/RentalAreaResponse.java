@@ -19,10 +19,13 @@ public class RentalAreaResponse {
     String contactName;
     String contactPhone;
     String status;
+
     Long cityId;
     String cityName;
+
     UUID ownerId;
     String ownerName;
+
     List<RentalAreaImageResponse> images;
     List<RoomResponse> rooms;
 }

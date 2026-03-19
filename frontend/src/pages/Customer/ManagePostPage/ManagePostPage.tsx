@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, Empty, Pagination, Popconfirm, message } from "antd";
+import { Card, Empty, Pagination, message } from "antd";
+import {
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  EyeInvisibleOutlined,
+  FileTextOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -24,16 +30,13 @@ const ManagePostPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(9);
 
-  // Filters
   const [statusFilter, setStatusFilter] = useState<PostStatus | undefined>(
     undefined,
   );
   const [keywordFilter, setKeywordFilter] = useState("");
 
-  // Create modal
   const [createOpen, setCreateOpen] = useState(false);
 
-  // Edit modal
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<PostSummaryResponse | null>(null);
 
@@ -66,8 +69,8 @@ const ManagePostPage: React.FC = () => {
 
   const filtered = useMemo(() => {
     let arr = [...items];
-
     const k = keywordFilter.trim().toLowerCase();
+
     if (k) {
       arr = arr.filter(
         (x) =>
@@ -91,6 +94,19 @@ const ManagePostPage: React.FC = () => {
     setCurrentPage(1);
   }, [statusFilter, keywordFilter]);
 
+  const stats = useMemo(() => {
+    const pending = items.filter((x) => x.postStatus === "PENDING").length;
+    const published = items.filter((x) => x.postStatus === "PUBLISHED").length;
+    const hidden = items.filter((x) => x.postStatus === "HIDDEN").length;
+
+    return {
+      total: items.length,
+      pending,
+      published,
+      hidden,
+    };
+  }, [items]);
+
   const handleRefresh = () => fetchMyPosts();
 
   const handlePageChange = (page: number, size: number) => {
@@ -104,13 +120,6 @@ const ManagePostPage: React.FC = () => {
   const handleCreated = async () => {
     setCreateOpen(false);
     await fetchMyPosts();
-  };
-
-  const handleView = (postId: string) => {
-    // Tuỳ bạn: route detail riêng, hoặc drawer (làm sau)
-    message.info(
-      `Xem chi tiết post: ${postId} (làm tiếp phần drawer/detail sau)`,
-    );
   };
 
   const handleEdit = (item: PostSummaryResponse) => {
@@ -158,10 +167,10 @@ const ManagePostPage: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4da6ff] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Đang tải...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Đang tải dữ liệu tin đăng...</p>
         </div>
       </div>
     );
@@ -169,10 +178,58 @@ const ManagePostPage: React.FC = () => {
 
   if (!isAuthenticated) return null;
 
+  const statCards = [
+    {
+      title: "Tổng tin đăng",
+      value: stats.total,
+      icon: <FileTextOutlined className="text-sky-600 text-xl" />,
+      bg: "from-sky-50 to-cyan-50",
+    },
+    {
+      title: "Chờ duyệt",
+      value: stats.pending,
+      icon: <ClockCircleOutlined className="text-amber-500 text-xl" />,
+      bg: "from-amber-50 to-yellow-50",
+    },
+    {
+      title: "Đã đăng",
+      value: stats.published,
+      icon: <CheckCircleOutlined className="text-emerald-600 text-xl" />,
+      bg: "from-emerald-50 to-green-50",
+    },
+    {
+      title: "Đang ẩn",
+      value: stats.hidden,
+      icon: <EyeInvisibleOutlined className="text-slate-600 text-xl" />,
+      bg: "from-slate-50 to-gray-100",
+    },
+  ];
+
   return (
-    <div className="bg-gray-50 py-4">
-      <div className="px-4">
+    <div className="min-h-screen bg-slate-50 py-5">
+      <div className="mx-auto w-full max-w-[1440px] px-4 md:px-6">
         <PageHeader onCreate={handleOpenCreate} />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+          {statCards.map((card) => (
+            <div
+              key={card.title}
+              className={`rounded-2xl bg-gradient-to-br ${card.bg} p-5 shadow-sm border border-white/70`}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">{card.title}</p>
+                  <h3 className="mt-2 text-2xl font-bold text-slate-800">
+                    {card.value}
+                  </h3>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
+                  {card.icon}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
         <PostFilters
           keyword={keywordFilter}
@@ -181,46 +238,59 @@ const ManagePostPage: React.FC = () => {
           onKeywordChange={setKeywordFilter}
           onStatusChange={setStatusFilter}
           onRefresh={handleRefresh}
+          onClearFilters={() => {
+            setKeywordFilter("");
+            setStatusFilter(undefined);
+          }}
         />
 
-        <Card className="shadow-sm">
+        <Card className="rounded-3xl border-0 shadow-sm">
+          <div className="mb-5 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">
+                Danh sách tin đăng
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">
+                Theo dõi trạng thái và thao tác nhanh với toàn bộ tin đăng của
+                bạn
+              </p>
+            </div>
+
+            <div className="text-sm text-slate-500">
+              Hiển thị{" "}
+              <span className="font-semibold text-slate-700">{total}</span> kết
+              quả
+            </div>
+          </div>
+
           {paginated.length === 0 && !loading ? (
-            <Empty
-              description="Bạn chưa có tin đăng nào"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
+            <div className="py-12">
+              <Empty
+                description={
+                  <div className="text-slate-500">
+                    <div className="font-medium text-slate-700 mb-1">
+                      Chưa có tin đăng phù hợp
+                    </div>
+                    <div>
+                      Hãy tạo tin đăng mới hoặc thử thay đổi bộ lọc tìm kiếm
+                    </div>
+                  </div>
+                }
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            </div>
           ) : (
             <>
               <PostCardList
                 data={paginated}
                 loading={loading}
-                onView={handleView}
                 onEdit={handleEdit}
                 onToggleStatus={handleToggleStatus}
-                onDelete={(item) => {
-                  // confirm ngay trên UI
-                  const doDelete = () => handleDelete(item);
-                  message.destroy();
-                  message.info(
-                    <div className="flex items-center gap-3">
-                      <span>Bạn chắc chắn muốn xóa tin đăng?</span>
-                      <Popconfirm
-                        title="Xóa tin đăng"
-                        description="Hành động này không thể hoàn tác."
-                        okText="Xóa"
-                        cancelText="Hủy"
-                        onConfirm={doDelete}
-                      >
-                        <a className="text-red-500">Xóa ngay</a>
-                      </Popconfirm>
-                    </div>,
-                    4,
-                  );
-                }}
+                onDelete={handleDelete}
               />
 
               {total > 0 && (
-                <div className="mt-4 flex justify-end">
+                <div className="mt-6 flex justify-end">
                   <Pagination
                     current={currentPage}
                     pageSize={pageSize}

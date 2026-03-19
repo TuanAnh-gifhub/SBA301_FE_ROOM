@@ -1,5 +1,6 @@
 package org.rent.room.be.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.dto.request.room_copy.RoomCopyAllRequest;
@@ -12,6 +13,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/room-copies")
+@Tag(name = "15. Room")
 public class RoomCopyController {
 
     @Autowired

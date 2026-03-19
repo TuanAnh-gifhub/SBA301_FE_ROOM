@@ -92,7 +92,6 @@ ORDER BY DAY(b.createdAt)
     List<Object[]> revenueByDay(int year, int month);
 
 
-
     @Query("""
 SELECT COALESCE(SUM(b.totalPrice),0)
 FROM Booking b
@@ -187,6 +186,13 @@ AND b.createdAt BETWEEN :from AND :to
             @Param("month") int month,
             @Param("rentalAreaIds") List<UUID> rentalAreaIds
     );
+
+    List<Booking> findByBookingStatusAndCheckOutIsNotNullAndCheckOutLessThanEqual(
+            BookingStatus bookingStatus,
+            LocalDateTime checkOut
+    );
+
+
 
 
 

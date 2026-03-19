@@ -1,5 +1,6 @@
 package org.rent.room.be.controller;
 
+import com.sun.security.auth.UserPrincipal;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.rent.room.be.base.ApiResponse;
@@ -31,7 +32,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/bookings")
-@Tag(name = "3. Booking")
+@Tag(name = "12. Booking")
 public class BookingController {
 
     @Autowired
@@ -310,17 +311,31 @@ public class BookingController {
     }
 
     @GetMapping("/dashboard/revenue")
-    public ApiResponse<?> revenue(     @RequestParam(required = false) Integer year,
-                                       @RequestParam(required = false) Integer month){
+    public ApiResponse<?> revenue(
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+
         try {
+
+            UUID ownerId = null;
+
+            if (principal instanceof CustomUserDetails customUserDetails) {
+                ownerId = customUserDetails.getUserId();
+            }
+
+            if (ownerId == null) {
+                throw new RuntimeException("User not authenticated");
+            }
 
             return ApiResponse.builder()
                     .code(200)
                     .message("Dashboard revenue booking successfully")
-                    .result(bookingService.revenue(month,year))
+                    .result(bookingService.revenue(month, year))
                     .build();
+
         } catch (Exception e) {
-            e.getStackTrace();
+            e.printStackTrace();
             return ApiResponse.builder()
                     .code(500)
                     .message(e.getMessage())

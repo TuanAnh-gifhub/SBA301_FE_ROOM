@@ -20,7 +20,8 @@ import ManagePage from "../pages/Customer/ManagePage/ManagePage";
 import ConfirmRegister from "../pages/Customer/LoginPage/ConfirmRegister";
 import AmenityManagementPage from "../pages/Admin/AmenityManagement/AmenityManagementPage";
 import CategoryManagementPage from "../pages/Admin/CategoryManagement/CategoryManagementPage";
-import PostManagePage from "../pages/Admin/PostManagement/PostManagePage";
+import PostManagementPage from "../pages/Admin/PostManagement/PostManagementPage";
+import ProductPage from "../pages/Customer/ProductPage/ProductPage";
 import RentalDetailPage from "../pages/Customer/LandingPage/RentalDetailPage";
 import PackagePage from "../pages/Customer/PackagePage";
 import PackageManagementPage from "../pages/Admin/PackageManagement/PackageManagementPage";
@@ -46,6 +47,7 @@ import OwnerDashBoard from "../pages/Owner/Dashboard/OwnerDashboard";
 import ProfilePage from "../pages/Customer/ProfilePage/ProfilePage";
 import ScanQR from "../pages/Owner/ScanQR";
 import SuccessQrPage from "../pages/Owner/SuccessQrPage";
+import ProductDetailPage from "../pages/Customer/ProductDetail/ProductDetailPage";
 
 export const router = createBrowserRouter([
   {
@@ -64,7 +66,6 @@ export const router = createBrowserRouter([
         element: <LandingPage />,
         handle: { breadcrumb: "Trang chủ" },
       },
-
       {
         path: "landing",
         element: <LandingPage />,
@@ -86,6 +87,11 @@ export const router = createBrowserRouter([
         element: <PaymentSuccessPage />,
         handle: { breadcrumb: "Thanh toán thành công" },
       },
+      // {
+      //   path: "product/:id",
+      //   element: <RoomDetailPage />,
+      //   handle: { breadcrumb: "Chi tiết phòng" },
+      // },
       {
         path: "profile",
         element: <ProfilePage />,
@@ -189,6 +195,15 @@ export const router = createBrowserRouter([
         handle: { breadcrumb: "Báo cáo vi phạm" },
       },
       {
+        path: "products",
+        element: <ProductPage />,
+      },
+      {
+        path: "products/:postId",
+        element: <ProductDetailPage />,
+        handle: { breadcrumb: "Chi tiết sản phẩm" },
+      },
+      {
         path: "notifications",
         element: <NotificationPage />,
         handle: { breadcrumb: "Thông báo mới" },
@@ -222,7 +237,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "posts",
-        element: <PostManagePage />,
+        element: <PostManagementPage />,
       },
 
       {
@@ -236,6 +251,10 @@ export const router = createBrowserRouter([
       {
         path: "room-types",
         element: <CategoryManagementPage />,
+      },
+      {
+        path: "posts",
+        element: <PostManagementPage />,
       },
       {
         path: "packages",
@@ -264,9 +283,9 @@ export const router = createBrowserRouter([
   {
     path: "/owner",
     element: (
-      <ProtectedOwnerRoute>
-        <OwnerPage />
-      </ProtectedOwnerRoute>
+      <ProtectedOwnerRoute >
+      <OwnerPage />
+       </ProtectedOwnerRoute>
     ),
     children: [
       {
@@ -286,8 +305,8 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "dashboard",
-        element: <OwnerDashBoard />,
+path:"dashboard",
+element: <OwnerDashBoard />,
       },
       {
         path: "manage-posts",
@@ -310,5 +329,6 @@ export const router = createBrowserRouter([
         element: <ScanQR />,
       },
     ],
+ 
   },
 ]);

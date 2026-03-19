@@ -35,6 +35,10 @@ public enum ErrorCode {
     RENTPACKAGE_NOT_FOUND(4002, "Package not found", HttpStatus.NOT_FOUND),      // đổi 4001→4002
     INVALID_RENTPACKAGE(4003, "Invalid package data", HttpStatus.BAD_REQUEST),    // đổi 4002→4003
 
+
+    //POST_NOT_FOUND
+    POST_NOT_FOUND(4002, "Post not found", HttpStatus.NOT_FOUND),
+
     // Rental Area
     RENTAL_AREA_NOT_FOUND(4004, "Rental area not found", HttpStatus.NOT_FOUND),  // đổi 4001→4004
 
@@ -83,8 +87,6 @@ public enum ErrorCode {
     SLOT_ALREADY_CANCELLED(400, "Slot đã bị hủy",HttpStatus.BAD_REQUEST),
     // MEDIA
     TOO_MANY_MEDIA(5050, "Tối đa 5 file mỗi review", HttpStatus.BAD_REQUEST);
-
-
     ;
 
 

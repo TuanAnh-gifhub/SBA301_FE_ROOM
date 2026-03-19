@@ -28,7 +28,6 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
             Pageable pageable
     );
 
-
     Page<WalletTransaction> findByWalletAndTypeAndStatusAndCreatedAtBetween(
             Wallet wallet,
             WalletTxType type,

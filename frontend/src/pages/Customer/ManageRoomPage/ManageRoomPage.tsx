@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, Empty, message, Pagination } from "antd";
+import { Button, Card, Empty, Pagination, Statistic, message } from "antd";
+import {
+  AppstoreOutlined,
+  CheckCircleOutlined,
+  HomeOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -30,26 +36,24 @@ const ManageRoomPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Filters
   const [statusFilter, setStatusFilter] = useState<
     RentalAreaStatus | undefined
   >(undefined);
   const [keywordFilter, setKeywordFilter] = useState("");
 
-  // Create modal
   const [createOpen, setCreateOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
 
-  // Edit modal
   const [editOpen, setEditOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [editing, setEditing] = useState<RentalAreaResponse | null>(null);
 
-  // Drawer manage rooms
   const [roomsDrawerOpen, setRoomsDrawerOpen] = useState(false);
   const [selectedRentalArea, setSelectedRentalArea] =
     useState<RentalAreaResponse | null>(null);
   const [openCreateRoom, setOpenCreateRoom] = useState(false);
+
+  const [cities, setCities] = useState<CityResponse[]>([]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -77,8 +81,6 @@ const ManageRoomPage: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) fetchMyRentalAreas();
   }, [isAuthenticated, fetchMyRentalAreas]);
-
-  const [cities, setCities] = useState<CityResponse[]>([]);
 
   const fetchCities = useCallback(async () => {
     try {
@@ -121,6 +123,17 @@ const ManageRoomPage: React.FC = () => {
     setTotal(filtered.length);
     setCurrentPage(1);
   }, [filtered]);
+
+  const stats = useMemo(() => {
+    const activeCount = items.filter((x) => x.status === "ACTIVE").length;
+    const inactiveCount = items.filter((x) => x.status === "INACTIVE").length;
+
+    return {
+      totalBuildings: items.length,
+      activeCount,
+      inactiveCount,
+    };
+  }, [items]);
 
   const handleRefresh = () => fetchMyRentalAreas();
 
@@ -170,7 +183,6 @@ const ManageRoomPage: React.FC = () => {
   };
 
   const handleAddRoom = (ra: RentalAreaResponse) => {
-    // bấm “Thêm phòng” từ table -> mở drawer + auto mở modal tạo phòng
     openRoomsDrawer(ra, true);
   };
 
@@ -242,15 +254,14 @@ const ManageRoomPage: React.FC = () => {
   };
 
   const handleViewRentalArea = (ra: RentalAreaResponse) => {
-    // bấm “Xem/Chi tiết” từ table -> mở drawer quản lý phòng
     openRoomsDrawer(ra, false);
   };
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4da6ff] mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1677ff] mx-auto" />
           <p className="mt-4 text-gray-600">Đang tải...</p>
         </div>
       </div>
@@ -260,31 +271,62 @@ const ManageRoomPage: React.FC = () => {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="bg-gray-50 py-4">
-      <div className="px-4">
+    <div className="bg-slate-50 min-h-screen py-5">
+      <div className="px-4 xl:px-6">
         <PageHeader onCreate={handleOpenCreate} />
 
-        <RentalAreaFilters
-          keyword={keywordFilter}
-          status={statusFilter}
-          loading={loading}
-          onKeywordChange={setKeywordFilter}
-          onStatusChange={setStatusFilter}
-          onRefresh={handleRefresh}
-        />
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="rounded-2xl shadow-sm border-0">
+            <Statistic
+              title="Tổng tòa nhà"
+              value={stats.totalBuildings}
+              prefix={<HomeOutlined style={{ color: "#1677ff" }} />}
+            />
+          </Card>
 
-        <Card className="shadow-sm">
+          <Card className="rounded-2xl shadow-sm border-0">
+            <Statistic
+              title="Đang hoạt động"
+              value={stats.activeCount}
+              prefix={<CheckCircleOutlined style={{ color: "#059669" }} />}
+            />
+          </Card>
+
+          <Card className="rounded-2xl shadow-sm border-0">
+            <Statistic
+              title="Đang hiển thị trong trang này"
+              value={paginated.length}
+              prefix={<AppstoreOutlined style={{ color: "#7c3aed" }} />}
+            />
+          </Card>
+        </div>
+
+        <div className="mt-4">
+          <RentalAreaFilters
+            keyword={keywordFilter}
+            status={statusFilter}
+            loading={loading}
+            onKeywordChange={setKeywordFilter}
+            onStatusChange={setStatusFilter}
+            onRefresh={handleRefresh}
+          />
+        </div>
+
+        <Card className="mt-4 rounded-3xl shadow-sm border-0">
           {paginated.length === 0 && !loading ? (
             <Empty
               description="Bạn chưa có tòa nhà nào"
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             >
-              <button
-                className="ant-btn ant-btn-primary"
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                size="large"
                 onClick={handleOpenCreate}
+                className="rounded-xl"
               >
                 Thêm tòa nhà đầu tiên
-              </button>
+              </Button>
             </Empty>
           ) : (
             <>
@@ -298,7 +340,7 @@ const ManageRoomPage: React.FC = () => {
               />
 
               {total > 0 && (
-                <div className="mt-4 flex justify-end">
+                <div className="mt-5 flex justify-end">
                   <Pagination
                     current={currentPage}
                     pageSize={pageSize}

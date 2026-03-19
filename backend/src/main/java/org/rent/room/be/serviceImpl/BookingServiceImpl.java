@@ -7,6 +7,9 @@ import org.rent.room.be.dto.request.booking.BookingRequest;
 import org.rent.room.be.dto.request.booking.CheckSlotConflictRequest;
 import org.rent.room.be.dto.request.booking.GetAvailableSlotsRequest;
 import org.rent.room.be.dto.request.booking.SlotRequest;
+import org.rent.room.be.dto.response.booking.BookingIntentResponse;
+import org.rent.room.be.dto.response.booking.BookingResponse;
+import org.rent.room.be.dto.response.booking.IntentSlotResponse;
 import org.rent.room.be.dto.request.booking.UpdateBookingRequest;
 import org.rent.room.be.dto.request.booking.UpdateBookingSlotRequest;
 
@@ -23,6 +26,7 @@ import org.rent.room.be.entity.BookingIntent;
 import org.rent.room.be.exception.AppException;
 import org.rent.room.be.exception.ErrorCode;
 import org.rent.room.be.repository.*;
+import org.rent.room.be.security.CustomUserDetails;
 import org.rent.room.be.service.*;
 import org.rent.room.be.specification.BookingSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +36,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,7 +95,7 @@ public class BookingServiceImpl implements BookingService {
                             .map(amenity -> RoomResponse.AmenityItem.builder()
                                     .amenityId(amenity.getAmenityId())
                                     .amenityName(amenity.getAmenityName())
-                                    .icon(amenity.getIconKey())
+                                    .iconKey(amenity.getIconKey())
                                     .build()
                             ).collect(Collectors.toSet());
 
@@ -206,8 +212,8 @@ public class BookingServiceImpl implements BookingService {
             if (availableRooms.size() < slotReq.getQuantity()) {
                 throw new RuntimeException(
                         room.getRoomName()
-                                + " chỉ còn "
-                                + availableRooms.size()
+                                + " khung giờ này phòng không còn trống"
+
                 );
             }
 
@@ -402,24 +408,64 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public BookingResponse updateBooking(UUID bookingId, UpdateBookingRequest bookingRequest) {
-        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
-                new RuntimeException("Không tìm thấy booking với id " + bookingId));
 
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking với id " + bookingId));
+
+        BookingStatus currentStatus = booking.getBookingStatus();
         BookingStatus newStatus = bookingRequest.getBookingStatus();
+
+
+        if (currentStatus == BookingStatus.COMPLETED) {
+            throw new RuntimeException("Booking đã hoàn thành, không thể thay đổi");
+        }
+
         booking.setBookingStatus(newStatus);
         booking.setNote(bookingRequest.getNote());
 
         if (booking.getSlots() != null) {
-            booking.getSlots().forEach(slot -> {
 
-                if (newStatus == BookingStatus.CANCELLED) {
-                    slot.setSlotStatus(SlotStatus.CANCELLED);
+
+            if (newStatus == BookingStatus.CANCELLED) {
+                booking.getSlots().forEach(slot ->
+                        slot.setSlotStatus(SlotStatus.CANCELLED)
+                );
+            }
+
+
+            else if (newStatus == BookingStatus.BOOKED) {
+
+                for (Slot slot : booking.getSlots()) {
+
+
+                    if (slot.getSlotStatus() == SlotStatus.CANCELLED) {
+
+                        boolean conflict = slotRepository.existsConflictByRoom(
+                                slot.getRoomCopy().getRoom().getRoomId(),
+                                slot.getStartTime(),
+                                slot.getEndTime(),
+                                slot.getSlotId()
+                        );
+
+                        if (conflict) {
+                            throw new RuntimeException(
+                                    "Slot " + slot.getSlotId() + " đã bị trùng lịch, không thể khôi phục"
+                            );
+                        }
+
+                        slot.setSlotStatus(SlotStatus.BOOKED);
+                    }
                 }
+            }
 
-            });
+
+            else if (newStatus == BookingStatus.COMPLETED) {
+
+            }
         }
 
         bookingRepository.save(booking);
+
 
         List<SlotResponse> slotResponses = booking.getSlots().stream().map(slot -> {
             RoomCopy rc = slot.getRoomCopy();
@@ -435,11 +481,11 @@ public class BookingServiceImpl implements BookingService {
                     .build();
         }).toList();
 
-        Optional<Payment> payment = paymentRepository.findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
-        PaymentMethod paymentMethod = null;
-        if (payment.isPresent()) {
-            paymentMethod = payment.get().getPaymentMethod();
-        }
+        Optional<Payment> payment = paymentRepository
+                .findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
+
+        PaymentMethod paymentMethod = payment.map(Payment::getPaymentMethod).orElse(null);
+
         RentalAreaResponse rentalAreaResponse = RentalAreaResponse.builder()
                 .rentalAreaName(booking.getRentalArea().getRentalAreaName())
                 .address(booking.getRentalArea().getAddress())
@@ -727,36 +773,50 @@ public class BookingServiceImpl implements BookingService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        List<RentalArea> rentalAreas = rentalAreaRepository.findByOwnerId(userId);
+        // FIX: dùng ROLE để phân biệt Admin/Owner
+        // Cũ: dùng rentalAreas.isEmpty() → owner mới chưa có rental area bị treat như Admin
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        BigDecimal totalRevenue;
-        long totalBookings;
-        long totalCompleted;
-        long totalCanceled;
+        if (isAdmin) {
+            BigDecimal totalRevenue    = bookingRepository.sumRevenue(from, to);
+            long totalBookings         = bookingRepository.countByCreatedAtBetween(from, to);
+            long totalCompleted        = bookingRepository.countByStatusAndCreatedAtBetween(BookingStatus.COMPLETED, from, to);
+            long totalCanceled         = bookingRepository.countByStatusAndCreatedAtBetween(BookingStatus.CANCELLED, from, to);
 
-        // OWNER có rental area
-        if (rentalAreas != null && !rentalAreas.isEmpty()) {
-
-            List<UUID> rentalAreaIds = rentalAreas.stream()
-                    .map(RentalArea::getRentalAreaId)
-                    .toList();
-
-            totalRevenue = bookingRepository.sumRevenueByRentalAreas(from, to, rentalAreaIds);
-            totalBookings = bookingRepository.countByRentalAreasAndCreatedAtBetween(rentalAreaIds, from, to);
-            totalCompleted = bookingRepository.countByRentalAreasAndStatus(rentalAreaIds, BookingStatus.COMPLETED, from, to);
-            totalCanceled = bookingRepository.countByRentalAreasAndStatus(rentalAreaIds, BookingStatus.CANCELLED, from, to);
-
-        } else {
-
-            // ADMIN xem toàn hệ thống
-            totalRevenue = bookingRepository.sumRevenue(from, to);
-            totalBookings = bookingRepository.countByCreatedAtBetween(from, to);
-            totalCompleted = bookingRepository.countByStatusAndCreatedAtBetween(BookingStatus.COMPLETED, from, to);
-            totalCanceled = bookingRepository.countByStatusAndCreatedAtBetween(BookingStatus.CANCELLED, from, to);
+            return BookingSummaryResponse.builder()
+                    .totalRevenue(totalRevenue != null ? totalRevenue : BigDecimal.ZERO)
+                    .totalBookings(totalBookings)
+                    .completedBookings(totalCompleted)
+                    .cancelledBookings(totalCanceled)
+                    .build();
         }
 
+        // OWNER
+        List<RentalArea> rentalAreas = rentalAreaRepository.findByOwnerId(userId);
+
+        if (rentalAreas == null || rentalAreas.isEmpty()) {
+            // Owner chưa có rental area → trả zeros, không throw exception
+            return BookingSummaryResponse.builder()
+                    .totalRevenue(BigDecimal.ZERO)
+                    .totalBookings(0L)
+                    .completedBookings(0L)
+                    .cancelledBookings(0L)
+                    .build();
+        }
+
+        List<UUID> rentalAreaIds = rentalAreas.stream()
+                .map(RentalArea::getRentalAreaId)
+                .toList();
+
+        BigDecimal totalRevenue = bookingRepository.sumRevenueByRentalAreas(from, to, rentalAreaIds);
+        long totalBookings      = bookingRepository.countByRentalAreasAndCreatedAtBetween(rentalAreaIds, from, to);
+        long totalCompleted     = bookingRepository.countByRentalAreasAndStatus(rentalAreaIds, BookingStatus.COMPLETED, from, to);
+        long totalCanceled      = bookingRepository.countByRentalAreasAndStatus(rentalAreaIds, BookingStatus.CANCELLED, from, to);
+
         return BookingSummaryResponse.builder()
-                .totalRevenue(totalRevenue)
+                .totalRevenue(totalRevenue != null ? totalRevenue : BigDecimal.ZERO)
                 .totalBookings(totalBookings)
                 .completedBookings(totalCompleted)
                 .cancelledBookings(totalCanceled)
@@ -764,37 +824,56 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public BookingDashboardResponse revenue(Integer month, Integer year) {
 
         LocalDate today = LocalDate.now();
+        if (year == null)  year  = today.getYear();
+        if (month == null) month = today.getMonthValue();
 
-        if (year == null) {
-            year = today.getYear();
-        }
-
-        if (month == null) {
-            month = today.getMonthValue();
-        }
-
-
-        LocalDateTime start = today.atStartOfDay();
-        LocalDateTime end = today.atTime(23,59,59);
-
-        BigDecimal revenueToday = bookingRepository.revenueToday(start, end);
-
+        LocalDateTime start       = today.atStartOfDay();
+        LocalDateTime end         = today.atTime(23, 59, 59);
         LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
-        List<Object[]> last7 = bookingRepository.revenueLast7Days(sevenDaysAgo);
 
-        List<Object[]> monthData = bookingRepository.revenueByMonth(year);
-        List<Object[]> dayData = bookingRepository.revenueByDay(year, month);
+        // FIX: lấy role từ SecurityContext
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (isAdmin) {
+            return BookingDashboardResponse.builder()
+                    .revenueToday(bookingRepository.revenueToday(start, end))
+                    .revenueLast7Days(mapRevenue(bookingRepository.revenueLast7Days(sevenDaysAgo)))
+                    .revenueByMonth(mapRevenue(bookingRepository.revenueByMonth(year)))
+                    .revenueByDay(mapRevenue(bookingRepository.revenueByDay(year, month)))
+                    .build();
+        }
+
+        // OWNER: lấy userId từ SecurityContext, không nhận từ client
+        UUID currentUserId = ((CustomUserDetails) auth.getPrincipal()).getUserId();
+        List<RentalArea> rentalAreas = rentalAreaRepository.findByOwnerId(currentUserId);
+
+        if (rentalAreas == null || rentalAreas.isEmpty()) {
+            return BookingDashboardResponse.builder()
+                    .revenueToday(BigDecimal.ZERO)
+                    .revenueLast7Days(List.of())
+                    .revenueByMonth(List.of())
+                    .revenueByDay(List.of())
+                    .build();
+        }
+
+        List<UUID> rentalAreaIds = rentalAreas.stream()
+                .map(RentalArea::getRentalAreaId)
+                .toList();
 
         return BookingDashboardResponse.builder()
-                .revenueToday(revenueToday)
-                .revenueLast7Days(mapRevenue(last7))
-                .revenueByMonth(mapRevenue(monthData))
-                .revenueByDay(mapRevenue(dayData))
+                .revenueToday(bookingRepository.revenueTodayByOwner(start, end, rentalAreaIds))
+                .revenueLast7Days(mapRevenue(bookingRepository.revenueLast7DaysByOwner(sevenDaysAgo, rentalAreaIds)))
+                .revenueByMonth(mapRevenue(bookingRepository.revenueByMonthByOwner(year, rentalAreaIds)))
+                .revenueByDay(mapRevenue(bookingRepository.revenueByDayByOwner(year, month, rentalAreaIds)))
                 .build();
     }
+
     private List<BookingRevenueItem> mapRevenue(List<Object[]> data) {
 
         return data.stream()

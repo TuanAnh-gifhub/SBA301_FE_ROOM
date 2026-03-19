@@ -6,17 +6,15 @@ import {
   getBookingIntent,
   confirmBooking,
 } from "../../../services/booking/bookingService";
+
 import BookingInfoList from "./BookingInfoList";
 import PaymentSummary from "./PaymentSummary";
 import BookingContactForm from "./BookingContactForm";
+
 export default function BookingDetail() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-  const [contact, setContact] = useState({
-    name: "",
-    phone: "",
-    note: "",
-  });
+
   const [intent, setIntent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -34,11 +32,7 @@ export default function BookingDetail() {
   const fetchIntent = async () => {
     try {
       setLoading(true);
-
       const data = await getBookingIntent(bookingId!);
-
-      console.log("BOOKING INTENT:", data);
-
       setIntent(data);
     } catch (err) {
       message.error("Không tải được thông tin booking");
@@ -57,9 +51,9 @@ export default function BookingDetail() {
       setConfirming(true);
 
       const res = await confirmBooking(intent.bookingIntentId);
+
       if (res?.success) {
         message.success("Đặt phòng thành công!");
-
         navigate("/customer/my-bookings");
       } else {
         message.error("Đặt phòng thất bại " + (res?.message || ""));
@@ -83,14 +77,13 @@ export default function BookingDetail() {
     <div>
       <Row gutter={16}>
         <Col span={16}>
-          <BookingContactForm formData={contact} setFormData={setContact} />
+          <BookingContactForm intent={intent} />
           <BookingInfoList intent={intent} />
         </Col>
 
         <Col span={8}>
           <PaymentSummary
             intent={intent}
-            contact={contact}
             onConfirm={handleConfirm}
             loading={confirming}
           />
@@ -101,7 +94,6 @@ export default function BookingDetail() {
         <Card>
           <p className="text-sm text-gray-600 mb-3">
             Nếu bạn gặp vấn đề với booking này, có thể gửi khiếu nại trực tiếp
-            để hệ thống tạm giữ escrow và admin xử lý.
           </p>
           <Button
             type="primary"
