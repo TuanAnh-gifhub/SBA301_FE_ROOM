@@ -12,7 +12,7 @@ export default function SuccessQrPage() {
       <p>{data?.message || "Quét QR thành công!"}</p>
 
       <button
-        onClick={() => navigate("/scan")}
+        onClick={() => navigate("/owner/qr")}
         style={{
           marginTop: 20,
           padding: "10px 20px",

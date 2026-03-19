@@ -12,11 +12,15 @@ export default function ScanQR() {
 
   const navigate = useNavigate();
 
-  const [scanned, setScanned] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(true);
 
+  // 🔒 chống spam scan theo thời gian
+  const scanLockRef = useRef(false);
+
+  // 🔁 tránh scan lại cùng 1 QR
+  const lastValueRef = useRef<string | null>(null);
+
   useEffect(() => {
- 
     if (!isCameraOn) {
       controlsRef.current?.stop();
       return;
@@ -28,10 +32,19 @@ export default function ScanQR() {
 
     codeReader
       .decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
-        if (result && !scanned) {
-          setScanned(true);
-
+        if (result) {
           const token = result.getText();
+
+          // ❌ nếu đang lock thì bỏ qua
+          if (scanLockRef.current) return;
+
+          // ❌ nếu trùng QR trước đó thì bỏ qua
+          if (token === lastValueRef.current) return;
+
+          // 🔒 lock ngay lập tức
+          scanLockRef.current = true;
+          lastValueRef.current = token;
+
           console.log("QR:", token);
 
           axios
@@ -41,7 +54,6 @@ export default function ScanQR() {
               console.log("DATA:", data);
 
               if (data.code === 200) {
-               
                 controlsRef.current?.stop();
 
                 navigate("/qr-success", {
@@ -64,8 +76,9 @@ export default function ScanQR() {
               }
             })
             .finally(() => {
+              // ⏱ mở lại scan sau 3 giây
               setTimeout(() => {
-                setScanned(false);
+                scanLockRef.current = false;
               }, 3000);
             });
         }
@@ -82,7 +95,7 @@ export default function ScanQR() {
     return () => {
       controlsRef.current?.stop();
     };
-  }, [scanned, isCameraOn]);
+  }, [isCameraOn, navigate]);
 
   return (
     <div style={{ textAlign: "center", marginTop: 30 }}>
@@ -127,7 +140,6 @@ export default function ScanQR() {
 
       <p>Nếu có lỗi vui lòng liên hệ hỗ trợ</p>
 
-   
       <button
         onClick={() => setIsCameraOn(!isCameraOn)}
         style={{

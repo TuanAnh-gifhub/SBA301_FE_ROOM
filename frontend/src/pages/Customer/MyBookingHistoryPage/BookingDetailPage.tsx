@@ -57,7 +57,6 @@ export default function BookingDetailPage() {
 
   if (!booking) return <div className="p-10 text-center">Loading...</div>;
 
-  // ✅ Status config
   const statusConfig: any = {
     BOOKED: {
       text: "Đã đặt",
@@ -124,11 +123,6 @@ export default function BookingDetailPage() {
             </span>
           </p>
         </div>
-
-        {/* <div>
-          <h2 className="text-lg font-semibold mb-4">Ghi chú</h2>
-          <p className="text-gray-600">{booking.note || "Không có ghi chú"}</p>
-        </div> */}
       </div>
 
       {/* Time */}
@@ -154,7 +148,6 @@ export default function BookingDetailPage() {
         </div>
       </div>
 
-      
       <div className="bg-white shadow rounded-xl p-6">
         <h2 className="font-semibold mb-4">Danh sách phòng</h2>
 
@@ -224,7 +217,6 @@ export default function BookingDetailPage() {
         </button>
       </div>
 
-  
       <Modal
         title="Xác nhận hủy booking"
         open={openModal}
@@ -246,7 +238,8 @@ export default function BookingDetailPage() {
         <p>
           Bạn có chắc chắn muốn hủy lịch không? <br />
           <span className="text-red-500">
-            (Chính sách: hủy sẽ không được hoàn tiền)
+            (Chính sách: hủy sẽ không được hoàn tiền/ có thể khôi phục lại liên
+            hệ chủ)
           </span>
         </p>
       </Modal>
