@@ -4,7 +4,9 @@ type Props = {
   decrease: (index: number) => void;
   filter: BookingFilter;
 };
-import { toast } from "react-toastify";
+
+import { message } from "antd";
+
 export default function BookingPanel({
   cart,
   increase,
@@ -12,10 +14,11 @@ export default function BookingPanel({
   onSubmit,
 }: Props) {
   const handleBookingNow = () => {
-    toast.info("Thêm khung giờ để đặt phòng");
+    message.info("Thêm khung giờ để đặt phòng");
   };
+
   return (
-    <>
+    <div className="bg-white shadow-md rounded-2xl p-6">
       {cart.length === 0 ? (
         <p className="text-center text-gray-500 py-6">
           Chưa có phòng nào được chọn.
@@ -27,33 +30,60 @@ export default function BookingPanel({
           </span>
         </p>
       ) : (
-        <div className="border rounded-xl p-5">
-          <h2>Tóm tắt đặt phòng</h2>
+        <>
+          <h2 className="text-lg font-semibold mb-4">
+             Tóm tắt đặt phòng
+          </h2>
 
-          {cart.map((item, index) => (
-            <div key={index}>
-              <h4>{item.room.roomName}</h4>
+          <div className="space-y-4">
+            {cart.map((item, index) => (
+              <div
+                key={index}
+                className="border rounded-xl p-4 bg-gray-50 hover:shadow transition"
+              >
+                <h4 className="font-medium text-gray-800">
+                  {item.room.roomName}
+                </h4>
 
-              <p>
-                {item.date} | {item.startTime} - {item.endTime}
-              </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {item.date} | {item.startTime} - {item.endTime}
+                </p>
 
-              <button onClick={() => decrease(index)}>-</button>
-              {item.quantity}
-              <button onClick={() => increase(index)}>+</button>
-            </div>
-          ))}
-           <p>
-            Note : 
-           </p>
+                <div className="flex items-center gap-3 mt-3">
+                  <button
+                    onClick={() => decrease(index)}
+                    className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-gray-200 transition"
+                  >
+                    -
+                  </button>
+
+                  <span className="font-medium text-lg">
+                    {item.quantity}
+                  </span>
+
+                  <button
+                    onClick={() => increase(index)}
+                    className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-gray-200 transition"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 text-sm text-gray-500">
+            <b>Lưu ý:</b> Vui lòng kiểm tra kỹ thời gian trước khi đặt phòng.
+          </div>
+
           <button
             onClick={onSubmit}
-            className="bg-blue-500 text-white px-4 py-2 rounded mt-4"
+            className="w-full mt-5 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-xl font-medium transition"
           >
-            Đặt Phòng
+            Đặt phòng
           </button>
-        </div>
+        </>
       )}
-    </>
+    </div>
   );
 }

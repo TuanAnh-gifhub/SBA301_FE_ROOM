@@ -45,6 +45,8 @@ import MyBookingHistoryPage from "../pages/Customer/MyBookingHistoryPage/MyBooki
 import BookingDetailPage from "../pages/Customer/MyBookingHistoryPage/BookingDetailPage";
 import OwnerDashBoard from "../pages/Owner/Dashboard/OwnerDashboard";
 import ProfilePage from "../pages/Customer/ProfilePage/ProfilePage";
+import ScanQR from "../pages/Owner/ScanQR";
+import SuccessQrPage from "../pages/Owner/SuccessQrPage";
 import ProductDetailPage from "../pages/Customer/ProductDetail/ProductDetailPage";
 
 export const router = createBrowserRouter([
@@ -205,7 +207,11 @@ export const router = createBrowserRouter([
         path: "notifications",
         element: <NotificationPage />,
         handle: { breadcrumb: "Thông báo mới" },
-      }
+      },
+      {
+        path: "qr-success",
+        element: <SuccessQrPage />,
+      },
     ],
   },
   // Admin routes
@@ -318,6 +324,11 @@ element: <OwnerDashBoard />,
         path: "schedules",
         element: <ManageSchedulePage />,
       },
+      {
+        path: "qr",
+        element: <ScanQR />,
+      },
     ],
+ 
   },
 ]);

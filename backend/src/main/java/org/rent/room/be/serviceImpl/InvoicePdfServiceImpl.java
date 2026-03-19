@@ -133,17 +133,25 @@ public class InvoicePdfServiceImpl implements InvoicePdfService {
         paymentTable.addCell(createLabelCell("Tổng tiền:", SECONDARY));
         paymentTable.addCell(createValueCell(booking.getTotalPrice() + " VND"));
 
-        paymentTable.addCell(createLabelCell("Phương thức:", SECONDARY));
-        paymentTable.addCell(createValueCell(payment.getPaymentMethod().name()));
+        if (payment != null) {
+            paymentTable.addCell(createLabelCell("Phương thức:", SECONDARY));
+            paymentTable.addCell(createValueCell(payment.getPaymentMethod().name()));
 
-        paymentTable.addCell(createLabelCell("Trạng thái:", SECONDARY));
-        paymentTable.addCell(
-                new Cell()
-                        .add(new Paragraph(payment.getPaymentStatus().name())
-                                .setFontColor(SUCCESS)
-                                .setBold())
-                        .setBorder(Border.NO_BORDER)
-        );
+            paymentTable.addCell(createLabelCell("Trạng thái:", SECONDARY));
+            paymentTable.addCell(
+                    new Cell()
+                            .add(new Paragraph(payment.getPaymentStatus().name())
+                                    .setFontColor(SUCCESS)
+                                    .setBold())
+                            .setBorder(Border.NO_BORDER)
+            );
+        } else {
+            paymentTable.addCell(createLabelCell("Phương thức:", SECONDARY));
+            paymentTable.addCell(createValueCell("Không áp dụng"));
+
+            paymentTable.addCell(createLabelCell("Trạng thái:", SECONDARY));
+            paymentTable.addCell(createValueCell("Không phát sinh thanh toán"));
+        }
 
         document.add(paymentTable);
 

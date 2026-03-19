@@ -66,14 +66,6 @@ public class BookingQRServiceImpl implements BookingQRService {
                 .orElseThrow(() ->
                         new AppException(ErrorCode.QR_INVALID));
 
-        User userqr = qr.getBooking().getRenter();
-        if(userqr.getUserId() == null){
-            throw new AppException(ErrorCode.USER_NOT_FOUND);
-        }
-
-        if(!userqr.getUserId().equals(userService.getCurrentUserEntity().getUserId())){
-            throw new AppException(ErrorCode.QR_INVALID);
-        }
 
         if (qr.getUsedAt() != null) {
             throw new AppException(ErrorCode.QR_ALREADY_USED);
@@ -89,10 +81,13 @@ public class BookingQRServiceImpl implements BookingQRService {
                 .orElseThrow(() ->
                         new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
-//        LocalDateTime now = LocalDateTime.now();
+        if (booking.getBookingStatus() == BookingStatus.CANCELLED) {
+            throw new AppException(ErrorCode.BOOKING_CANCELLED);
+        }
+        LocalDateTime now = LocalDateTime.now();
 
         if (qr.getQrType() == QRType.CHECK_IN) {
-
+//        Demo nên sẽ Quang sẽ ko rào quét qr vào ngay đặt,quét tự do khi có mã
 //            if (now.isBefore(booking.getStartTime())) {
 //                throw new AppException(ErrorCode.CANNOT_CHECKIN_BEFORE_START_TIME);
 //            }
@@ -101,7 +96,7 @@ public class BookingQRServiceImpl implements BookingQRService {
                 throw new AppException(ErrorCode.BOOKING_ALREADY_CHECKED_IN);
             }
 
-//            booking.setCheckIn(now);
+            booking.setCheckIn(now);
             booking.setBookingStatus(BookingStatus.CHECKED_IN);
 
         } else {
@@ -110,7 +105,7 @@ public class BookingQRServiceImpl implements BookingQRService {
                 throw new AppException(ErrorCode.CANNOT_CHECKOUT_BEFORE_CHECKIN);
             }
 
-//            booking.setCheckOut(now);
+            booking.setCheckOut(now);
             booking.setBookingStatus(BookingStatus.COMPLETED);
         }
 
@@ -173,10 +168,9 @@ public class BookingQRServiceImpl implements BookingQRService {
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
                 .status(BookingStatus.BOOKED)
-//                .numberOfMonths(Math.max(request.getNumberOfMonths(), 0))
                 .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
-                .statusPayment("")
+                .paymentMethod(null)
                 .slots(slotResponses)
                 .createdAt(booking.getCreatedAt())
                 .rentalArea(rentalAreaResponse)

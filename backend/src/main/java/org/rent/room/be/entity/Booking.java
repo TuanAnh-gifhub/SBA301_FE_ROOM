@@ -88,4 +88,5 @@ public class Booking extends BaseEntity {
 
     @Column(name = "invoice_url")
     private String invoiceUrl;
+
 }

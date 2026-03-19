@@ -1,17 +1,21 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { downloadInvoice } from "../../../services/booking/bookingService";
 import {
+  downloadInvoice,
   getBookingByBookingId,
   cancelBooking,
+  getBookingQrUrl,
 } from "../../../services/booking/bookingService";
-import { getBookingQrUrl } from "../../../services/booking/bookingService";
+import { Modal, Button } from "antd";
+
 export default function BookingDetailPage() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
 
   const [booking, setBooking] = useState<any>(null);
+  const [loadingCancel, setLoadingCancel] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
 
   useEffect(() => {
     if (!bookingId) return;
@@ -35,39 +39,63 @@ export default function BookingDetailPage() {
   };
 
   const handleCancelBooking = async () => {
-    if (!window.confirm("Bạn có chắc muốn hủy booking?")) return;
+    try {
+      setLoadingCancel(true);
 
-    const res = await cancelBooking(bookingId);
-    if (res.code === 200) {
-      toast.success("hủy thành công ");
+      const res = await cancelBooking(bookingId);
+      if (res.code === 200) {
+        toast.success("Hủy booking thành công");
+        setOpenModal(false);
+        navigate("/my-bookings");
+      }
+    } catch (err) {
+      toast.error("Hủy booking thất bại");
+    } finally {
+      setLoadingCancel(false);
     }
-    navigate("/my-bookings");
   };
 
   if (!booking) return <div className="p-10 text-center">Loading...</div>;
 
-  const statusColor = {
-    COMPLETED: "bg-green-100 text-green-700",
-    PENDING: "bg-yellow-100 text-yellow-700",
-    CANCELLED: "bg-red-100 text-red-700",
+  const statusConfig: any = {
+    BOOKED: {
+      text: "Đã đặt",
+      class: "bg-blue-100 text-blue-700",
+    },
+    COMPLETED: {
+      text: "Hoàn thành",
+      class: "bg-green-100 text-green-700",
+    },
+    CANCELLED: {
+      text: "Đã hủy",
+      class: "bg-red-100 text-red-700",
+    },
   };
+
+  const status = statusConfig[booking.status] || {
+    text: booking.status,
+    class: "bg-gray-100 text-gray-700",
+  };
+
+  const isDisabledCancel =
+    booking.status === "CANCELLED" || booking.status === "COMPLETED";
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <button onClick={() => navigate(-1)} className="text-gray-500">
           ← Quay lại
         </button>
 
         <span
-          className={`px-3 py-1 rounded-full text-sm ${
-            statusColor[booking.status] || "bg-gray-100"
-          }`}
+          className={`px-3 py-1 rounded-full text-sm font-medium ${status.class}`}
         >
-          {booking.status}
+          {status.text}
         </span>
       </div>
 
+      {/* Info */}
       <div className="bg-white shadow rounded-xl p-6 grid grid-cols-2 gap-10">
         <div>
           <h2 className="text-lg font-semibold mb-4">Thông tin booking</h2>
@@ -78,7 +106,7 @@ export default function BookingDetailPage() {
           <p>
             <b>Khu vực:</b> {booking.rentalArea.rentalAreaName}
           </p>
-           <p>
+          <p>
             <b>Địa chỉ:</b> {booking.rentalArea.address}
           </p>
           <p>
@@ -95,13 +123,9 @@ export default function BookingDetailPage() {
             </span>
           </p>
         </div>
-
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Ghi chú</h2>
-          <p className="text-gray-600">{booking.note || "Không có ghi chú"}</p>
-        </div>
       </div>
 
+      {/* Time */}
       <div className="bg-white shadow rounded-xl p-6">
         <h2 className="font-semibold mb-4">Thời gian sử dụng</h2>
 
@@ -150,6 +174,7 @@ export default function BookingDetailPage() {
         </table>
       </div>
 
+      {/* QR */}
       <div className="grid grid-cols-2 gap-8">
         <div className="bg-white shadow rounded-xl p-6 text-center">
           <h3 className="font-semibold mb-3">QR Check-in</h3>
@@ -158,9 +183,6 @@ export default function BookingDetailPage() {
             src={getBookingQrUrl(bookingId, "CHECK_IN")}
             className="mx-auto w-40"
           />
-          <p className="text-sm text-gray-500 mt-2">
-            Xuất trình khi nhận phòng
-          </p>
         </div>
 
         <div className="bg-white shadow rounded-xl p-6 text-center">
@@ -170,11 +192,10 @@ export default function BookingDetailPage() {
             src={getBookingQrUrl(bookingId, "CHECK_OUT")}
             className="mx-auto w-40"
           />
-
-          <p className="text-sm text-gray-500 mt-2">Xuất trình khi trả phòng</p>
         </div>
       </div>
 
+      {/* Actions */}
       <div className="flex gap-4">
         <button
           onClick={handleDownloadInvoice}
@@ -184,12 +205,44 @@ export default function BookingDetailPage() {
         </button>
 
         <button
-          onClick={handleCancelBooking}
-          className="px-5 py-2 bg-red-500 text-white rounded-lg"
+          disabled={isDisabledCancel}
+          onClick={() => setOpenModal(true)}
+          className={`px-5 py-2 rounded-lg text-white ${
+            isDisabledCancel
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-red-500 hover:bg-red-600"
+          }`}
         >
           Hủy booking
         </button>
       </div>
+
+      <Modal
+        title="Xác nhận hủy booking"
+        open={openModal}
+        onCancel={() => setOpenModal(false)}
+        footer={[
+          <Button key="back" onClick={() => setOpenModal(false)}>
+            Không
+          </Button>,
+          <Button
+            key="submit"
+            danger
+            loading={loadingCancel}
+            onClick={handleCancelBooking}
+          >
+            Xác nhận hủy
+          </Button>,
+        ]}
+      >
+        <p>
+          Bạn có chắc chắn muốn hủy lịch không? <br />
+          <span className="text-red-500">
+            (Chính sách: hủy sẽ không được hoàn tiền/ có thể khôi phục lại liên
+            hệ chủ)
+          </span>
+        </p>
+      </Modal>
     </div>
   );
 }

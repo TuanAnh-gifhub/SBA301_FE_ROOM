@@ -78,6 +78,11 @@ const SidebarOwner: React.FC<SidebarProps> = ({
       "/owner/schedules",
       <CalendarOutlined />,
     ),
+    getItem(
+      <Link to="/owner/qr">Quét QR Nhận / Trả</Link>,
+      "/owner/qr",
+      <CalendarOutlined />,
+    ),
   ];
 
   const handleMenuClick: MenuProps["onClick"] = (e) => {
@@ -99,33 +104,31 @@ const SidebarOwner: React.FC<SidebarProps> = ({
       }}
     >
       {/* Logo Section */}
-         <Link
-              to="/"
-             
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
-            >
-               <div
-        className={`h-16 flex items-center justify-center border-b transition-colors ${
-          isDark ? "border-gray-700 bg-[#001529]" : "border-gray-200 bg-white"
-        }`}
+      <Link
+        to="/"
+        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
       >
-        <div className="flex items-center gap-2 overflow-hidden px-4">
-          <div className="min-w-[32px] h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-            E
-          </div>
-          {!collapsed && (
-            <div
-              className={`font-bold text-xl tracking-tight whitespace-nowrap transition-opacity duration-300 ${
-                isDark ? "text-white" : "text-gray-800"
-              }`}
-            >
-              EduRoom
+        <div
+          className={`h-16 flex items-center justify-center border-b transition-colors ${
+            isDark ? "border-gray-700 bg-[#001529]" : "border-gray-200 bg-white"
+          }`}
+        >
+          <div className="flex items-center gap-2 overflow-hidden px-4">
+            <div className="min-w-[32px] h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+              E
             </div>
-          )}
+            {!collapsed && (
+              <div
+                className={`font-bold text-xl tracking-tight whitespace-nowrap transition-opacity duration-300 ${
+                  isDark ? "text-white" : "text-gray-800"
+                }`}
+              >
+                EduRoom
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       </Link>
-     
 
       <div className="h-[calc(100vh-64px)] overflow-y-auto custom-scrollbar py-2">
         <Menu

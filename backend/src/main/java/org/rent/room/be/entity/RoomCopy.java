@@ -22,7 +22,7 @@ public class RoomCopy {
     @Column(name = "room_copy_id")
     private UUID roomCopyId;
 
-    @Column(name = "room_code")
+    @Column(name = "room_code",unique = true)
     private String roomCode;
 
     @Column(name = "room_copy_status")
