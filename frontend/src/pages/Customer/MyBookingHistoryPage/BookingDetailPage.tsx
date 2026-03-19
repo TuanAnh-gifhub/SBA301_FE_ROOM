@@ -5,14 +5,17 @@ import {
   downloadInvoice,
   getBookingByBookingId,
   cancelBooking,
+  getBookingQrUrl,
 } from "../../../services/booking/bookingService";
-import { getBookingQrUrl } from "../../../services/booking/bookingService";
+import { Modal, Button } from "antd";
 
 export default function BookingDetailPage() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
 
   const [booking, setBooking] = useState<any>(null);
+  const [loadingCancel, setLoadingCancel] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
 
   useEffect(() => {
     if (!bookingId) return;
@@ -36,18 +39,25 @@ export default function BookingDetailPage() {
   };
 
   const handleCancelBooking = async () => {
-    if (!window.confirm("Bạn có chắc muốn hủy booking?")) return;
+    try {
+      setLoadingCancel(true);
 
-    const res = await cancelBooking(bookingId);
-    if (res.code === 200) {
-      toast.success("Hủy thành công");
+      const res = await cancelBooking(bookingId);
+      if (res.code === 200) {
+        toast.success("Hủy booking thành công");
+        setOpenModal(false);
+        navigate("/my-bookings");
+      }
+    } catch (err) {
+      toast.error("Hủy booking thất bại");
+    } finally {
+      setLoadingCancel(false);
     }
-    navigate("/my-bookings");
   };
 
   if (!booking) return <div className="p-10 text-center">Loading...</div>;
 
-  // ✅ status config chuẩn
+  // ✅ Status config
   const statusConfig: any = {
     BOOKED: {
       text: "Đã đặt",
@@ -68,6 +78,9 @@ export default function BookingDetailPage() {
     class: "bg-gray-100 text-gray-700",
   };
 
+  const isDisabledCancel =
+    booking.status === "CANCELLED" || booking.status === "COMPLETED";
+
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">
       {/* Header */}
@@ -83,6 +96,7 @@ export default function BookingDetailPage() {
         </span>
       </div>
 
+      {/* Info */}
       <div className="bg-white shadow rounded-xl p-6 grid grid-cols-2 gap-10">
         <div>
           <h2 className="text-lg font-semibold mb-4">Thông tin booking</h2>
@@ -111,13 +125,13 @@ export default function BookingDetailPage() {
           </p>
         </div>
 
-        <div>
+        {/* <div>
           <h2 className="text-lg font-semibold mb-4">Ghi chú</h2>
           <p className="text-gray-600">{booking.note || "Không có ghi chú"}</p>
-        </div>
+        </div> */}
       </div>
 
-
+      {/* Time */}
       <div className="bg-white shadow rounded-xl p-6">
         <h2 className="font-semibold mb-4">Thời gian sử dụng</h2>
 
@@ -139,6 +153,8 @@ export default function BookingDetailPage() {
           </div>
         </div>
       </div>
+
+      
       <div className="bg-white shadow rounded-xl p-6">
         <h2 className="font-semibold mb-4">Danh sách phòng</h2>
 
@@ -165,6 +181,7 @@ export default function BookingDetailPage() {
         </table>
       </div>
 
+      {/* QR */}
       <div className="grid grid-cols-2 gap-8">
         <div className="bg-white shadow rounded-xl p-6 text-center">
           <h3 className="font-semibold mb-3">QR Check-in</h3>
@@ -173,9 +190,6 @@ export default function BookingDetailPage() {
             src={getBookingQrUrl(bookingId, "CHECK_IN")}
             className="mx-auto w-40"
           />
-          <p className="text-sm text-gray-500 mt-2">
-            Xuất trình khi nhận phòng
-          </p>
         </div>
 
         <div className="bg-white shadow rounded-xl p-6 text-center">
@@ -185,8 +199,6 @@ export default function BookingDetailPage() {
             src={getBookingQrUrl(bookingId, "CHECK_OUT")}
             className="mx-auto w-40"
           />
-
-          <p className="text-sm text-gray-500 mt-2">Xuất trình khi trả phòng</p>
         </div>
       </div>
 
@@ -200,12 +212,44 @@ export default function BookingDetailPage() {
         </button>
 
         <button
-          onClick={handleCancelBooking}
-          className="px-5 py-2 bg-red-500 text-white rounded-lg"
+          disabled={isDisabledCancel}
+          onClick={() => setOpenModal(true)}
+          className={`px-5 py-2 rounded-lg text-white ${
+            isDisabledCancel
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-red-500 hover:bg-red-600"
+          }`}
         >
           Hủy booking
         </button>
       </div>
+
+  
+      <Modal
+        title="Xác nhận hủy booking"
+        open={openModal}
+        onCancel={() => setOpenModal(false)}
+        footer={[
+          <Button key="back" onClick={() => setOpenModal(false)}>
+            Không
+          </Button>,
+          <Button
+            key="submit"
+            danger
+            loading={loadingCancel}
+            onClick={handleCancelBooking}
+          >
+            Xác nhận hủy
+          </Button>,
+        ]}
+      >
+        <p>
+          Bạn có chắc chắn muốn hủy lịch không? <br />
+          <span className="text-red-500">
+            (Chính sách: hủy sẽ không được hoàn tiền)
+          </span>
+        </p>
+      </Modal>
     </div>
   );
 }

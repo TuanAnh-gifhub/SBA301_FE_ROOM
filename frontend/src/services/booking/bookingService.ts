@@ -16,7 +16,13 @@ export const confirmBooking = async (bookingIntentId: any) => {
   });
   return res.data;
 };
-
+export const updateBooking = async (
+  bookingId: string,
+  payload: { bookingStatus: string; note: string },
+) => {
+  const res = await api.put(`/bookings/${bookingId}`, payload);
+  return res.data; 
+};
 export const updateBookingIntent = async (
   bookingIntentId: string,
   payload: any,
@@ -78,8 +84,6 @@ export const checkSlotConflict = async (params: {
   });
   return res.data.result || [];
 };
-
-
 
 export const getAvailableSlots = async (params: {
   roomId: string;

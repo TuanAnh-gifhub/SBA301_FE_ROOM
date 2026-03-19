@@ -229,7 +229,7 @@ public class BookingController {
         }
     }
 
-    @PatchMapping("/bookings/{bookingId}/cancel")
+    @PutMapping("/{bookingId}/cancel")
     public ApiResponse<?> cancelBooking(@PathVariable UUID bookingId) {
         try {
 

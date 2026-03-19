@@ -16,6 +16,7 @@ import { getBookingsByRentalId } from "../../../services/booking/bookingService"
 import { useAuth } from "../../../context/AuthContext";
 import { MoreOutlined, EditOutlined } from "@ant-design/icons";
 import SlotEditorModal from "./SlotEditorModal";
+import UpdateBookingModal from "./UpdateBookingModal";
 
 const BOOKING_STATUS: Record<string, { text: string; color: string }> = {
   BOOKED: { text: "Đã đặt", color: "orange" },
@@ -46,6 +47,10 @@ const ManageBookingPage = () => {
   // Slot editor modal
   const [slotEditorOpen, setSlotEditorOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<any>(null);
+
+  // Update booking modal
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [updatingBooking, setUpdatingBooking] = useState<any>(null);
 
   const pageSize = 5;
 
@@ -151,6 +156,16 @@ const ManageBookingPage = () => {
               setOpenModal(true);
             },
           },
+          {
+            key: "updateStatus",
+            label: "Cập nhật trạng thái",
+            icon: <EditOutlined />,
+            // disabled: record.status === "CANCELLED",
+            onClick: () => {
+              setUpdatingBooking(record);
+              setUpdateModalOpen(true);
+            },
+          },
           ...(isBooked && isHourly
             ? [
                 {
@@ -213,7 +228,6 @@ const ManageBookingPage = () => {
         }}
       />
 
-      {/* Modal chi tiết booking */}
       <Modal
         title="Thông tin chi tiết"
         open={openModal}
@@ -282,6 +296,18 @@ const ManageBookingPage = () => {
         onClose={() => {
           setSlotEditorOpen(false);
           setEditingBooking(null);
+        }}
+        onSuccess={() => {
+          fetchBookings();
+        }}
+      />
+
+      <UpdateBookingModal
+        open={updateModalOpen}
+        booking={updatingBooking}
+        onClose={() => {
+          setUpdateModalOpen(false);
+          setUpdatingBooking(null);
         }}
         onSuccess={() => {
           fetchBookings();

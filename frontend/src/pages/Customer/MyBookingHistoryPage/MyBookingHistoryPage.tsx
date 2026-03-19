@@ -142,7 +142,7 @@ export default function MyBookingHistoryPage() {
         })}
       </div>
 
-      {/* Pagination */}
+      
       <div className="flex justify-center items-center gap-2 mt-6">
         <button
           disabled={page === 1}
