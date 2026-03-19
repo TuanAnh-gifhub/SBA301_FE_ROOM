@@ -81,10 +81,13 @@ public class BookingQRServiceImpl implements BookingQRService {
                 .orElseThrow(() ->
                         new AppException(ErrorCode.BOOKING_NOT_FOUND));
 
+        if (booking.getBookingStatus() == BookingStatus.CANCELLED) {
+            throw new AppException(ErrorCode.BOOKING_CANCELLED);
+        }
         LocalDateTime now = LocalDateTime.now();
 
         if (qr.getQrType() == QRType.CHECK_IN) {
-
+//        Demo nên sẽ Quang sẽ ko rào quét qr vào ngay đặt,quét tự do khi có mã
 //            if (now.isBefore(booking.getStartTime())) {
 //                throw new AppException(ErrorCode.CANNOT_CHECKIN_BEFORE_START_TIME);
 //            }

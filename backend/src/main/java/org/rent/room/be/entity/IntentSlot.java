@@ -3,6 +3,7 @@ package org.rent.room.be.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -25,11 +26,11 @@ public class IntentSlot {
     private BookingIntent bookingIntent;
 
     @ManyToOne
-//    RoomCopy roomCopy;
     Room room;
 
     Integer quantity;
 
     LocalDateTime startTime;
     LocalDateTime endTime;
+    private BigDecimal price;
 }

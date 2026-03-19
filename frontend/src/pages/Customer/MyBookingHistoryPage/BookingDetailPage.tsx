@@ -1,12 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { downloadInvoice } from "../../../services/booking/bookingService";
 import {
+  downloadInvoice,
   getBookingByBookingId,
   cancelBooking,
 } from "../../../services/booking/bookingService";
 import { getBookingQrUrl } from "../../../services/booking/bookingService";
+
 export default function BookingDetailPage() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
@@ -39,32 +40,46 @@ export default function BookingDetailPage() {
 
     const res = await cancelBooking(bookingId);
     if (res.code === 200) {
-      toast.success("hủy thành công ");
+      toast.success("Hủy thành công");
     }
     navigate("/my-bookings");
   };
 
   if (!booking) return <div className="p-10 text-center">Loading...</div>;
 
-  const statusColor = {
-    COMPLETED: "bg-green-100 text-green-700",
-    PENDING: "bg-yellow-100 text-yellow-700",
-    CANCELLED: "bg-red-100 text-red-700",
+  // ✅ status config chuẩn
+  const statusConfig: any = {
+    BOOKED: {
+      text: "Đã đặt",
+      class: "bg-blue-100 text-blue-700",
+    },
+    COMPLETED: {
+      text: "Hoàn thành",
+      class: "bg-green-100 text-green-700",
+    },
+    CANCELLED: {
+      text: "Đã hủy",
+      class: "bg-red-100 text-red-700",
+    },
+  };
+
+  const status = statusConfig[booking.status] || {
+    text: booking.status,
+    class: "bg-gray-100 text-gray-700",
   };
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <button onClick={() => navigate(-1)} className="text-gray-500">
           ← Quay lại
         </button>
 
         <span
-          className={`px-3 py-1 rounded-full text-sm ${
-            statusColor[booking.status] || "bg-gray-100"
-          }`}
+          className={`px-3 py-1 rounded-full text-sm font-medium ${status.class}`}
         >
-          {booking.status}
+          {status.text}
         </span>
       </div>
 
@@ -78,7 +93,7 @@ export default function BookingDetailPage() {
           <p>
             <b>Khu vực:</b> {booking.rentalArea.rentalAreaName}
           </p>
-           <p>
+          <p>
             <b>Địa chỉ:</b> {booking.rentalArea.address}
           </p>
           <p>
@@ -102,6 +117,7 @@ export default function BookingDetailPage() {
         </div>
       </div>
 
+
       <div className="bg-white shadow rounded-xl p-6">
         <h2 className="font-semibold mb-4">Thời gian sử dụng</h2>
 
@@ -123,7 +139,6 @@ export default function BookingDetailPage() {
           </div>
         </div>
       </div>
-
       <div className="bg-white shadow rounded-xl p-6">
         <h2 className="font-semibold mb-4">Danh sách phòng</h2>
 
@@ -175,6 +190,7 @@ export default function BookingDetailPage() {
         </div>
       </div>
 
+      {/* Actions */}
       <div className="flex gap-4">
         <button
           onClick={handleDownloadInvoice}

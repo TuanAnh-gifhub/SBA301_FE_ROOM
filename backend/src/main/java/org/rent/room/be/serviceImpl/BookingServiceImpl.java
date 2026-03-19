@@ -225,7 +225,7 @@ public class BookingServiceImpl implements BookingService {
             BigDecimal slotPrice = room.getPrice()
                     .multiply(BigDecimal.valueOf(slotReq.getQuantity()))
                     .multiply(hours);
-
+            intentSlot.setPrice(slotPrice);
             totalPrice = totalPrice.add(slotPrice);
         }
 
@@ -344,6 +344,7 @@ public class BookingServiceImpl implements BookingService {
                         .startTime(intentSlot.getStartTime())
                         .endTime(intentSlot.getEndTime())
                         .slotStatus(SlotStatus.BOOKED)
+                        .price(intentSlot.getPrice())
                         .build();
 
 
@@ -848,6 +849,7 @@ public class BookingServiceImpl implements BookingService {
                             .endTime(slot.getEndTime())
                             .roomCopy(roomCopyResponse)
                             .status(slot.getSlotStatus())
+                            .price(roomCopy.getRoom().getPrice())
                             .build();
                 })
                 .toList();

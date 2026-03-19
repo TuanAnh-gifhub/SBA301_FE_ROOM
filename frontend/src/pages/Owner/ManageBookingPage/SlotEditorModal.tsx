@@ -1,830 +1,427 @@
-// import { useState } from "react";
-// import {
-//   Modal,
-//   Button,
-//   message,
-//   Spin,
-//   Space,
-//   Alert,
-//   Tag,
-//   InputNumber,
-//   Radio,
-//   DatePicker,
-//   TimePicker,
-//   Divider,
-//   Typography,
-// } from "antd";
-// import {
-//   ClockCircleOutlined,
-//   SwapOutlined,
-//   CheckCircleOutlined,
-//   SearchOutlined,
-//   WarningOutlined,
-//   WalletOutlined,
-//   CreditCardOutlined,
-//   DollarOutlined,
-//   SyncOutlined,
-// } from "@ant-design/icons";
-// import dayjs from "dayjs";
-// import {
-//   checkSlotConflict,
-//   extendSlot,
-//   swapSlot,
-// } from "../../../services/booking/bookingSlotService";
+import React, { useState } from "react";
+import {
+  Modal,
+  Radio,
+  Space,
+  InputNumber,
+  Alert,
+  Tag,
+  Button,
+  Divider,
+  Typography,
+  DatePicker,
+  TimePicker,
+  Spin,
+  Card,
+  message,
+} from "antd";
+import {
+  ClockCircleOutlined,
+  SwapOutlined,
+  CheckCircleOutlined,
+  SearchOutlined,
+  WarningOutlined,
+  WalletOutlined,
+  CreditCardOutlined,
+  DollarOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
+import dayjs, { Dayjs } from "dayjs";
+import { bookingSlotService } from "../../../services/bookingSlotService";
 
-// const { Text } = Typography;
+const { Text } = Typography;
 
-// // ─── Types ────────────────────────────────────────────────────────────────────
+// --- Types ---
+interface Props {
+  open: boolean;
+  booking: any;
+  onClose: () => void;
+  onSuccess: () => void; // Dùng để trigger fetch lại data ở page cha
+}
 
-// interface SlotEditorModalProps {
-//   open: boolean;
-//   booking: any;
-//   onClose: () => void;
-//   onSuccess: () => void;
-// }
+type Mode = "extend" | "swap";
 
-// type Mode = "extend" | "swap";
-// type ExtendUnit = "hour" | "minute";
-// type ConflictStatus = "idle" | "checking" | "ok" | "conflict";
+// Quản lý state cho từng Slot riêng biệt
+interface SlotState {
+  checking: boolean;
+  confirming: boolean;
+  done: boolean;
+  checkResult: any | null;
+  // Dành riêng cho Swap
+  swapDate?: Dayjs | null;
+  swapStartTime?: Dayjs | null;
+  swapEndTime?: Dayjs | null;
+}
 
-// /**
-//  * State độc lập cho từng slot:
-//  * - extend: dùng chung amount/unit từ shared controls, chỉ track conflict + confirm
-//  * - swap: mỗi slot có DatePicker/TimePicker riêng vì duration từng phòng có thể khác nhau
-//  */
-// interface PerSlotState {
-//   // Extend
-//   extendConflict: ConflictStatus;
-//   extendConfirming: boolean;
-//   extendDone: boolean;
+const SlotEditorModal: React.FC<Props> = ({
+  open,
+  booking,
+  onClose,
+  onSuccess,
+}) => {
+  const [mode, setMode] = useState<Mode>("extend");
+  const [extendAmount, setExtendAmount] = useState(1);
+  const [extendUnit, setExtendUnit] = useState<"hour" | "minute">("hour");
 
-//   // Swap — input riêng từng phòng
-//   swapDate: dayjs.Dayjs | null;
-//   swapStartTime: dayjs.Dayjs | null;
-//   swapEndTime: dayjs.Dayjs | null;
-//   swapConflict: ConflictStatus;
-//   swapConfirming: boolean;
-//   swapDone: boolean;
-// }
+  // State tổng quản lý theo ID của Slot: { "uuid-1": { ... }, "uuid-2": { ... } }
+  const [slotStates, setSlotStates] = useState<Record<string, SlotState>>({});
 
-// const initSlotState = (): PerSlotState => ({
-//   extendConflict: "idle",
-//   extendConfirming: false,
-//   extendDone: false,
-//   swapDate: null,
-//   swapStartTime: null,
-//   swapEndTime: null,
-//   swapConflict: "idle",
-//   swapConfirming: false,
-//   swapDone: false,
-// });
+  const allSlots = booking?.slots ?? [];
 
-// // ─── Helpers ──────────────────────────────────────────────────────────────────
+  // --- Helpers ---
+  const fmtVND = (n: number) =>
+    new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(n);
 
-// const formatVND = (n: number) =>
-//   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-//     n,
-//   );
+  const getSlotState = (id: string): SlotState =>
+    slotStates[id] ?? {
+      checking: false,
+      confirming: false,
+      done: false,
+      checkResult: null,
+      swapDate: null,
+      swapStartTime: null,
+      swapEndTime: null,
+    };
 
-// const buildDT = (date: dayjs.Dayjs, time: dayjs.Dayjs) =>
-//   date.hour(time.hour()).minute(time.minute()).second(0);
+  const updateSlotState = (id: string, patch: Partial<SlotState>) => {
+    setSlotStates((prev) => ({
+      ...prev,
+      [id]: { ...getSlotState(id), ...patch },
+    }));
+  };
 
-// const slotDurMin = (slot: any) =>
-//   dayjs(slot.endTime).diff(dayjs(slot.startTime), "minute");
+  const buildISO = (date: Dayjs, time: Dayjs) =>
+    date
+      .hour(time.hour())
+      .minute(time.minute())
+      .second(0)
+      .format("YYYY-MM-DDTHH:mm:ss");
 
-// // ─── Component ────────────────────────────────────────────────────────────────
+  const resetAll = () => {
+    setSlotStates({});
+    setExtendAmount(1);
+    onClose();
+  };
 
-// const SlotEditorModal = ({
-//   open,
-//   booking,
-//   onClose,
-//   onSuccess,
-// }: SlotEditorModalProps) => {
-//   const [mode, setMode] = useState<Mode>("extend");
+  // --- Logic Gia Hạn (Extend) ---
+  const handleCheckExtend = async (slot: any) => {
+    const id = slot.slotId;
+    updateSlotState(id, { checking: true, checkResult: null });
+    try {
+      const res = await bookingSlotService.checkExtend(booking.bookingId, id, {
+        amount: extendAmount,
+        unit: extendUnit,
+      });
+      updateSlotState(id, { checkResult: res, checking: false });
+    } catch (e: any) {
+      updateSlotState(id, { checking: false });
+      message.error(e?.response?.data?.message || "Lỗi kiểm tra gia hạn");
+    }
+  };
 
-//   // Shared extend controls (amount/unit áp dụng cho tất cả phòng)
-//   const [extendAmount, setExtendAmount] = useState<number>(1);
-//   const [extendUnit, setExtendUnit] = useState<ExtendUnit>("hour");
+  const handleConfirmExtend = async (slot: any) => {
+    const id = slot.slotId;
+    updateSlotState(id, { confirming: true });
+    try {
+      await bookingSlotService.confirmExtend(booking.bookingId, id, {
+        amount: extendAmount,
+        unit: extendUnit,
+      });
+      updateSlotState(id, { confirming: false, done: true });
+      message.success(`Đã gia hạn phòng ${slot.roomCopy?.roomCode}`);
+      onSuccess(); // Update lại data tổng ở ngoài
+    } catch (e: any) {
+      updateSlotState(id, { confirming: false });
+      message.error(e?.response?.data?.message || "Lỗi xác nhận");
+    }
+  };
 
-//   // Per-slot state — key = slotId
-//   const [slotStates, setSlotStates] = useState<Record<string, PerSlotState>>(
-//     {},
-//   );
+  // --- Logic Chuyển Slot (Swap) ---
+  const handleCheckSwap = async (slot: any) => {
+    const id = slot.slotId;
+    const s = getSlotState(id);
+    if (!s.swapDate || !s.swapStartTime || !s.swapEndTime) {
+      return message.warning("Vui lòng chọn đầy đủ ngày giờ mới");
+    }
 
-//   // ── Data ──────────────────────────────────────────────────────────
-//   const allSlots: any[] = booking?.slots || [];
-//   const paymentMethod: string = booking?.paymentMethod || "";
-//   const isPaidByWallet =
-//     paymentMethod === "WALLET" || paymentMethod === "VN_PAY";
-//   const totalPrice: number = booking?.totalPrice || 0;
-//   const addedMinutes = extendUnit === "hour" ? extendAmount * 60 : extendAmount;
+    updateSlotState(id, { checking: true, checkResult: null });
+    try {
+      const res = await bookingSlotService.checkSwap(booking.bookingId, id, {
+        newStartTime: buildISO(s.swapDate, s.swapStartTime),
+        newEndTime: buildISO(s.swapDate, s.swapEndTime),
+      });
+      updateSlotState(id, { checkResult: res, checking: false });
+    } catch (e: any) {
+      updateSlotState(id, { checking: false });
+      message.error(e?.response?.data?.message || "Lỗi kiểm tra chuyển slot");
+    }
+  };
 
-//   // ── Per-slot state helpers ─────────────────────────────────────────
-//   const getState = (slotId: string): PerSlotState =>
-//     slotStates[slotId] ?? initSlotState();
+  const handleConfirmSwap = async (slot: any) => {
+    const id = slot.slotId;
+    const s = getSlotState(id);
+    updateSlotState(id, { confirming: true });
+    try {
+      await bookingSlotService.confirmSwap(booking.bookingId, id, {
+        newStartTime: buildISO(s.swapDate!, s.swapStartTime!),
+        newEndTime: buildISO(s.swapDate!, s.swapEndTime!),
+      });
+      updateSlotState(id, { confirming: false, done: true });
+      message.success(`Đã chuyển slot phòng ${slot.roomCopy?.roomCode}`);
+      onSuccess();
+    } catch (e: any) {
+      updateSlotState(id, { confirming: false });
+      message.error(e?.response?.data?.message || "Lỗi xác nhận chuyển");
+    }
+  };
 
-//   const patch = (slotId: string, p: Partial<PerSlotState>) =>
-//     setSlotStates((prev) => ({
-//       ...prev,
-//       [slotId]: { ...getState(slotId), ...p },
-//     }));
+  // --- Render từng thẻ Slot ---
+  const renderSlotCard = (slot: any) => {
+    const id = slot.slotId;
+    const state = getSlotState(id);
+    const originalDuration = dayjs(slot.endTime).diff(
+      dayjs(slot.startTime),
+      "minute",
+    );
 
-//   const resetState = () => {
-//     setSlotStates({});
-//     setExtendAmount(1);
-//     setExtendUnit("hour");
-//   };
+    // Nếu slot đã cập nhật xong, hiển thị trạng thái hoàn tất
+    if (state.done) {
+      return (
+        <Alert
+          key={id}
+          type="success"
+          showIcon
+          icon={<CheckCircleOutlined />}
+          message={`Phòng ${slot.roomCopy?.roomCode} - Đã cập nhật thành công`}
+          style={{ marginBottom: 12 }}
+        />
+      );
+    }
 
-//   // ── Extend helpers ─────────────────────────────────────────────────
-//   const newEndTime = (slot: any) => {
-//     const end = dayjs(slot.endTime);
-//     return extendUnit === "hour"
-//       ? end.add(extendAmount, "hour")
-//       : end.add(extendAmount, "minute");
-//   };
+    return (
+      <Card
+        key={id}
+        size="small"
+        title={
+          <Space>
+            <Tag color="blue">Phòng {slot.roomCopy?.roomCode}</Tag>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {dayjs(slot.startTime).format("HH:mm")} -{" "}
+              {dayjs(slot.endTime).format("HH:mm")}
+            </Text>
+          </Space>
+        }
+        extra={<Text strong>{fmtVND(slot.price)}</Text>}
+        style={{
+          marginBottom: 12,
+          border: state.checkResult?.available ? "1px solid #52c41a" : "",
+        }}
+      >
+        {mode === "extend" ? (
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <div style={{ background: "#f5f5f5", padding: 8, borderRadius: 4 }}>
+              <Text size="small">Kết thúc mới: </Text>
+              <Text strong style={{ color: "#1890ff" }}>
+                {dayjs(slot.endTime)
+                  .add(extendAmount, extendUnit)
+                  .format("HH:mm (DD/MM)")}
+              </Text>
+            </div>
+            {state.checkResult && (
+              <Alert
+                type={state.checkResult.available ? "success" : "error"}
+                message={
+                  state.checkResult.available
+                    ? "Có thể gia hạn"
+                    : state.checkResult.conflictMessage
+                }
+                showIcon
+                style={{ padding: "2px 8px" }}
+              />
+            )}
+            <Space>
+              <Button
+                size="small"
+                icon={<SearchOutlined />}
+                loading={state.checking}
+                onClick={() => handleCheckExtend(slot)}
+              >
+                Kiểm tra
+              </Button>
+              {state.checkResult?.available && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    padding: "8px",
+                    background: "#f6ffed",
+                    border: "1px solid #b7eb8f",
+                    borderRadius: 4,
+                  }}
+                >
+                  <Space direction="vertical" size={0}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Phí phát sinh:{" "}
+                      <Text strong>{fmtVND(state.checkResult.extraPrice)}</Text>
+                    </Text>
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<CheckCircleOutlined />}
+                      loading={state.confirming}
+                      onClick={() => handleConfirmExtend(slot)}
+                    >
+                      Xác nhận gia hạn
+                    </Button>
+                  </Space>
+                </div>
+              )}
+            </Space>
+          </Space>
+        ) : (
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Space wrap>
+              <DatePicker
+                size="small"
+                placeholder="Ngày mới"
+                onChange={(d) =>
+                  updateSlotState(id, { swapDate: d, checkResult: null })
+                }
+              />
+              <TimePicker
+                size="small"
+                format="HH:mm"
+                placeholder="Bắt đầu"
+                onChange={(t) =>
+                  updateSlotState(id, { swapStartTime: t, checkResult: null })
+                }
+              />
+              <TimePicker
+                size="small"
+                format="HH:mm"
+                placeholder="Kết thúc"
+                onChange={(t) =>
+                  updateSlotState(id, { swapEndTime: t, checkResult: null })
+                }
+              />
+            </Space>
 
-//   const extraPrice = (slot: any) => {
-//     const durH = slotDurMin(slot) / 60;
-//     const perH = durH > 0 ? (slot.price || 0) / durH : 0;
-//     return (addedMinutes / 60) * perH;
-//   };
+            {state.swapStartTime && state.swapEndTime && (
+              <Text
+                size="small"
+                type={
+                  dayjs(state.swapEndTime).diff(
+                    state.swapStartTime,
+                    "minute",
+                  ) === originalDuration
+                    ? "success"
+                    : "danger"
+                }
+              >
+                Thời lượng:{" "}
+                {dayjs(state.swapEndTime).diff(state.swapStartTime, "minute")} /{" "}
+                {originalDuration} phút
+              </Text>
+            )}
 
-//   // ── Swap helpers ───────────────────────────────────────────────────
-//   const getSwapDT = (slotId: string) => {
-//     const s = getState(slotId);
-//     if (!s.swapDate || !s.swapStartTime || !s.swapEndTime) return null;
-//     return {
-//       start: buildDT(s.swapDate, s.swapStartTime),
-//       end: buildDT(s.swapDate, s.swapEndTime),
-//     };
-//   };
+            {state.checkResult && (
+              <Alert
+                type={state.checkResult.available ? "success" : "error"}
+                message={
+                  state.checkResult.available
+                    ? "Khung giờ trống"
+                    : state.checkResult.conflictMessage
+                }
+                showIcon
+              />
+            )}
+            <Space>
+              <Button
+                size="small"
+                icon={<SearchOutlined />}
+                loading={state.checking}
+                onClick={() => handleCheckSwap(slot)}
+              >
+                Kiểm tra lịch
+              </Button>
+              {state.checkResult?.available && (
+                <Button
+                  size="small"
+                  type="primary"
+                  loading={state.confirming}
+                  onClick={() => handleConfirmSwap(slot)}
+                >
+                  Đổi ngay
+                </Button>
+              )}
+            </Space>
+          </Space>
+        )}
+      </Card>
+    );
+  };
 
-//   const swapDurMin = (slotId: string) => {
-//     const dt = getSwapDT(slotId);
-//     if (!dt) return null;
-//     return dt.end.diff(dt.start, "minute");
-//   };
+  return (
+    <Modal
+      open={open}
+      title="Chỉnh sửa từng khung giờ phòng"
+      onCancel={resetAll}
+      width={700}
+      footer={[
+        <Button key="close" onClick={resetAll}>
+          Đóng
+        </Button>,
+      ]}
+    >
+      <div style={{ marginBottom: 16 }}>
+        <Radio.Group
+          value={mode}
+          onChange={(e) => setMode(e.target.value)}
+          buttonStyle="solid"
+        >
+          <Radio.Button value="extend">Gia hạn thêm</Radio.Button>
+          <Radio.Button value="swap">Đổi khung giờ</Radio.Button>
+        </Radio.Group>
+      </div>
 
-//   // ── Handlers: Extend ──────────────────────────────────────────────
-//   const handleCheckExtend = async (slot: any) => {
-//     if (!extendAmount || extendAmount <= 0) {
-//       message.error("Vui lòng nhập thời gian muốn gia hạn");
-//       return;
-//     }
-//     patch(slot.slotId, { extendConflict: "checking" });
-//     try {
-//       const result = await checkSlotConflict(
-//         booking.bookingId,
-//         slot.slotId,
-//         dayjs(slot.startTime).format("YYYY-MM-DDTHH:mm:ss"),
-//         newEndTime(slot).format("YYYY-MM-DDTHH:mm:ss"),
-//       );
-//       patch(slot.slotId, {
-//         extendConflict: result.available ? "ok" : "conflict",
-//       });
-//     } catch (e: any) {
-//       patch(slot.slotId, { extendConflict: "idle" });
-//       message.error(e?.response?.data?.message || "Lỗi kiểm tra xung đột");
-//     }
-//   };
+      {mode === "extend" && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: 12,
+            background: "#e6f7ff",
+            borderRadius: 8,
+          }}
+        >
+          <Space>
+            <Text>Gia hạn chung cho các phòng:</Text>
+            <InputNumber
+              min={1}
+              value={extendAmount}
+              onChange={(v) => setExtendAmount(v || 1)}
+            />
+            <Radio.Group
+              value={extendUnit}
+              onChange={(e) => setExtendUnit(e.target.value)}
+            >
+              <Radio value="hour">Giờ</Radio>
+              <Radio value="minute">Phút</Radio>
+            </Radio.Group>
+          </Space>
+        </div>
+      )}
 
-//   const handleConfirmExtend = async (slot: any) => {
-//     patch(slot.slotId, { extendConfirming: true });
-//     try {
-//       await extendSlot(
-//         booking.bookingId,
-//         slot.slotId,
-//         extendAmount,
-//         extendUnit,
-//       );
-//       patch(slot.slotId, { extendConfirming: false, extendDone: true });
-//       message.success(`Phòng ${slot.roomCopy?.roomCode}: gia hạn thành công!`);
-//       onSuccess();
-//     } catch (e: any) {
-//       patch(slot.slotId, { extendConfirming: false });
-//       message.error(e?.response?.data?.message || "Lỗi gia hạn");
-//     }
-//   };
+      <Divider orientation="left" style={{ fontSize: 12 }}>
+        Danh sách phòng trong Booking
+      </Divider>
 
-//   // ── Handlers: Swap ────────────────────────────────────────────────
-//   const handleCheckSwap = async (slot: any) => {
-//     const dt = getSwapDT(slot.slotId);
-//     if (!dt) {
-//       message.error("Vui lòng chọn đầy đủ ngày và giờ");
-//       return;
-//     }
-//     if (!dt.end.isAfter(dt.start)) {
-//       message.error("Giờ kết thúc phải sau giờ bắt đầu");
-//       return;
-//     }
+      <div style={{ maxHeight: "400px", overflowY: "auto", paddingRight: 8 }}>
+        {allSlots.map(renderSlotCard)}
+      </div>
+    </Modal>
+  );
+};
 
-//     const newDur = dt.end.diff(dt.start, "minute");
-//     const oldDur = slotDurMin(slot);
-//     if (newDur !== oldDur) {
-//       message.error(
-//         `Phòng ${slot.roomCopy?.roomCode}: phải chọn đúng ${oldDur} phút (hiện tại ${newDur} phút)`,
-//       );
-//       return;
-//     }
-
-//     patch(slot.slotId, { swapConflict: "checking" });
-//     try {
-//       const result = await checkSlotConflict(
-//         booking.bookingId,
-//         slot.slotId,
-//         dt.start.format("YYYY-MM-DDTHH:mm:ss"),
-//         dt.end.format("YYYY-MM-DDTHH:mm:ss"),
-//       );
-//       patch(slot.slotId, {
-//         swapConflict: result.available ? "ok" : "conflict",
-//       });
-//     } catch (e: any) {
-//       patch(slot.slotId, { swapConflict: "idle" });
-//       message.error(e?.response?.data?.message || "Lỗi kiểm tra xung đột");
-//     }
-//   };
-
-//   const handleConfirmSwap = async (slot: any) => {
-//     const dt = getSwapDT(slot.slotId);
-//     if (!dt) return;
-//     patch(slot.slotId, { swapConfirming: true });
-//     try {
-//       await swapSlot(
-//         booking.bookingId,
-//         slot.slotId,
-//         dt.start.format("YYYY-MM-DD HH:mm:ss"),
-//         dt.end.format("YYYY-MM-DD HH:mm:ss"),
-//       );
-//       patch(slot.slotId, { swapConfirming: false, swapDone: true });
-//       message.success(
-//         `Phòng ${slot.roomCopy?.roomCode}: chuyển slot thành công!`,
-//       );
-//       onSuccess();
-//     } catch (e: any) {
-//       patch(slot.slotId, { swapConfirming: false });
-//       message.error(e?.response?.data?.message || "Lỗi chuyển slot");
-//     }
-//   };
-
-//   // ── Payment badge ──────────────────────────────────────────────────
-//   const renderPaymentBadge = () => {
-//     const map: Record<
-//       string,
-//       { color: string; icon: React.ReactNode; label: string }
-//     > = {
-//       WALLET: {
-//         color: "#722ed1",
-//         icon: <WalletOutlined />,
-//         label: "Ví cá nhân",
-//       },
-//       VN_PAY: {
-//         color: "#1677ff",
-//         icon: <CreditCardOutlined />,
-//         label: "VNPay",
-//       },
-//       CASH: { color: "#52c41a", icon: <DollarOutlined />, label: "Tiền mặt" },
-//     };
-//     const m = map[paymentMethod] ?? {
-//       color: "#888",
-//       icon: <DollarOutlined />,
-//       label: paymentMethod,
-//     };
-//     return (
-//       <Tag color={m.color} icon={m.icon} style={{ fontSize: 13 }}>
-//         {m.label}
-//       </Tag>
-//     );
-//   };
-
-//   // ── Per-slot card ──────────────────────────────────────────────────
-//   const renderSlotCard = (slot: any) => {
-//     const s = getState(slot.slotId);
-//     const roomCode = slot.roomCopy?.roomCode;
-//     const start = dayjs(slot.startTime);
-//     const end = dayjs(slot.endTime);
-//     const durMin = slotDurMin(slot);
-//     const isDone = mode === "extend" ? s.extendDone : s.swapDone;
-
-//     // ── Đã xong: hiển thị badge thành công ──
-//     if (isDone) {
-//       return (
-//         <div
-//           key={slot.slotId}
-//           style={{
-//             border: "1px solid #b7eb8f",
-//             borderRadius: 8,
-//             padding: "12px 16px",
-//             background: "#f6ffed",
-//             display: "flex",
-//             alignItems: "center",
-//             gap: 12,
-//           }}
-//         >
-//           <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 18 }} />
-//           <div>
-//             <Text strong style={{ color: "#52c41a" }}>
-//               Phòng {roomCode}
-//             </Text>
-//             <Text type="secondary" style={{ marginLeft: 10, fontSize: 12 }}>
-//               {mode === "extend"
-//                 ? "Đã gia hạn thành công"
-//                 : "Đã chuyển slot thành công"}
-//             </Text>
-//           </div>
-//         </div>
-//       );
-//     }
-
-//     return (
-//       <div
-//         key={slot.slotId}
-//         style={{
-//           border: "1px solid #d9d9d9",
-//           borderRadius: 8,
-//           padding: "14px 16px",
-//           background: "#fafafa",
-//         }}
-//       >
-//         {/* ── Header phòng ── */}
-//         <div
-//           style={{
-//             display: "flex",
-//             justifyContent: "space-between",
-//             alignItems: "center",
-//             marginBottom: 12,
-//           }}
-//         >
-//           <Space>
-//             <Tag
-//               color="blue"
-//               style={{ fontSize: 13, fontWeight: 600, margin: 0 }}
-//             >
-//               Phòng {roomCode}
-//             </Tag>
-//             <Text type="secondary" style={{ fontSize: 12 }}>
-//               {start.format("DD/MM/YYYY")}
-//               <Text strong>
-//                 {start.format("HH:mm")} → {end.format("HH:mm")}
-//               </Text>
-//               　({(durMin / 60).toFixed(1)}h)
-//             </Text>
-//           </Space>
-//           <Text style={{ color: "#1677ff", fontSize: 13, fontWeight: 600 }}>
-//             {formatVND(slot.price || 0)}
-//           </Text>
-//         </div>
-
-//         {/* ════════════════ EXTEND UI ════════════════ */}
-//         {mode === "extend" && (
-//           <Space direction="vertical" style={{ width: "100%" }} size={8}>
-//             {/* Preview thời gian + phí */}
-//             <div
-//               style={{
-//                 background: "#f0f5ff",
-//                 border: "1px solid #adc6ff",
-//                 borderRadius: 6,
-//                 padding: "8px 12px",
-//               }}
-//             >
-//               <Space wrap size={12}>
-//                 <span style={{ fontSize: 13 }}>
-//                   {start.format("HH:mm")} →{" "}
-//                   <Text strong style={{ color: "#52c41a" }}>
-//                     {newEndTime(slot).format("HH:mm")}
-//                   </Text>
-//                   <Tag color="green" style={{ marginLeft: 6 }}>
-//                     +{addedMinutes} phút
-//                   </Tag>
-//                 </span>
-//                 {isPaidByWallet && extraPrice(slot) > 0 && (
-//                   <span style={{ fontSize: 13 }}>
-//                     <Text type="secondary">Phí thêm: </Text>
-//                     <Text strong style={{ color: "#f5222d" }}>
-//                       {formatVND(extraPrice(slot))}
-//                     </Text>
-//                   </span>
-//                 )}
-//               </Space>
-//             </div>
-
-//             {/* Conflict result */}
-//             {s.extendConflict === "ok" && (
-//               <Alert
-//                 message="Khả dụng — có thể gia hạn"
-//                 type="success"
-//                 showIcon
-//                 icon={<CheckCircleOutlined />}
-//                 style={{ padding: "4px 10px" }}
-//               />
-//             )}
-//             {s.extendConflict === "conflict" && (
-//               <Alert
-//                 message="Xung đột — khung giờ đã bị đặt"
-//                 type="error"
-//                 showIcon
-//                 icon={<WarningOutlined />}
-//                 style={{ padding: "4px 10px" }}
-//               />
-//             )}
-
-//             {/* Actions */}
-//             <Space>
-//               <Button
-//                 size="small"
-//                 icon={<SearchOutlined />}
-//                 loading={s.extendConflict === "checking"}
-//                 onClick={() => handleCheckExtend(slot)}
-//               >
-//                 Kiểm tra xung đột
-//               </Button>
-//               {s.extendConflict === "ok" && (
-//                 <Button
-//                   size="small"
-//                   type="primary"
-//                   icon={<CheckCircleOutlined />}
-//                   loading={s.extendConfirming}
-//                   danger={isPaidByWallet && extraPrice(slot) > 0}
-//                   onClick={() => handleConfirmExtend(slot)}
-//                 >
-//                   {isPaidByWallet && extraPrice(slot) > 0
-//                     ? `Xác nhận & Thu thêm ${formatVND(extraPrice(slot))}`
-//                     : "Xác nhận gia hạn"}
-//                 </Button>
-//               )}
-//             </Space>
-//           </Space>
-//         )}
-
-//         {/* ════════════════ SWAP UI — input riêng từng phòng ════════════════ */}
-//         {mode === "swap" && (
-//           <Space direction="vertical" style={{ width: "100%" }} size={10}>
-//             {/* Thông tin duration yêu cầu */}
-//             <div
-//               style={{
-//                 background: "#fffbe6",
-//                 border: "1px solid #ffe58f",
-//                 borderRadius: 6,
-//                 padding: "6px 12px",
-//                 fontSize: 12,
-//               }}
-//             >
-//               <ClockCircleOutlined
-//                 style={{ color: "#d48806", marginRight: 6 }}
-//               />
-//               <Text style={{ fontSize: 12 }}>
-//                 Phòng này cần chọn đúng{" "}
-//                 <Text strong style={{ color: "#d48806" }}>
-//                   {durMin} phút
-//                 </Text>{" "}
-//                 ({(durMin / 60).toFixed(1)}h) — bằng thời gian cũ
-//               </Text>
-//             </div>
-
-//             {/* DatePicker + TimePicker riêng cho phòng này */}
-//             <Space wrap size={8}>
-//               <div>
-//                 <div style={{ fontSize: 11, color: "#888", marginBottom: 3 }}>
-//                   Ngày mới
-//                 </div>
-//                 <DatePicker
-//                   value={s.swapDate}
-//                   onChange={(d) =>
-//                     patch(slot.slotId, { swapDate: d, swapConflict: "idle" })
-//                   }
-//                   format="DD/MM/YYYY"
-//                   disabledDate={(d) => d.isBefore(dayjs(), "day")}
-//                   placeholder="Chọn ngày"
-//                   size="small"
-//                 />
-//               </div>
-//               <div>
-//                 <div style={{ fontSize: 11, color: "#888", marginBottom: 3 }}>
-//                   Giờ bắt đầu
-//                 </div>
-//                 <TimePicker
-//                   value={s.swapStartTime}
-//                   onChange={(t) =>
-//                     patch(slot.slotId, {
-//                       swapStartTime: t,
-//                       swapConflict: "idle",
-//                     })
-//                   }
-//                   format="HH:mm"
-//                   minuteStep={30}
-//                   placeholder="Bắt đầu"
-//                   style={{ width: 100 }}
-//                   size="small"
-//                 />
-//               </div>
-//               <div>
-//                 <div style={{ fontSize: 11, color: "#888", marginBottom: 3 }}>
-//                   Giờ kết thúc
-//                 </div>
-//                 <TimePicker
-//                   value={s.swapEndTime}
-//                   onChange={(t) =>
-//                     patch(slot.slotId, { swapEndTime: t, swapConflict: "idle" })
-//                   }
-//                   format="HH:mm"
-//                   minuteStep={30}
-//                   placeholder="Kết thúc"
-//                   style={{ width: 100 }}
-//                   size="small"
-//                 />
-//               </div>
-
-//               {/* Preview duration đã chọn */}
-//               {(() => {
-//                 const dur = swapDurMin(slot.slotId);
-//                 if (!dur || dur <= 0) return null;
-//                 const match = dur === durMin;
-//                 return (
-//                   <Tag
-//                     color={match ? "green" : "red"}
-//                     icon={match ? <CheckCircleOutlined /> : <WarningOutlined />}
-//                     style={{ marginTop: 18 }}
-//                   >
-//                     {dur} phút {match ? "✓ khớp" : `≠ cần ${durMin} phút`}
-//                   </Tag>
-//                 );
-//               })()}
-//             </Space>
-
-//             {/* Preview slot mới nếu hợp lệ */}
-//             {(() => {
-//               const dt = getSwapDT(slot.slotId);
-//               if (!dt || swapDurMin(slot.slotId) !== durMin) return null;
-//               return (
-//                 <div
-//                   style={{
-//                     background: "#f0f5ff",
-//                     border: "1px solid #adc6ff",
-//                     borderRadius: 6,
-//                     padding: "8px 12px",
-//                   }}
-//                 >
-//                   <Space size={8}>
-//                     <SwapOutlined style={{ color: "#1677ff" }} />
-//                     <Text style={{ fontSize: 13 }}>
-//                       {start.format("DD/MM")} {start.format("HH:mm")}–
-//                       {end.format("HH:mm")}
-//                     </Text>
-//                     <Text type="secondary">→</Text>
-//                     <Text strong style={{ color: "#1677ff", fontSize: 13 }}>
-//                       {dt.start.format("DD/MM")} {dt.start.format("HH:mm")}–
-//                       {dt.end.format("HH:mm")}
-//                     </Text>
-//                     <Tag color="green" style={{ margin: 0 }}>
-//                       Không phí thêm
-//                     </Tag>
-//                   </Space>
-//                 </div>
-//               );
-//             })()}
-
-//             {/* Conflict result */}
-//             {s.swapConflict === "ok" && (
-//               <Alert
-//                 message="Khung giờ trống — có thể chuyển"
-//                 type="success"
-//                 showIcon
-//                 icon={<CheckCircleOutlined />}
-//                 style={{ padding: "4px 10px" }}
-//               />
-//             )}
-//             {s.swapConflict === "conflict" && (
-//               <Alert
-//                 message="Khung giờ đã bị đặt — chọn giờ khác"
-//                 type="error"
-//                 showIcon
-//                 icon={<WarningOutlined />}
-//                 style={{ padding: "4px 10px" }}
-//               />
-//             )}
-
-//             {/* Actions */}
-//             <Space>
-//               <Button
-//                 size="small"
-//                 icon={<SearchOutlined />}
-//                 loading={s.swapConflict === "checking"}
-//                 disabled={!s.swapDate || !s.swapStartTime || !s.swapEndTime}
-//                 onClick={() => handleCheckSwap(slot)}
-//               >
-//                 Kiểm tra khả dụng
-//               </Button>
-//               {s.swapConflict === "ok" && (
-//                 <Button
-//                   size="small"
-//                   type="primary"
-//                   icon={<CheckCircleOutlined />}
-//                   loading={s.swapConfirming}
-//                   onClick={() => handleConfirmSwap(slot)}
-//                 >
-//                   Xác nhận chuyển slot
-//                 </Button>
-//               )}
-//             </Space>
-//           </Space>
-//         )}
-//       </div>
-//     );
-//   };
-
-//   // ── Summary counts ────────────────────────────────────────────────
-//   const doneCount = Object.values(slotStates).filter((s) =>
-//     mode === "extend" ? s.extendDone : s.swapDone,
-//   ).length;
-
-//   // ── Render Modal ──────────────────────────────────────────────────
-//   return (
-//     <Modal
-//       title={
-//         <Space>
-//           <ClockCircleOutlined style={{ color: "#1677ff" }} />
-//           <span>Chỉnh sửa slot — {allSlots.length} phòng</span>
-//         </Space>
-//       }
-//       open={open}
-//       onCancel={() => {
-//         resetState();
-//         onClose();
-//       }}
-//       width={780}
-//       footer={
-//         doneCount > 0 ? (
-//           <Button
-//             type="primary"
-//             onClick={() => {
-//               resetState();
-//               onClose();
-//             }}
-//           >
-//             Đóng　({doneCount}/{allSlots.length} phòng đã cập nhật)
-//           </Button>
-//         ) : null
-//       }
-//       destroyOnClose
-//     >
-//       <Space direction="vertical" style={{ width: "100%" }} size="middle">
-//         {/* ── Thông tin booking ── */}
-//         <div
-//           style={{
-//             background: "#f0f5ff",
-//             border: "1px solid #adc6ff",
-//             padding: "12px 16px",
-//             borderRadius: 8,
-//           }}
-//         >
-//           <Text type="secondary" style={{ fontSize: 11 }}>
-//             THÔNG TIN BOOKING
-//           </Text>
-//           <div
-//             style={{
-//               marginTop: 6,
-//               display: "flex",
-//               gap: 20,
-//               flexWrap: "wrap",
-//               alignItems: "center",
-//             }}
-//           >
-//             <Space size={6}>
-//               <Text type="secondary" style={{ fontSize: 12 }}>
-//                 Thanh toán:
-//               </Text>
-//               {renderPaymentBadge()}
-//             </Space>
-//             <span>
-//               <Text type="secondary" style={{ fontSize: 12 }}>
-//                 Tổng tiền:{" "}
-//               </Text>
-//               <Text strong style={{ color: "#1677ff" }}>
-//                 {formatVND(totalPrice)}
-//               </Text>
-//             </span>
-//             <span>
-//               <Text type="secondary" style={{ fontSize: 12 }}>
-//                 Số phòng:{" "}
-//               </Text>
-//               <Text strong>{allSlots.length} phòng</Text>
-//             </span>
-//           </div>
-//         </div>
-
-//         {/* ── Mode selector ── */}
-//         <Radio.Group
-//           value={mode}
-//           onChange={(e) => {
-//             setMode(e.target.value);
-//             setSlotStates({});
-//           }}
-//         >
-//           <Space>
-//             <Radio.Button
-//               value="extend"
-//               style={{ height: "auto", padding: "8px 20px" }}
-//             >
-//               <Space>
-//                 <ClockCircleOutlined />
-//                 <span>
-//                   <div style={{ fontWeight: 600 }}>Gia hạn thêm</div>
-//                   <div style={{ fontSize: 11, color: "#888" }}>
-//                     Kéo dài giờ kết thúc
-//                   </div>
-//                 </span>
-//               </Space>
-//             </Radio.Button>
-//             <Radio.Button
-//               value="swap"
-//               style={{ height: "auto", padding: "8px 20px" }}
-//             >
-//               <Space>
-//                 <SwapOutlined />
-//                 <span>
-//                   <div style={{ fontWeight: 600 }}>Chuyển slot</div>
-//                   <div style={{ fontSize: 11, color: "#888" }}>
-//                     Đổi khung giờ (giữ nguyên độ dài)
-//                   </div>
-//                 </span>
-//               </Space>
-//             </Radio.Button>
-//           </Space>
-//         </Radio.Group>
-
-//         <Divider style={{ margin: "2px 0" }} />
-
-//         {/* ── Shared controls: Extend ── */}
-//         {mode === "extend" && (
-//           <Space align="center" wrap>
-//             <Text strong>Gia hạn thêm:</Text>
-//             <InputNumber
-//               min={1}
-//               max={extendUnit === "hour" ? 24 : 120}
-//               value={extendAmount}
-//               onChange={(v) => {
-//                 setExtendAmount(v || 1);
-//                 setSlotStates({});
-//               }}
-//               style={{ width: 80 }}
-//             />
-//             <Radio.Group
-//               value={extendUnit}
-//               onChange={(e) => {
-//                 setExtendUnit(e.target.value);
-//                 setSlotStates({});
-//               }}
-//               optionType="button"
-//               buttonStyle="solid"
-//               options={[
-//                 { label: "Giờ", value: "hour" },
-//                 { label: "Phút", value: "minute" },
-//               ]}
-//             />
-//             {isPaidByWallet && (
-//               <Alert
-//                 message="Gia hạn sẽ thu thêm phí tương ứng"
-//                 type="info"
-//                 showIcon
-//                 icon={<WalletOutlined />}
-//                 style={{ padding: "2px 10px", fontSize: 12 }}
-//               />
-//             )}
-//             <Text type="secondary" style={{ fontSize: 12 }}>
-//               → Kiểm tra và xác nhận từng phòng bên dưới. Phòng nào không muốn
-//               gia hạn thì bỏ qua.
-//             </Text>
-//           </Space>
-//         )}
-
-//         {/* ── Mode swap: chỉ mô tả, input nằm trong từng slot card ── */}
-//         {mode === "swap" && (
-//           <Alert
-//             message="Mỗi phòng chọn khung giờ riêng — duration phải bằng slot gốc. Phòng nào không muốn chuyển thì bỏ qua."
-//             type="info"
-//             showIcon
-//             style={{ fontSize: 12 }}
-//           />
-//         )}
-
-//         <Divider style={{ margin: "2px 0" }} />
-
-//         {/* ── Per-slot cards ── */}
-//         <Space direction="vertical" style={{ width: "100%" }} size={10}>
-//           {allSlots.map((slot: any) => renderSlotCard(slot))}
-//         </Space>
-
-//         {/* ── Summary ── */}
-//         {doneCount > 0 && doneCount < allSlots.length && (
-//           <Alert
-//             message={`Đã cập nhật ${doneCount}/${allSlots.length} phòng. Các phòng còn lại giữ nguyên.`}
-//             type="success"
-//             showIcon
-//             icon={<SyncOutlined />}
-//           />
-//         )}
-//       </Space>
-//     </Modal>
-//   );
-// };
-
-// export default SlotEditorModal;
+export default SlotEditorModal;

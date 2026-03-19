@@ -75,5 +75,23 @@ public interface SlotRepository extends JpaRepository<Slot, UUID> {
             @Param("endTime") LocalDateTime endTime,
             @Param("excludeBookingId") UUID excludeBookingId
     );
+    List<Slot> findByBooking_BookingId(UUID bookingId);
 
+
+    @Query("""
+    SELECT COUNT(s) > 0 FROM Slot s
+    JOIN s.roomCopy rc
+    JOIN rc.room r
+    WHERE r.roomId = :roomId
+      AND s.slotId <> :excludeSlotId
+      AND s.slotStatus <> 'CANCELLED'
+      AND s.startTime < :newEnd
+      AND s.endTime > :newStart
+    """)
+    boolean existsConflictByRoom(
+            @Param("roomId") UUID roomId,
+            @Param("newStart") LocalDateTime newStart,
+            @Param("newEnd") LocalDateTime newEnd,
+            @Param("excludeSlotId") UUID excludeSlotId
+    );
 }

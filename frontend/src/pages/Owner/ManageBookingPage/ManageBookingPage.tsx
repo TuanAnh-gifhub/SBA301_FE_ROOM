@@ -165,21 +165,6 @@ const ManageBookingPage = () => {
 
         return (
           <Space size={4}>
-            {/* Nút sửa slot nhanh — chỉ hiện khi BOOKED + HOURLY */}
-            {isBooked && isHourly && (
-              <Tooltip title="Gia hạn / Chuyển slot">
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={() => openSlotEditor(record)}
-                  style={{ fontSize: 12 }}
-                >
-                  Sửa slot
-                </Button>
-              </Tooltip>
-            )}
-
             <Dropdown menu={{ items: dropdownItems }} trigger={["click"]}>
               <Button
                 type="text"

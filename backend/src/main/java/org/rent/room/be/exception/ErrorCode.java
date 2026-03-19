@@ -61,7 +61,7 @@ public enum ErrorCode {
     // BOOKING (Review Context)
     BOOKING_NOT_COMPLETED(5011, "Chỉ có thể review sau khi hoàn thành booking", HttpStatus.BAD_REQUEST),
     BOOKING_NOT_BELONG_TO_USER(5012, "Booking này không thuộc về bạn", HttpStatus.FORBIDDEN),
-
+    BOOKING_CANCELLED(5011, "Lịch hẹn đã hủy thì không thẻ quét mã", HttpStatus.BAD_REQUEST),
     // REPLY
     REPLY_ALREADY_EXISTS(5020, "Review này đã có phản hồi rồi", HttpStatus.CONFLICT),
     REPLY_NOT_FOUND(5021, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND),
@@ -79,7 +79,8 @@ public enum ErrorCode {
     BOOKING_NOT_EDITABLE(4101, "Booking không ở trạng thái có thể chỉnh sửa", HttpStatus.BAD_REQUEST),
     SLOT_NOT_FOUND(4102, "Không tìm thấy slot", HttpStatus.NOT_FOUND),
     SLOT_CONFLICT(4103, "Thời gian này bị xung đột với booking khác", HttpStatus.CONFLICT),
-
+    SLOT_NOT_BELONG_TO_BOOKING(400, "Slot không thuộc booking này",HttpStatus.BAD_REQUEST),
+    SLOT_ALREADY_CANCELLED(400, "Slot đã bị hủy",HttpStatus.BAD_REQUEST),
     // MEDIA
     TOO_MANY_MEDIA(5050, "Tối đa 5 file mỗi review", HttpStatus.BAD_REQUEST);
 
