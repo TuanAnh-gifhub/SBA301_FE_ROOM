@@ -254,7 +254,6 @@ export default function RentalDetailPage() {
         </Col>
       </Row>
 
-   
       <Modal
         title="Xác nhận đặt phòng"
         open={openConfirm}

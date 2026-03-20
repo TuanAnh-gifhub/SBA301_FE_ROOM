@@ -104,10 +104,10 @@ const AmenityManagementPage: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Tìm theo tên hoặc iconKey..."
+            placeholder="Tìm theo tên tiện ích hoặc mã icon, ví dụ: WiFi, FaTv..."
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            className="w-[260px]"
+            className="w-[300px]"
           />
           <Button type="primary" onClick={openCreate}>
             + Thêm mới
