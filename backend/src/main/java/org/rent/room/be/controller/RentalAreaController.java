@@ -37,11 +37,6 @@ public class RentalAreaController {
 
     RentalAreaService rentalAreaService;
 
-
-
-
-
-
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<RentalAreaResponse>> createRentalArea(
             @Valid @ModelAttribute CreateRentalAreaRequest request,
