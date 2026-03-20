@@ -46,7 +46,7 @@ public class DataInitializer implements CommandLineRunner {
         seedCities();
         seedCategories();
         seedAmenities();
-        seedRooms();
+//        seedRooms();
         seedPackages();
         seedBookings();
     }

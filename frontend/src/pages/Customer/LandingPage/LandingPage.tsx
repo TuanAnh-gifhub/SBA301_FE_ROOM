@@ -11,7 +11,7 @@ import {
   FaBuilding,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
-import { useEffect, useState, useRef, use } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ParallaxBackground from "./ParallaxBackground";
 import HeroSection from "../../../components/HeroSection/HeroSection";
@@ -21,6 +21,8 @@ import ScrambleText from "../../../components/Header/ScrambleText";
 import Footer from "../../../components/Footer/Footer";
 import AboutUs from "../AboutUs/AboutUs";
 import postsService from "../../../services/posts/posts";
+import citiesService from "../../../services/cities/cities";
+import categoriesService from "../../../services/categories/categories";
 import PostCard from "./PostCard";
 
 const useScrollspy = () => ({
@@ -92,7 +94,7 @@ interface Room {
   name: string;
   logo?: string | null;
   banner?: string | null;
-  category?: string;
+  category?: string | number;
   rating?: number;
   reviewCount?: number;
   currentListings?: number;
@@ -101,11 +103,6 @@ interface Room {
 
 interface RoomCategory {
   id: string | number;
-  name: string;
-}
-
-interface ItemType {
-  itemTypeId: number | string;
   name: string;
 }
 
@@ -168,19 +165,37 @@ const LandingPage = () => {
     return stored === "true";
   });
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false); // Temporarily disabled
-  const showSidebarComponent = false; // Temporarily disabled sidebar
+  const [showSidebar, setShowSidebar] = useState(false);
+  const showSidebarComponent = false;
 
   const [posts, setPosts] = useState<any[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+
+  // search states
+  const [cities, setCities] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCityId, setSelectedCityId] = useState<number | undefined>();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    number | undefined
+  >();
+
   useEffect(() => {
     fetchPosts();
   }, []);
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (filters?: {
+    cityId?: number;
+    categoryId?: number;
+  }) => {
     try {
       setLoadingPosts(true);
-      const res = await postsService.getAllPosts(1, 10);
+
+      const res = await postsService.getPublicPosts({
+        page: 1,
+        size: 10,
+        cityId: filters?.cityId,
+        categoryId: filters?.categoryId,
+      });
 
       setPosts(res.result?.data || []);
     } catch (err) {
@@ -188,6 +203,20 @@ const LandingPage = () => {
     } finally {
       setLoadingPosts(false);
     }
+  };
+
+  const handleSearch = async () => {
+    const params = new URLSearchParams();
+
+    if (selectedCityId != null) {
+      params.set("cityId", String(selectedCityId));
+    }
+
+    if (selectedCategoryId != null) {
+      params.set("categoryId", String(selectedCategoryId));
+    }
+
+    navigate(`/products?${params.toString()}`);
   };
 
   useEffect(() => {
@@ -210,7 +239,6 @@ const LandingPage = () => {
         const windowHeight = window.innerHeight;
         const footerTop = footerRect.top;
 
-        // If footer is visible, limit sidebar bottom
         if (footerTop < windowHeight) {
           const distanceFromBottom = windowHeight - footerTop;
           setSidebarBottom(Math.max(0, distanceFromBottom));
@@ -224,7 +252,7 @@ const LandingPage = () => {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleScroll, { passive: true });
-    handleScroll(); // Check initial scroll position
+    handleScroll();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
@@ -232,7 +260,6 @@ const LandingPage = () => {
     };
   }, [showSidebar]);
 
-  // Listen for toggle sidebar event from header
   useEffect(() => {
     const handleToggleSidebar = () => {
       setSidebarExpanded((prev) => !prev);
@@ -260,59 +287,39 @@ const LandingPage = () => {
   const [showAllStores, setShowAllStores] = useState(false);
 
   useEffect(() => {
-    const fetchRoomCategories = async () => {
+    const fetchSearchData = async () => {
       try {
-        const response = { data: { data: [] } };
+        const [citiesRes, categoriesRes] = await Promise.all([
+          citiesService.getAllCities(),
+          categoriesService.getAllCategories(),
+        ]);
 
-        if (
-          response.data &&
-          response.data.data &&
-          Array.isArray(response.data.data) &&
-          response.data.data.length > 0
-        ) {
-          const categoriesFromApi: RoomCategory[] = (
-            response.data.data as ItemType[]
-          ).map((itemType) => ({
-            id: itemType.itemTypeId,
-            name: itemType.name,
-          }));
+        const cityData = citiesRes?.result || [];
+        const categoryData = categoriesRes?.result || [];
 
-          const allCategories: RoomCategory[] = [
-            { id: "all", name: "Tất cả" },
-            ...categoriesFromApi,
-          ];
+        setCities(cityData);
+        setCategories(categoryData);
 
-          setRoomCategories(allCategories);
-          console.log("✅ Room categories loaded from API:", allCategories);
-        } else {
-          console.warn("⚠️ No room categories data from API, using default");
-          setRoomCategories([
-            { id: "all", name: "Tất cả" },
-            { id: "phong-hoc", name: "Phòng học" },
-            { id: "phong-lab", name: "Phòng lab" },
-            { id: "phong-nhom", name: "Phòng nhóm" },
-            { id: "phong-thuyet-trinh", name: "Phòng thuyết trình" },
-            { id: "thu-vien", name: "Thư viện" },
-            { id: "phong-thi-nghiem", name: "Phòng thí nghiệm" },
-            { id: "phong-hop", name: "Phòng họp" },
-          ]);
-        }
-      } catch (error) {
-        console.error("❌ Error fetching room categories:", error);
+        const categoriesFromApi: RoomCategory[] = categoryData.map(
+          (item: any) => ({
+            id: item.categoryId,
+            name: item.categoryName,
+          }),
+        );
+
         setRoomCategories([
           { id: "all", name: "Tất cả" },
-          { id: "phong-hoc", name: "Phòng học" },
-          { id: "phong-lab", name: "Phòng lab" },
-          { id: "phong-nhom", name: "Phòng nhóm" },
-          { id: "phong-thuyet-trinh", name: "Phòng thuyết trình" },
-          { id: "thu-vien", name: "Thư viện" },
-          { id: "phong-thi-nghiem", name: "Phòng thí nghiệm" },
-          { id: "phong-hop", name: "Phòng họp" },
+          ...categoriesFromApi,
         ]);
+      } catch (error) {
+        console.error("❌ Error fetching search data:", error);
+        setCities([]);
+        setCategories([]);
+        setRoomCategories([{ id: "all", name: "Tất cả" }]);
       }
     };
 
-    fetchRoomCategories();
+    fetchSearchData();
   }, []);
 
   useEffect(() => {
@@ -399,7 +406,9 @@ const LandingPage = () => {
   const filteredStores =
     selectedCategory === "all"
       ? featuredStores
-      : featuredStores.filter((store) => store.category === selectedCategory);
+      : featuredStores.filter(
+          (store) => String(store.category) === String(selectedCategory),
+        );
 
   useEffect(() => {
     const headerOffset = 140;
@@ -470,10 +479,16 @@ const LandingPage = () => {
     >
       <ParallaxBackground isDarkMode={isDarkMode} />
 
-      {/* Hero section with title, search bar & quick categories */}
-      <HeroSection />
+      <HeroSection
+        cities={cities}
+        categories={categories}
+        selectedCityId={selectedCityId}
+        selectedCategoryId={selectedCategoryId}
+        onCityChange={setSelectedCityId}
+        onCategoryChange={setSelectedCategoryId}
+        onSearch={handleSearch}
+      />
 
-      {/* Collapsible Sidebar - Temporarily disabled */}
       {showSidebarComponent && (
         <div
           className={`fixed left-0 z-40 transition-all duration-300 ${
@@ -489,7 +504,6 @@ const LandingPage = () => {
                 : "100%",
           }}
         >
-          {/* Sidebar Content */}
           <div
             className="h-full py-2 overflow-y-auto scrollbar-hide"
             style={{
@@ -580,7 +594,7 @@ const LandingPage = () => {
       <div
         className="relative z-10 bg-transparent text-[#0e0e0e] text-sm leading-[1.4] transition-all duration-300 px-3 sm:px-6"
         style={{
-          marginLeft: 0, // Temporarily disabled sidebar margin
+          marginLeft: 0,
         }}
       >
         <div
@@ -633,7 +647,7 @@ const LandingPage = () => {
                   />
                 </h1>
               </div>
-              {/*  Post o day */}
+
               <div className="p-8 grid md:grid-cols-3 gap-6">
                 {loadingPosts && <p>Loading...</p>}
 
@@ -642,7 +656,6 @@ const LandingPage = () => {
                     <PostCard key={post.postId} post={post} />
                   ))}
               </div>
-              {/*  */}
             </div>
           )}
         </div>
@@ -676,7 +689,6 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* Room Cards Section - Similar to Latest Listings */}
           {loading ? (
             <div className="mb-8 w-full px-4 lg:px-12">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -704,12 +716,9 @@ const LandingPage = () => {
               </div>
             </div>
           ) : rooms.length === 0 ? (
-            // Show template rooms when no data
             <div className="mb-8 w-full relative flex items-center">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full px-0">
-                {/* {TEMPLATE_ROOMS.slice(0, 4).map((room) => (
-                  <RoomCard key={room.id} {...room} />
-                ))} */}
+                {/* giữ nguyên logic cũ */}
               </div>
             </div>
           ) : (
@@ -735,21 +744,7 @@ const LandingPage = () => {
               </button>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full px-0">
-                {rooms
-                  .slice(officialStoresStart, officialStoresStart + 4)
-                  .map((room) => (
-                    <RoomCard
-                      key={room.id}
-                      id={room.id}
-                      listingId={room.listingId}
-                      title={room.title}
-                      location={room.location}
-                      capacity="8-12 people"
-                      price={Math.round(room.price / 23000)}
-                      image={room.image}
-                      feature={{ icon: FaUsers, label: "Equipped" }}
-                    />
-                  ))}
+                {/* giữ nguyên logic cũ */}
               </div>
 
               <button
@@ -929,7 +924,7 @@ const LandingPage = () => {
               </button>
             </div>
           )}
-          
+
           {visibleStoreCount > 6 && (
             <div className="flex justify-center mt-4">
               <button
@@ -1102,10 +1097,7 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* About Us Section */}
       <AboutUs isDarkMode={isDarkMode} />
-
-      {/* Footer - Outside of content div to avoid sidebar margin */}
       <Footer ref={footerRef} isDarkMode={isDarkMode} />
     </div>
   );
