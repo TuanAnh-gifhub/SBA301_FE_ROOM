@@ -11,21 +11,30 @@ type Props = {
 
 const RentalInfo: React.FC<Props> = ({ rental }) => {
   return (
-    <div>
-      <div className="text-3xl font-bold text-gray-800">
-        {rental?.rentalAreaName || "Khu vực cho thuê"}
+    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 md:p-7 h-full flex flex-col min-h-[460px]">
+      <div className="inline-flex items-center rounded-full bg-blue-50 text-blue-600 px-3 py-1 text-xs font-semibold mb-3 w-fit">
+        Không gian cho thuê
       </div>
 
-      <div className="mt-2 flex items-start gap-2 text-gray-500">
+      <h1 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">
+        {rental?.rentalAreaName || "Khu vực cho thuê"}
+      </h1>
+
+      <div className="mt-3 flex items-start gap-2 text-slate-500 text-sm md:text-base">
         <EnvironmentOutlined className="mt-1 text-[#4da6ff]" />
         <span>{rental?.address || "Chưa cập nhật địa chỉ"}</span>
       </div>
 
-      <div className="border-t pt-4 mt-4">
-        <div className="text-xl font-bold text-gray-800 mb-3">Mô tả</div>
-        <div className="text-gray-700 leading-7">
+      <div className="h-px bg-slate-200 my-6" />
+
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="text-xl font-bold text-slate-800 mb-3 shrink-0">
+          Mô tả
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto pr-2 text-slate-600 leading-7 text-[15px] md:text-base">
           {rental?.description ||
-            "Không gian học tập hiện đại, đầy đủ tiện nghi, phù hợp học nhóm, workshop và meeting."}
+            "Không gian học tập hiện đại, đầy đủ tiện nghi, phù hợp cho học nhóm, workshop và meeting trong môi trường chuyên nghiệp."}
         </div>
       </div>
     </div>

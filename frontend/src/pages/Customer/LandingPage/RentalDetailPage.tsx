@@ -2,7 +2,20 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import rentalAreasService from "../../../services/rental-areas/rentalAreas";
 import { toast } from "react-toastify";
-import { Row, Col, Modal, Input, List, Typography, Divider } from "antd";
+import {
+  Modal,
+  Input,
+  List,
+  Typography,
+  Divider,
+  Breadcrumb,
+  Skeleton,
+} from "antd";
+import {
+  HomeOutlined,
+  EnvironmentOutlined,
+  CalendarOutlined,
+} from "@ant-design/icons";
 import BookingPanel from "../Booking/BookingPanel";
 import { useAuth } from "../../../context/AuthContext";
 import type { Room } from "../../../types/booking";
@@ -18,7 +31,7 @@ import HostCard from "../Rental/HostCard";
 import RentalInfo from "../Rental/RentalInfo";
 
 const { TextArea } = Input;
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 interface BookingFilter {
   date: string;
@@ -51,7 +64,6 @@ export default function RentalDetailPage() {
     end: "09:00",
   });
 
-  // ✅ modal state
   const [openConfirm, setOpenConfirm] = useState(false);
   const [note, setNote] = useState("");
 
@@ -65,8 +77,12 @@ export default function RentalDetailPage() {
   }, [user?.userId, id]);
 
   const fetchDetail = async () => {
-    const res = await rentalAreasService.getDetail(id!);
-    setRental(res.data.result);
+    try {
+      const res = await rentalAreasService.getDetail(id!);
+      setRental(res.data.result);
+    } catch (error) {
+      toast.error("Không thể tải chi tiết khu vực cho thuê");
+    }
   };
 
   const fetchCompletedBooking = async () => {
@@ -160,7 +176,6 @@ export default function RentalDetailPage() {
     });
   };
 
-  // ✅ mở modal thay vì submit luôn
   const openBookingConfirm = () => {
     if (!cart.length) {
       toast.warning("Bạn chưa chọn phòng nào");
@@ -170,7 +185,6 @@ export default function RentalDetailPage() {
   };
 
   const submitBooking = async () => {
-    // validate user
     if (!user?.userName) {
       toast.error("Thiếu tên người dùng");
       return;
@@ -217,86 +231,145 @@ export default function RentalDetailPage() {
     }
   };
 
-  if (!rental) return <p>Loading...</p>;
+  if (!rental) {
+    return (
+      <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-6">
+        <Skeleton active paragraph={{ rows: 12 }} />
+      </div>
+    );
+  }
 
   const isOwner = user?.userId === rental?.ownerId;
 
   return (
-    <div className="max-w-[1150px] mx-auto px-4 mt-3">
-      <RentalGallery rental={rental} />
-
-      <div className="grid grid-cols-12 gap-8 mt-6">
-        <div className="col-span-8">
-          <RentalInfo rental={rental} />
-        </div>
-        <div className="col-span-4">
-          <HostCard rental={rental} />
-        </div>
-      </div>
-
-      <Row gutter={24} style={{ marginTop: 32 }}>
-        <Col span={24}>
-          <BookingSearchBar filter={filter} setFilter={setFilter} />
-        </Col>
-      </Row>
-
-      <Row gutter={24} style={{ marginTop: 24 }}>
-        <Col span={16}>
-          <RoomCardList rooms={rental.rooms} onAddRoom={addRoom} />
-        </Col>
-        <Col span={8}>
-          <BookingPanel
-            cart={cart}
-            increase={increase}
-            decrease={decrease}
-            onSubmit={openBookingConfirm} // ✅ đổi ở đây
+    <div className="bg-slate-50 min-h-screen">
+      <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-5 md:py-7">
+        <div className="mb-4">
+          <Breadcrumb
+            items={[
+              {
+                title: (
+                  <span className="flex items-center gap-1">
+                    <HomeOutlined />
+                    Trang chủ
+                  </span>
+                ),
+              },
+              {
+                title: "Khu vực cho thuê",
+              },
+              {
+                title: rental?.rentalAreaName || "Chi tiết",
+              },
+            ]}
           />
-        </Col>
-      </Row>
+        </div>
 
-      <Modal
-        title="Xác nhận đặt phòng"
-        open={openConfirm}
-        onCancel={() => setOpenConfirm(false)}
-        onOk={submitBooking}
-        okText="Xác nhận & thanh toán"
-        cancelText="Hủy"
-      >
-        <Text strong>Danh sách phòng đã chọn:</Text>
+        <div className="space-y-6">
+          <RentalGallery rental={rental} />
 
-        <List
-          dataSource={cart}
-          renderItem={(item) => (
-            <List.Item>
-              <div>
-                <div>{item.room.name}</div>
-                <div>
-                  {item.date} | {item.startTime} - {item.endTime}
-                </div>
-                <div>Số lượng: {item.quantity}</div>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
+            <div className="xl:col-span-8">
+              <div className="h-full">
+                <RentalInfo rental={rental} />
               </div>
-            </List.Item>
-          )}
-        />
+            </div>
 
-        <Divider />
+            <div className="xl:col-span-4">
+              <div className="h-full">
+                <HostCard rental={rental} />
+              </div>
+            </div>
+          </div>
 
-        <Text strong>Ghi chú thêm:</Text>
-        <TextArea
-          rows={3}
-          placeholder="Nhập yêu cầu thêm (nếu có)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </Modal>
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 md:p-5">
+            <BookingSearchBar filter={filter} setFilter={setFilter} />
+          </div>
 
-      <div className="mt-10">
-        <ReviewSection
-          rentalAreaId={rental.rentalAreaId}
-          bookingId={completedBookingId}
-          currentUserId={user?.userId}
-          isOwner={isOwner}
-        />
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            <div className="xl:col-span-8">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 md:p-6">
+                <div className="flex items-center justify-between gap-3 mb-5">
+                  <div>
+                    <Title level={3} style={{ marginBottom: 4 }}>
+                      Danh sách phòng
+                    </Title>
+                    <Text type="secondary">
+                      Chọn phòng phù hợp với nhu cầu và khung giờ của bạn
+                    </Text>
+                  </div>
+                </div>
+
+                <RoomCardList rooms={rental.rooms} onAddRoom={addRoom} />
+              </div>
+            </div>
+
+            <div className="xl:col-span-4">
+              <div className="xl:sticky xl:top-6">
+                <BookingPanel
+                  cart={cart}
+                  increase={increase}
+                  decrease={decrease}
+                  onSubmit={openBookingConfirm}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 md:p-6">
+            <div className="mb-5">
+              <Title level={3} style={{ marginBottom: 4 }}>
+                Đánh giá từ khách hàng
+              </Title>
+              <Text type="secondary">
+                Xem phản hồi thực tế từ những người đã sử dụng không gian này
+              </Text>
+            </div>
+
+            <ReviewSection
+              rentalAreaId={rental.rentalAreaId}
+              bookingId={completedBookingId}
+              currentUserId={user?.userId}
+              isOwner={isOwner}
+            />
+          </div>
+        </div>
+
+        <Modal
+          title="Xác nhận đặt phòng"
+          open={openConfirm}
+          onCancel={() => setOpenConfirm(false)}
+          onOk={submitBooking}
+          okText="Xác nhận & thanh toán"
+          cancelText="Hủy"
+        >
+          <Text strong>Danh sách phòng đã chọn:</Text>
+
+          <List
+            dataSource={cart}
+            renderItem={(item) => (
+              <List.Item>
+                <div>
+                  <div className="font-medium">{item.room.name}</div>
+                  <div className="text-slate-500">
+                    {item.date} | {item.startTime} - {item.endTime}
+                  </div>
+                  <div>Số lượng: {item.quantity}</div>
+                </div>
+              </List.Item>
+            )}
+          />
+
+          <Divider />
+
+          <Text strong>Ghi chú thêm:</Text>
+          <TextArea
+            rows={3}
+            placeholder="Nhập yêu cầu thêm (nếu có)"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </Modal>
       </div>
     </div>
   );
