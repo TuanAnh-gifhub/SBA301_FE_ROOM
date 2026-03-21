@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import rentalAreasService from "../../../services/rental-areas/rentalAreas";
 import { toast } from "react-toastify";
 import {
@@ -110,10 +110,17 @@ export default function RentalDetailPage() {
       toast.error("Vui lòng chọn ngày");
       return false;
     }
+
+    if (!filter.start || !filter.end) {
+      toast.error("Vui lòng chọn đầy đủ thời gian");
+      return false;
+    }
+
     if (filter.start >= filter.end) {
       toast.error("Thời gian không hợp lệ");
       return false;
     }
+
     return true;
   };
 
@@ -122,10 +129,92 @@ export default function RentalDetailPage() {
       .length;
   };
 
+  const toMinutes = (time: string) => {
+    const [hours, minutes] = time.split(":").map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const isTimeOverlap = (
+    startA: string,
+    endA: string,
+    startB: string,
+    endB: string,
+  ) => {
+    return (
+      toMinutes(startA) < toMinutes(endB) && toMinutes(startB) < toMinutes(endA)
+    );
+  };
+
+  const hasConflictInCart = (
+    roomId: string,
+    date: string,
+    startTime: string,
+    endTime: string,
+    ignoreExactMatch = false,
+  ) => {
+    return cart.some((item) => {
+      const sameRoom = item.room.roomId === roomId;
+      const sameDate = item.date === date;
+
+      if (!sameRoom || !sameDate) return false;
+
+      const exactSameSlot =
+        item.startTime === startTime && item.endTime === endTime;
+
+      if (ignoreExactMatch && exactSameSlot) {
+        return false;
+      }
+
+      return isTimeOverlap(startTime, endTime, item.startTime, item.endTime);
+    });
+  };
+
+  const validateCartConflicts = (items: Cart) => {
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const a = items[i];
+        const b = items[j];
+
+        const sameRoom = a.room.roomId === b.room.roomId;
+        const sameDate = a.date === b.date;
+
+        if (!sameRoom || !sameDate) continue;
+
+        if (isTimeOverlap(a.startTime, a.endTime, b.startTime, b.endTime)) {
+          return {
+            valid: false,
+            itemA: a,
+            itemB: b,
+          };
+        }
+      }
+    }
+
+    return { valid: true as const };
+  };
+
   const addRoom = (room: Room) => {
     if (!validateFilter()) return;
 
     const maxCopies = getAvailableCopies(room);
+
+    if (maxCopies <= 0) {
+      toast.error("Phòng này hiện không còn lượt khả dụng");
+      return;
+    }
+
+    const hasConflict = hasConflictInCart(
+      room.roomId,
+      filter.date,
+      filter.start,
+      filter.end,
+      true,
+    );
+
+    if (hasConflict) {
+      toast.error("Khung giờ này bị trùng với lịch bạn đã chọn cho phòng này");
+      return;
+    }
 
     setCart((prev) => {
       const index = prev.findIndex(
@@ -139,8 +228,17 @@ export default function RentalDetailPage() {
       if (index !== -1) {
         const copy = [...prev];
         copy[index].quantity = Math.min(copy[index].quantity + 1, maxCopies);
+
+        if (copy[index].quantity === prev[index].quantity) {
+          toast.warning("Đã đạt số lượng phòng khả dụng tối đa");
+        } else {
+          toast.success("Đã tăng số lượng phòng");
+        }
+
         return copy;
       }
+
+      toast.success("Đã thêm phòng vào giỏ");
 
       return [
         ...prev,
@@ -153,15 +251,20 @@ export default function RentalDetailPage() {
         },
       ];
     });
-
-    toast.success("Đã thêm phòng vào giỏ");
   };
 
   const increase = (index: number) => {
     setCart((prev) => {
       const copy = [...prev];
       const max = getAvailableCopies(copy[index].room);
-      copy[index].quantity = Math.min(copy[index].quantity + 1, max);
+      const nextQty = Math.min(copy[index].quantity + 1, max);
+
+      if (nextQty === copy[index].quantity) {
+        toast.warning("Đã đạt số lượng phòng khả dụng tối đa");
+        return prev;
+      }
+
+      copy[index].quantity = nextQty;
       return copy;
     });
   };
@@ -170,8 +273,13 @@ export default function RentalDetailPage() {
     setCart((prev) => {
       const copy = [...prev];
       const qty = copy[index].quantity - 1;
-      if (qty <= 0) copy.splice(index, 1);
-      else copy[index].quantity = qty;
+
+      if (qty <= 0) {
+        copy.splice(index, 1);
+      } else {
+        copy[index].quantity = qty;
+      }
+
       return copy;
     });
   };
@@ -181,6 +289,16 @@ export default function RentalDetailPage() {
       toast.warning("Bạn chưa chọn phòng nào");
       return;
     }
+
+    const conflictCheck = validateCartConflicts(cart);
+
+    if (!conflictCheck.valid) {
+      toast.error(
+        "Giỏ đặt phòng đang có khung giờ bị trùng, vui lòng kiểm tra lại",
+      );
+      return;
+    }
+
     setOpenConfirm(true);
   };
 
@@ -192,6 +310,15 @@ export default function RentalDetailPage() {
 
     if (!user?.phone) {
       toast.error("Vui lòng cập nhật số điện thoại trước khi đặt phòng");
+      return;
+    }
+
+    const conflictCheck = validateCartConflicts(cart);
+
+    if (!conflictCheck.valid) {
+      toast.error(
+        "Giỏ đặt phòng đang có khung giờ bị trùng, vui lòng kiểm tra lại",
+      );
       return;
     }
 
