@@ -7,7 +7,11 @@ import org.rent.room.be.base.ApiResponse;
 import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.constant.QRType;
 import org.rent.room.be.dto.request.booking.BookingRequest;
+import org.rent.room.be.dto.request.booking.CheckSlotConflictRequest;
+import org.rent.room.be.dto.request.booking.GetAvailableSlotsRequest;
 import org.rent.room.be.dto.request.booking.UpdateBookingRequest;
+import org.rent.room.be.dto.request.booking.UpdateBookingSlotRequest;
+import org.rent.room.be.exception.AppException;
 import org.rent.room.be.security.CustomUserDetails;
 import org.rent.room.be.service.BookingQRService;
 import org.rent.room.be.service.BookingService;
@@ -23,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -53,7 +58,7 @@ public class BookingController {
         return new ResponseEntity<>(image, headers, HttpStatus.OK);
     }
 
-    @GetMapping("/qr-scan")
+    @GetMapping("/scan")
     public ApiResponse<?> scan(@RequestParam String token) {
 
         String result = bookingQRService.scanBookingQR(token);
@@ -182,7 +187,7 @@ public class BookingController {
                                        @RequestParam(defaultValue = "1", required = false) int page,
                                        @RequestParam(defaultValue = "10", required = false) int size) {
         try {
-            System.err.println("uẻ id "+ userId);
+
             return ApiResponse.builder()
                     .code(200)
                     .message("Get all bookings of rental successfully")
@@ -225,7 +230,7 @@ public class BookingController {
         }
     }
 
-    @PatchMapping("/bookings/{bookingId}/cancel")
+    @PutMapping("/{bookingId}/cancel")
     public ApiResponse<?> cancelBooking(@PathVariable UUID bookingId) {
         try {
 

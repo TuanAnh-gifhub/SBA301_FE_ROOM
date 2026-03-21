@@ -2,16 +2,17 @@ import { Card, Button } from "antd";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import createPayment from "../../../services/payment/paymentService";
-import type { CheckoutResponse } from "../../../services/payment/paymentService";
 import { useNavigate } from "react-router-dom";
-export default function PaymentSummary({ intent, contact = {} }: any) {
+
+export default function PaymentSummary({ intent }: any) {
   const [paymentMethod, setPaymentMethod] = useState("BANK");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handlePayment = async () => {
-    if (!contact.phone) {
-      toast.error("Vui lòng nhập số điện thoại");
+    // ✅ FIX BUG: dùng intent thay vì contact
+    if (!intent?.userPhone) {
+      toast.error("Vui lòng cập nhật số điện thoại");
       return;
     }
 
@@ -21,46 +22,36 @@ export default function PaymentSummary({ intent, contact = {} }: any) {
       const res = await createPayment({
         bookingIntentId: intent.bookingIntentId,
         paymentMethod,
-        phoneNumber: contact.phone,
-        note: contact.note,
+        phoneNumber: intent.userPhone,
+        note: intent.note,
       });
-      const result: CheckoutResponse | undefined = res?.data?.result;
+
+      const result = res?.data?.result;
+
       if (res.data.code === 201 && result) {
         if (result.mode === "BOOKED" && result.bookingId) {
           toast.success("Thanh toán thành công");
           navigate(`/payment/success/${result.bookingId}`);
           return;
         }
+
         if (result.mode === "REDIRECT" && result.paymentUrl) {
           window.location.href = result.paymentUrl;
           return;
         }
+
         if (result.mode === "PENDING") {
           toast.info(result.message || "Đang chờ xác nhận thanh toán");
           return;
         }
+
         toast.error(result.message || "Thanh toán chưa thành công");
         return;
       }
-      if (res.data.code !== 201) {
-        toast.error(res.data.message);
-      }
+
+      toast.error(res.data.message);
     } catch (err: any) {
-      if (!err.response) {
-        toast.error("Không thể kết nối server. Vui lòng thử lại.");
-        return;
-      }
-
-      const data = err.response.data;
-
-      if (data.code === 2003) {
-        const errorMessages = Object.values(data.result);
-        errorMessages.forEach((msg: any) => toast.error(msg));
-      }
-
-      if (data.code === 500) {
-        toast.error("Lỗi hệ thống");
-      }
+      toast.error("Lỗi thanh toán");
     } finally {
       setLoading(false);
     }
@@ -71,17 +62,12 @@ export default function PaymentSummary({ intent, contact = {} }: any) {
       <div className="space-y-2">
         <div className="flex justify-between">
           <span>Chi phí</span>
-          <span>{intent.subTotal} VNĐ</span>
+          <span>{intent.previewPrice} VNĐ</span>
         </div>
 
         <div className="flex justify-between">
           <span>Thuế</span>
           <span>{intent.tax || 0} VNĐ</span>
-        </div>
-
-        <div className="flex justify-between">
-          <span>Giảm giá</span>
-          <span>-{intent.discount || 0} VNĐ</span>
         </div>
       </div>
 
@@ -111,7 +97,7 @@ export default function PaymentSummary({ intent, contact = {} }: any) {
               paymentMethod === "VN_PAY" ? "border-teal-500 bg-teal-50" : ""
             }`}
           >
-            PayOS 
+            PayOS
           </button>
         </div>
       </div>

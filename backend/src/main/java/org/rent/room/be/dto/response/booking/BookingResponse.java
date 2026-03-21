@@ -3,6 +3,8 @@ package org.rent.room.be.dto.response.booking;
 import lombok.*;
 import org.rent.room.be.constant.BookingStatus;
 import org.rent.room.be.constant.BookingType;
+import org.rent.room.be.constant.PaymentMethod;
+import org.rent.room.be.constant.PaymentStatus;
 import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.dto.response.slot.SlotResponse;
 
@@ -29,7 +31,7 @@ public class BookingResponse {
     private String note;
     private BookingStatus status;
     private LocalDateTime createdAt;
-    private String statusPayment;
+    private PaymentMethod paymentMethod;
     private LocalDateTime checkIn;
     private LocalDateTime checkOut;
     private RentalAreaResponse rentalArea;

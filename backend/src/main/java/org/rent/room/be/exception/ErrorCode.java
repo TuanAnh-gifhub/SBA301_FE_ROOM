@@ -35,14 +35,16 @@ public enum ErrorCode {
     RENTPACKAGE_NOT_FOUND(4002, "Package not found", HttpStatus.NOT_FOUND),      // đổi 4001→4002
     INVALID_RENTPACKAGE(4003, "Invalid package data", HttpStatus.BAD_REQUEST),    // đổi 4002→4003
 
+
+    //POST_NOT_FOUND
+    POST_NOT_FOUND(4002, "Post not found", HttpStatus.NOT_FOUND),
+
     // Rental Area
     RENTAL_AREA_NOT_FOUND(4004, "Rental area not found", HttpStatus.NOT_FOUND),  // đổi 4001→4004
 
     // Subscription
     SUBSCRIPTION_ALREADY_ACTIVE(4005, "User already has an active subscription", HttpStatus.BAD_REQUEST),
     SUBSCRIPTION_NOT_FOUND(4006, "Subscription not found", HttpStatus.NOT_FOUND),
-
-
 
     //QR
     QR_NOT_FOUND(4000, "QR không hợp lệ",HttpStatus.BAD_REQUEST),
@@ -63,7 +65,7 @@ public enum ErrorCode {
     // BOOKING (Review Context)
     BOOKING_NOT_COMPLETED(5011, "Chỉ có thể review sau khi hoàn thành booking", HttpStatus.BAD_REQUEST),
     BOOKING_NOT_BELONG_TO_USER(5012, "Booking này không thuộc về bạn", HttpStatus.FORBIDDEN),
-
+    BOOKING_CANCELLED(5011, "Lịch hẹn đã hủy thì không thẻ quét mã", HttpStatus.BAD_REQUEST),
     // REPLY
     REPLY_ALREADY_EXISTS(5020, "Review này đã có phản hồi rồi", HttpStatus.CONFLICT),
     REPLY_NOT_FOUND(5021, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND),
@@ -76,14 +78,16 @@ public enum ErrorCode {
     INVALID_TAG(5040, "Tag không hợp lệ", HttpStatus.BAD_REQUEST),
     TOO_MANY_TAGS(5041, "Tối đa 5 tags mỗi review", HttpStatus.BAD_REQUEST),
 
+    // SLOT EDITING
+    INVALID_TIME_RANGE(4100, "Thời gian kết thúc phải sau thời gian bắt đầu", HttpStatus.BAD_REQUEST),
+    BOOKING_NOT_EDITABLE(4101, "Booking không ở trạng thái có thể chỉnh sửa", HttpStatus.BAD_REQUEST),
+    SLOT_NOT_FOUND(4102, "Không tìm thấy slot", HttpStatus.NOT_FOUND),
+    SLOT_CONFLICT(4103, "Thời gian này bị xung đột với booking khác", HttpStatus.CONFLICT),
+    SLOT_NOT_BELONG_TO_BOOKING(400, "Slot không thuộc booking này",HttpStatus.BAD_REQUEST),
+    SLOT_ALREADY_CANCELLED(400, "Slot đã bị hủy",HttpStatus.BAD_REQUEST),
     // MEDIA
-    TOO_MANY_MEDIA(5050, "Tối đa 5 file mỗi review", HttpStatus.BAD_REQUEST),
-
-    // Post
-    POST_NOT_FOUND(4004, "Post not found", HttpStatus.NOT_FOUND),
+    TOO_MANY_MEDIA(5050, "Tối đa 5 file mỗi review", HttpStatus.BAD_REQUEST);
     ;
-
-
 
 
 

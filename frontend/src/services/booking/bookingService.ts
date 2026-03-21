@@ -16,7 +16,13 @@ export const confirmBooking = async (bookingIntentId: any) => {
   });
   return res.data;
 };
-
+export const updateBooking = async (
+  bookingId: string,
+  payload: { bookingStatus: string; note: string },
+) => {
+  const res = await api.put(`/bookings/${bookingId}`, payload);
+  return res.data; 
+};
 export const updateBookingIntent = async (
   bookingIntentId: string,
   payload: any,
@@ -65,6 +71,39 @@ export const getBookingQrUrl = (
   type: "CHECK_IN" | "CHECK_OUT",
 ) => {
   return `${API_URL}/bookings/${bookingId}/qr?type=${type}`;
+};
+
+export const checkSlotConflict = async (params: {
+  roomCodes: string[];
+  startTime: string;
+  endTime: string;
+  excludeBookingId?: string;
+}) => {
+  const res = await api.get("/bookings/check-conflict", {
+    params,
+  });
+  return res.data.result || [];
+};
+
+export const getAvailableSlots = async (params: {
+  roomId: string;
+  startTime: string;
+  duration: number;
+}) => {
+  const res = await api.get("/bookings/available-slots", {
+    params,
+  });
+  return res.data.result || [];
+};
+
+export const updateBookingSlot = async (payload: {
+  slotId: string;
+  bookingId: string;
+  startTime: string;
+  endTime: string;
+}) => {
+  const res = await api.put(`/bookings/${payload.bookingId}/slots`, payload);
+  return res.data.result;
 };
 
 export const dashboardService = {

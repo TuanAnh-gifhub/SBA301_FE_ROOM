@@ -4,11 +4,14 @@ import org.rent.room.be.base.PageResponse;
 import org.rent.room.be.constant.*;
 
 import org.rent.room.be.dto.request.booking.BookingRequest;
+import org.rent.room.be.dto.request.booking.CheckSlotConflictRequest;
+import org.rent.room.be.dto.request.booking.GetAvailableSlotsRequest;
 import org.rent.room.be.dto.request.booking.SlotRequest;
 import org.rent.room.be.dto.response.booking.BookingIntentResponse;
 import org.rent.room.be.dto.response.booking.BookingResponse;
 import org.rent.room.be.dto.response.booking.IntentSlotResponse;
 import org.rent.room.be.dto.request.booking.UpdateBookingRequest;
+import org.rent.room.be.dto.request.booking.UpdateBookingSlotRequest;
 
 import org.rent.room.be.dto.response.booking.*;
 
@@ -16,6 +19,7 @@ import org.rent.room.be.dto.response.rental_area.RentalAreaResponse;
 import org.rent.room.be.dto.response.room.RoomImageResponse;
 import org.rent.room.be.dto.response.room.RoomResponse;
 import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
+import org.rent.room.be.dto.response.slot.SlotConflictResult;
 import org.rent.room.be.dto.response.slot.SlotResponse;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.entity.BookingIntent;
@@ -43,10 +47,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -76,7 +77,8 @@ public class BookingServiceImpl implements BookingService {
     @Autowired
     private InvoicePdfService invoicePdfService;
 
-
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Override
     public BookingIntentResponse getBookingIntentById(UUID bookingIntentId) {
@@ -210,8 +212,8 @@ public class BookingServiceImpl implements BookingService {
             if (availableRooms.size() < slotReq.getQuantity()) {
                 throw new RuntimeException(
                         room.getRoomName()
-                                + " chỉ còn "
-                                + availableRooms.size()
+                                + " khung giờ này phòng không còn trống"
+
                 );
             }
 
@@ -229,7 +231,7 @@ public class BookingServiceImpl implements BookingService {
             BigDecimal slotPrice = room.getPrice()
                     .multiply(BigDecimal.valueOf(slotReq.getQuantity()))
                     .multiply(hours);
-
+            intentSlot.setPrice(slotPrice);
             totalPrice = totalPrice.add(slotPrice);
         }
 
@@ -348,6 +350,7 @@ public class BookingServiceImpl implements BookingService {
                         .startTime(intentSlot.getStartTime())
                         .endTime(intentSlot.getEndTime())
                         .slotStatus(SlotStatus.BOOKED)
+                        .price(intentSlot.getPrice())
                         .build();
 
 
@@ -391,7 +394,7 @@ public class BookingServiceImpl implements BookingService {
                 .status(BookingStatus.BOOKED)
                 .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
-                .statusPayment("")
+                .paymentMethod(payment.getPaymentMethod())
                 .slots(slotResponses)
                 .createdAt(booking.getCreatedAt())
                 .rentalArea(rentalAreaResponse)
@@ -402,33 +405,87 @@ public class BookingServiceImpl implements BookingService {
 
 
     @Override
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public BookingResponse updateBooking(UUID bookingId, UpdateBookingRequest bookingRequest) {
 
-        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
-                new RuntimeException("Không tìm thấy booking với id " + bookingId));
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy booking với id " + bookingId));
 
-        booking.setBookingStatus(bookingRequest.getBookingStatus());
+        BookingStatus currentStatus = booking.getBookingStatus();
+        BookingStatus newStatus = bookingRequest.getBookingStatus();
+
+
+        if (currentStatus == BookingStatus.COMPLETED) {
+            throw new RuntimeException("Booking đã hoàn thành, không thể thay đổi");
+        }
+
+        booking.setBookingStatus(newStatus);
         booking.setNote(bookingRequest.getNote());
 
+        if (booking.getSlots() != null) {
+
+
+            if (newStatus == BookingStatus.CANCELLED) {
+                booking.getSlots().forEach(slot ->
+                        slot.setSlotStatus(SlotStatus.CANCELLED)
+                );
+            }
+
+
+            else if (newStatus == BookingStatus.BOOKED) {
+
+                for (Slot slot : booking.getSlots()) {
+
+
+                    if (slot.getSlotStatus() == SlotStatus.CANCELLED) {
+
+                        boolean conflict = slotRepository.existsConflictByRoom(
+                                slot.getRoomCopy().getRoom().getRoomId(),
+                                slot.getStartTime(),
+                                slot.getEndTime(),
+                                slot.getSlotId()
+                        );
+
+                        if (conflict) {
+                            throw new RuntimeException(
+                                    "Slot " + slot.getSlotId() + " đã bị trùng lịch, không thể khôi phục"
+                            );
+                        }
+
+                        slot.setSlotStatus(SlotStatus.BOOKED);
+                    }
+                }
+            }
+
+
+            else if (newStatus == BookingStatus.COMPLETED) {
+
+            }
+        }
+
         bookingRepository.save(booking);
+
+
         List<SlotResponse> slotResponses = booking.getSlots().stream().map(slot -> {
-
             RoomCopy rc = slot.getRoomCopy();
-            RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
-                    .roomCopyId(rc.getRoomCopyId())
-                    .roomCode(rc.getRoomCode())
-                    .roomCopyStatus(rc.getRoomCopyStatus())
-                    .build();
-
-
             return SlotResponse.builder()
                     .slotId(slot.getSlotId())
                     .startTime(slot.getStartTime())
                     .endTime(slot.getEndTime())
-                    .roomCopy(roomCopyResponse)
+                    .status(slot.getSlotStatus())
+                    .roomCopy(RoomCopyResponse.builder()
+                            .roomCopyId(rc.getRoomCopyId())
+                            .roomCode(rc.getRoomCode())
+                            .build())
                     .build();
         }).toList();
+
+        Optional<Payment> payment = paymentRepository
+                .findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
+
+        PaymentMethod paymentMethod = payment.map(Payment::getPaymentMethod).orElse(null);
+
         RentalAreaResponse rentalAreaResponse = RentalAreaResponse.builder()
                 .rentalAreaName(booking.getRentalArea().getRentalAreaName())
                 .address(booking.getRentalArea().getAddress())
@@ -446,15 +503,13 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getBookingStatus())
                 .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
-                .statusPayment("")
+                .paymentMethod(paymentMethod)
                 .slots(slotResponses)
                 .createdAt(booking.getCreatedAt())
                 .rentalArea(rentalAreaResponse)
                 .qrCodeUrl(null)
                 .invoicePdfUrl(booking.getInvoiceUrl())
                 .build();
-
-
     }
 
     @Override
@@ -462,7 +517,11 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
                 new RuntimeException("Không tìm thấy booking với id " + bookingId));
 
-
+        Optional<Payment> payment = paymentRepository.findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
+        PaymentMethod paymentMethod = null;
+        if (payment.isPresent()) {
+            paymentMethod = payment.get().getPaymentMethod();
+        }
         List<SlotResponse> slotResponses = booking.getSlots().stream().map(slot -> {
 
             RoomCopy rc = slot.getRoomCopy();
@@ -497,7 +556,7 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getBookingStatus())
                 .note(booking.getNote())
                 .totalPrice(booking.getTotalPrice())
-                .statusPayment("")
+                .paymentMethod(paymentMethod)
                 .slots(slotResponses)
                 .createdAt(booking.getCreatedAt())
                 .rentalArea(rentalAreaResponse)
@@ -531,6 +590,11 @@ public class BookingServiceImpl implements BookingService {
                 bookingPage.getContent().stream()
                         .map(booking -> {
 
+                            Optional<Payment> payment = paymentRepository.findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
+                            PaymentMethod paymentMethod = null;
+                            if (payment.isPresent()) {
+                                paymentMethod = payment.get().getPaymentMethod();
+                            }
                             List<SlotResponse> slotResponses = booking.getSlots().stream()
                                     .map(slot -> {
                                         RoomCopy roomCopy = slot.getRoomCopy();
@@ -563,7 +627,7 @@ public class BookingServiceImpl implements BookingService {
                                     .createdAt(booking.getCreatedAt())
                                     .status(booking.getBookingStatus())
                                     .bookingType(booking.getBookingType())
-                                    .statusPayment("")
+                                    .paymentMethod(paymentMethod)
                                     .slots(slotResponses)
                                     .build();
                         })
@@ -600,7 +664,11 @@ public class BookingServiceImpl implements BookingService {
         List<BookingResponse> responses =
                 bookingPage.getContent().stream()
                         .map(booking -> {
-
+                            Optional<Payment> payment = paymentRepository.findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
+                            PaymentMethod paymentMethod = null;
+                            if (payment.isPresent()) {
+                                paymentMethod = payment.get().getPaymentMethod();
+                            }
                             List<SlotResponse> slotResponses = booking.getSlots().stream()
                                     .map(slot -> {
                                         RoomCopy roomCopy = slot.getRoomCopy();
@@ -633,7 +701,7 @@ public class BookingServiceImpl implements BookingService {
                                     .createdAt(booking.getCreatedAt())
                                     .status(booking.getBookingStatus())
                                     .bookingType(booking.getBookingType())
-                                    .statusPayment("")
+                                    .paymentMethod(paymentMethod)
                                     .slots(slotResponses)
                                     .invoicePdfUrl(booking.getInvoiceUrl())
                                     .build();
@@ -650,6 +718,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public BookingResponse cancelBooking(UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
                 new RuntimeException("Không tìm thấy booking với id " + bookingId));
@@ -658,26 +727,34 @@ public class BookingServiceImpl implements BookingService {
             throw new RuntimeException("Booking đã được hủy trước đó");
         }
 
+
         booking.setBookingStatus(BookingStatus.CANCELLED);
+
+        if (booking.getSlots() != null) {
+            booking.getSlots().forEach(slot -> {
+                slot.setSlotStatus(SlotStatus.CANCELLED);
+            });
+        }
+
+
         bookingRepository.save(booking);
+
+
         List<SlotResponse> slotResponse = booking.getSlots().stream().map(slot -> {
             RoomCopy roomCopy = slot.getRoomCopy();
-            RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
-                    .roomCopyId(roomCopy.getRoomCopyId())
-                    .roomCode(roomCopy.getRoomCode())
-                    .build();
-
             return SlotResponse.builder()
                     .slotId(slot.getSlotId())
                     .startTime(slot.getStartTime())
                     .endTime(slot.getEndTime())
-                    .roomCopy(roomCopyResponse)
+                    .roomCopy(RoomCopyResponse.builder()
+                            .roomCopyId(roomCopy.getRoomCopyId())
+                            .roomCode(roomCopy.getRoomCode())
+                            .build())
                     .status(slot.getSlotStatus())
-
                     .build();
         }).toList();
 
-        BookingResponse bookingResponse = BookingResponse.builder()
+        return BookingResponse.builder()
                 .bookingId(booking.getBookingId())
                 .userName(booking.getRenter().getUserName())
                 .phoneNumber(booking.getRenter().getPhone() != null ? booking.getRenter().getPhone() : "")
@@ -687,8 +764,6 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getBookingStatus())
                 .slots(slotResponse)
                 .build();
-
-        return bookingResponse;
     }
 
     @Override
@@ -849,6 +924,13 @@ public class BookingServiceImpl implements BookingService {
 
     private BookingResponse mapToBookingResponse(Booking booking) {
 
+
+        Optional<Payment> payment = paymentRepository.findFirstByBookingIdOrderByTransactionDateDesc(booking.getBookingId());
+        PaymentMethod paymentMethod = null;
+        if (payment.isPresent()) {
+            paymentMethod = payment.get().getPaymentMethod();
+        }
+
         List<SlotResponse> slotResponses = booking.getSlots().stream()
                 .map(slot -> {
 
@@ -865,6 +947,7 @@ public class BookingServiceImpl implements BookingService {
                             .endTime(slot.getEndTime())
                             .roomCopy(roomCopyResponse)
                             .status(slot.getSlotStatus())
+                            .price(roomCopy.getRoom().getPrice())
                             .build();
                 })
                 .toList();
@@ -880,8 +963,13 @@ public class BookingServiceImpl implements BookingService {
                 .createdAt(booking.getCreatedAt())
                 .status(booking.getBookingStatus())
                 .bookingType(booking.getBookingType())
-                .statusPayment("")
+                .paymentMethod(paymentMethod)
                 .slots(slotResponses)
                 .build();
     }
+
+
+
+
+
 }

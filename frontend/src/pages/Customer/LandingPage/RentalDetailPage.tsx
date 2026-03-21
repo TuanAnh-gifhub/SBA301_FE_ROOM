@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import rentalAreasService from "../../../services/rental-areas/rentalAreas";
 import { toast } from "react-toastify";
-import { Row, Col } from "antd";
+import { Row, Col, Modal, Input, List, Typography, Divider } from "antd";
 import BookingPanel from "../Booking/BookingPanel";
 import { useAuth } from "../../../context/AuthContext";
 import type { Room } from "../../../types/booking";
@@ -17,23 +17,15 @@ import { ReviewSection } from "../../../components/review/ReviewSection";
 import HostCard from "../Rental/HostCard";
 import RentalInfo from "../Rental/RentalInfo";
 
-// ── Import service booking để lấy completedBookingId ──────────────
-// TODO: thay bằng đúng service booking của dự án bạn
-// import bookingService from "../../../services/booking/bookingService";
+const { TextArea } = Input;
+const { Text } = Typography;
 
-interface BookingSlot {
-  roomId: string;
-  room: Room;
-  date: string;
-  start: string;
-  end: string;
-  quantity: number;
-}
 interface BookingFilter {
   date: string;
   start: string;
   end: string;
 }
+
 type CartItem = {
   room: Room;
   date: string;
@@ -45,20 +37,13 @@ type CartItem = {
 type Cart = CartItem[];
 
 export default function RentalDetailPage() {
-  const [slots, setSlots] = useState<BookingSlot[]>([]);
   const { id } = useParams();
-  const [rental, setRental] = useState<any>(null);
-  const [quantity, setQuantity] = useState(0);
   const { user } = useAuth();
-  const [cart, setCart] = useState<Cart>([]);
   const navigate = useNavigate();
 
-  // ── FIX 1: completedBookingId ────────────────────────────────────
-  // State lưu bookingId COMPLETED của user cho rental area này.
-  // Nếu có -> hiện form viết review. Nếu undefined -> ẩn form.
-const [completedBookingId, setCompletedBookingId] = useState<string | undefined>(
- // paste bookingId COMPLETED thật từ DB vào đây
-);
+  const [rental, setRental] = useState<any>(null);
+  const [cart, setCart] = useState<Cart>([]);
+  const [completedBookingId, setCompletedBookingId] = useState<string>();
 
   const [filter, setFilter] = useState<BookingFilter>({
     date: "",
@@ -66,12 +51,14 @@ const [completedBookingId, setCompletedBookingId] = useState<string | undefined>
     end: "09:00",
   });
 
+  // ✅ modal state
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [note, setNote] = useState("");
+
   useEffect(() => {
     fetchDetail();
   }, [id]);
 
-  // ── FIX 2: Fetch completedBookingId theo user + rentalArea ────────
-  // Chạy khi đã có user và id rental area
   useEffect(() => {
     if (!user?.userId || !id) return;
     fetchCompletedBooking();
@@ -84,17 +71,13 @@ const [completedBookingId, setCompletedBookingId] = useState<string | undefined>
 
   const fetchCompletedBooking = async () => {
     try {
-      // Gọi GET /bookings/my-bookings?rentalAreaId=...&status=COMPLETED&page=1&size=1
-      // Chỉ cần lấy 1 booking COMPLETED là đủ để mở form viết review
-    const res = await getBookingsByUserId({
-      userId: user?.userId,
-      bookingStatus: "COMPLETED",
-      page: 1,
-      size: 5,
-    });
+      const res = await getBookingsByUserId({
+        userId: user?.userId,
+        bookingStatus: "COMPLETED",
+        page: 1,
+        size: 5,
+      });
 
-      // res.result có thể là PageResponse hoặc array tuỳ BE
-      // Trường hợp 1: BE trả về PageResponse { data: [...] }
       const bookings = res?.result?.data ?? res?.result ?? [];
       const first = Array.isArray(bookings) ? bookings[0] : null;
 
@@ -102,18 +85,17 @@ const [completedBookingId, setCompletedBookingId] = useState<string | undefined>
         setCompletedBookingId(first.bookingId);
       }
     } catch (err) {
-      // Lỗi ở đây không cần báo user — chỉ ẩn form viết review
       console.error("Không thể kiểm tra booking COMPLETED:", err);
     }
   };
 
   const validateFilter = () => {
     if (!filter.date) {
-      toast.error("Chọn ngày");
+      toast.error("Vui lòng chọn ngày");
       return false;
     }
     if (filter.start >= filter.end) {
-      toast.error("Giờ không hợp lệ");
+      toast.error("Thời gian không hợp lệ");
       return false;
     }
     return true;
@@ -126,8 +108,8 @@ const [completedBookingId, setCompletedBookingId] = useState<string | undefined>
 
   const addRoom = (room: Room) => {
     if (!validateFilter()) return;
+
     const maxCopies = getAvailableCopies(room);
-    let added = false;
 
     setCart((prev) => {
       const index = prev.findIndex(
@@ -135,21 +117,15 @@ const [completedBookingId, setCompletedBookingId] = useState<string | undefined>
           item.room.roomId === room.roomId &&
           item.date === filter.date &&
           item.startTime === filter.start &&
-          item.endTime === filter.end
+          item.endTime === filter.end,
       );
 
       if (index !== -1) {
         const copy = [...prev];
-        copy[index] = {
-          ...copy[index],
-          quantity: Math.min(copy[index].quantity + 1, maxCopies),
-        };
-
-        added = true;
+        copy[index].quantity = Math.min(copy[index].quantity + 1, maxCopies);
         return copy;
       }
 
-      added = true;
       return [
         ...prev,
         {
@@ -162,20 +138,14 @@ const [completedBookingId, setCompletedBookingId] = useState<string | undefined>
       ];
     });
 
-    if (added) toast.success("Thêm phòng vào giỏ hàng thành công");
+    toast.success("Đã thêm phòng vào giỏ");
   };
 
   const increase = (index: number) => {
     setCart((prev) => {
       const copy = [...prev];
-
-      const maxCopies = getAvailableCopies(copy[index].room);
-
-      copy[index] = {
-        ...copy[index],
-        quantity: Math.min(copy[index].quantity + 1, maxCopies),
-      };
-
+      const max = getAvailableCopies(copy[index].room);
+      copy[index].quantity = Math.min(copy[index].quantity + 1, max);
       return copy;
     });
   };
@@ -183,17 +153,34 @@ const [completedBookingId, setCompletedBookingId] = useState<string | undefined>
   const decrease = (index: number) => {
     setCart((prev) => {
       const copy = [...prev];
-      const newQty = copy[index].quantity - 1;
-      if (newQty <= 0) {
-        copy.splice(index, 1);
-      } else {
-        copy[index] = { ...copy[index], quantity: newQty };
-      }
+      const qty = copy[index].quantity - 1;
+      if (qty <= 0) copy.splice(index, 1);
+      else copy[index].quantity = qty;
       return copy;
     });
   };
 
+  // ✅ mở modal thay vì submit luôn
+  const openBookingConfirm = () => {
+    if (!cart.length) {
+      toast.warning("Bạn chưa chọn phòng nào");
+      return;
+    }
+    setOpenConfirm(true);
+  };
+
   const submitBooking = async () => {
+    // validate user
+    if (!user?.userName) {
+      toast.error("Thiếu tên người dùng");
+      return;
+    }
+
+    if (!user?.phone) {
+      toast.error("Vui lòng cập nhật số điện thoại trước khi đặt phòng");
+      return;
+    }
+
     try {
       const slotRequests = cart.map((item) => ({
         roomId: item.room.roomId,
@@ -204,58 +191,34 @@ const [completedBookingId, setCompletedBookingId] = useState<string | undefined>
 
       const payload = {
         userId: user?.userId,
-        userName: user?.name,
-        userPhone: user?.phone || "",
+        userName: user?.userName,
+        userPhone: user?.phone,
         bookingType: "HOURLY",
         numberOfMonths: 0,
-        note: "",
+        note,
         slotRequests,
       };
 
       const res = await createBookingIntent(payload);
+
       if (res.code === 200) {
-        toast.success("Hãy xác nhận phòng và hoàn tất thanh toán trong 15 phút.");
+        toast.success(
+          "Tạo booking thành công. Vui lòng thanh toán trong 15 phút",
+        );
         navigate(`/customer/bookings/${res.result.bookingIntentId}`);
         setCart([]);
-      }
-
-      if (res.code === 500) {
+        setOpenConfirm(false);
+        setNote("");
+      } else {
         toast.error(res.message || "Đặt phòng thất bại");
       }
-    } catch (err) {
-      if (err.response && err.response.data) {
-        const res = err.response.data;
-        console.log("Dữ liệu lỗi từ server:", res);
-
-        if (res.code === 2003) {
-          const errorMessages = Object.values(res.result);
-          errorMessages.forEach((msg) => toast.error(msg));
-        } else {
-          toast.error(res.message || "Đặt phòng thất bại");
-        }
-      } else {
-        toast.error("Không thể kết nối đến server");
-      }
-
+    } catch (err: any) {
+      toast.error("Có lỗi xảy ra khi đặt phòng");
     }
   };
 
   if (!rental) return <p>Loading...</p>;
 
-  // ── FIX 3: isOwner ───────────────────────────────────────────────
-  // rental.ownerId không có trong RentalAreaResponse mặc định.
-  // Kiểm tra xem API trả về field gì để xác định chủ phòng.
-  //
-  // Option A: Nếu API trả về `ownerId` trong rental object:
-  //   const isOwner = user?.userId === rental?.ownerId;
-  //
-  // Option B: Nếu API trả về nested object `owner: { userId }`:
-  //   const isOwner = user?.userId === rental?.owner?.userId;
-  //
-  // Option C: Nếu không có field nào → dùng role của user:
-  //   const isOwner = user?.role === "OWNER";
-  //
-  // Tạm thời dùng Option A (sửa lại nếu sai field):
   const isOwner = user?.userId === rental?.ownerId;
 
   return (
@@ -286,13 +249,48 @@ const [completedBookingId, setCompletedBookingId] = useState<string | undefined>
             cart={cart}
             increase={increase}
             decrease={decrease}
-            onSubmit={submitBooking}
+            onSubmit={openBookingConfirm} // ✅ đổi ở đây
           />
         </Col>
       </Row>
 
-      {/* ── FIX HOÀN CHỈNH: ReviewSection ────────────────────────── */}
-      {/* rental.rentalAreaId lấy từ state `rental` đã fetch được     */}
+   
+      <Modal
+        title="Xác nhận đặt phòng"
+        open={openConfirm}
+        onCancel={() => setOpenConfirm(false)}
+        onOk={submitBooking}
+        okText="Xác nhận & thanh toán"
+        cancelText="Hủy"
+      >
+        <Text strong>Danh sách phòng đã chọn:</Text>
+
+        <List
+          dataSource={cart}
+          renderItem={(item) => (
+            <List.Item>
+              <div>
+                <div>{item.room.name}</div>
+                <div>
+                  {item.date} | {item.startTime} - {item.endTime}
+                </div>
+                <div>Số lượng: {item.quantity}</div>
+              </div>
+            </List.Item>
+          )}
+        />
+
+        <Divider />
+
+        <Text strong>Ghi chú thêm:</Text>
+        <TextArea
+          rows={3}
+          placeholder="Nhập yêu cầu thêm (nếu có)"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </Modal>
+
       <div className="mt-10">
         <ReviewSection
           rentalAreaId={rental.rentalAreaId}

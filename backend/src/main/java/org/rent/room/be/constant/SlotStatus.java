@@ -5,5 +5,7 @@ public enum SlotStatus {
     AVAILABLE,
     MAINTAIN,
     USING,
-    NOT_AVAILABLE
+    NOT_AVAILABLE,
+    CANCELLED,
+    COMPLETED
 }
