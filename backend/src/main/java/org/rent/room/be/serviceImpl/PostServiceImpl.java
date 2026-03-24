@@ -31,6 +31,7 @@ import org.springframework.data.domain.Pageable;
 
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,6 +45,7 @@ public class PostServiceImpl implements PostService {
     UserRepository userRepository;
     RoomImageRepository roomImageRepository;
     RentalAreaImageRepository rentalAreaImageRepository;
+    SubscriptionRepository subscriptionRepository;
 
     @Override
     @Transactional
@@ -54,7 +56,7 @@ public class PostServiceImpl implements PostService {
 
         RentalArea rentalArea = room.getRentalArea();
 
-        // check owner (owner là rentalArea.owner)
+        // check owner
         UUID ownerId = room.getRentalArea().getOwner().getUserId();
         if (ownerId == null || !ownerId.equals(currentUserId)) {
             throw new RuntimeException("Forbidden: not owner of this room");
@@ -64,6 +66,38 @@ public class PostServiceImpl implements PostService {
         if (postRepository.existsByRoom_RoomId(room.getRoomId())) {
             throw new IllegalArgumentException("This room already has a post");
         }
+
+        // =================================================================
+        // KHỐI LOGIC VALIDATE GÓI CƯỚC (QUOTA + DURATION)
+        // =================================================================
+
+        // 1. Kiểm tra user có gói nào đang Active không
+        Subscription subscription = subscriptionRepository.findByUser_UserIdAndActiveTrue(currentUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.SUBSCRIPTION_REQUIRED)); // Đã sửa thành AppException
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 2. Kiểm tra thời gian của gói có còn hạn không
+        if (now.isAfter(subscription.getEndDate())) {
+            // Quá hạn -> Tự động vô hiệu hóa gói hiện tại và bắt lỗi
+            subscription.setActive(false);
+            subscriptionRepository.save(subscription);
+            throw new AppException(ErrorCode.POST_QUOTA_EXCEEDED); // Chỗ này bạn làm đúng rồi
+        }
+
+        // 3. Kiểm tra số lượng bài đã đăng (Quota)
+        int currentPostCount = postRepository.countByUser_UserIdAndCreatedAtBetween(
+                currentUserId,
+                subscription.getStartDate(),
+                subscription.getEndDate()
+        );
+
+        int maxPostsAllowed = subscription.getRentPackage().getMaxPosts();
+        if (currentPostCount >= maxPostsAllowed) {
+            // Đã sửa thành AppException (bỏ câu string nối chuỗi đi vì ErrorCode đã chứa message rồi)
+            throw new AppException(ErrorCode.POST_QUOTA_EXCEEDED);
+        }
+        // =================================================================
 
         User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new NoSuchElementException("User not found"));
