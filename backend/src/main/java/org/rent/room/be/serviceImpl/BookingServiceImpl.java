@@ -779,7 +779,17 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public BookingSummaryResponse getBookingSummary(LocalDateTime from, LocalDateTime to, UUID userId) {
-
+        // Xử lý giá trị mặc định nếu from/to bị null
+        if (from == null) {
+            // Nếu không truyền từ ngày, lấy từ một mốc rất xa trong quá khứ (hoặc ngày đầu tháng tùy nghiệp vụ)
+            from = LocalDateTime.of(2000, 1, 1, 0, 0);
+        }
+        if (to == null) {
+            // Nếu không truyền đến ngày, lấy thời điểm hiện tại
+            to = LocalDateTime.now();
+        }
+        userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 

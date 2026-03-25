@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.base.ApiResponse;
+import org.rent.room.be.dto.response.dashboard.OwnerRevenueStatsResponse;
 import org.rent.room.be.dto.response.dashboard.OwnerReviewStatsResponse;
 import org.rent.room.be.dto.response.dashboard.OwnerRoomSummaryResponse;
 import org.rent.room.be.service.OwnerDashboardService;
@@ -64,6 +65,19 @@ public class OwnerDashboardController {
                         .code(200)
                         .message("Lấy thống kê review thành công")
                         .result(ownerDashboardService.getReviewStats(from, to))
+                        .build()
+        );
+    }
+
+    @Operation(summary = "Lấy dữ liệu biểu đồ doanh thu (7 ngày & 12 tháng)")
+    @GetMapping("/revenue-stats")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<ApiResponse<OwnerRevenueStatsResponse>> getRevenueStats() {
+        return ResponseEntity.ok(
+                ApiResponse.<OwnerRevenueStatsResponse>builder()
+                        .code(200)
+                        .message("Lấy thống kê doanh thu thành công")
+                        .result(ownerDashboardService.getRevenueStats())
                         .build()
         );
     }

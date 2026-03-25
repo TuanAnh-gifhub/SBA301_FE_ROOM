@@ -2,6 +2,8 @@ package org.rent.room.be.repository;
 
 import org.rent.room.be.constant.WalletTxStatus;
 import org.rent.room.be.constant.WalletTxType;
+import org.rent.room.be.dto.response.dashboard.OwnerRevenueStatsResponse;
+import org.rent.room.be.dto.response.dashboard.RevenueData;
 import org.rent.room.be.entity.Wallet;
 import org.rent.room.be.entity.WalletTransaction;
 import org.springframework.data.domain.Page;
@@ -13,6 +15,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -110,5 +113,35 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
               AND r.reply IS NULL
             """)
     long countPendingReplyByOwner(@Param("ownerId") UUID ownerId);
+
+    @Query("""
+                SELECT NEW org.rent.room.be.dto.response.dashboard.RevenueData(
+                    CAST(FUNCTION('TO_CHAR', wt.createdAt, 'DD/MM') AS string), 
+                    SUM(wt.amount)
+                )
+                FROM WalletTransaction wt
+                WHERE wt.wallet.user.userId = :userId
+                AND wt.type = org.rent.room.be.constant.WalletTxType.BOOKING_INCOME
+                AND wt.status = org.rent.room.be.constant.WalletTxStatus.COMPLETED
+                AND wt.createdAt >= :startDate
+                GROUP BY FUNCTION('TO_CHAR', wt.createdAt, 'DD/MM')
+                ORDER BY MIN(wt.createdAt) ASC
+            """)
+    List<RevenueData> getDailyRevenue(@Param("userId") UUID userId, @Param("startDate") LocalDateTime startDate);
+
+    @Query("""
+                SELECT NEW org.rent.room.be.dto.response.dashboard.RevenueData(
+                    CAST(FUNCTION('TO_CHAR', wt.createdAt, 'MM/YYYY') AS string), 
+                    SUM(wt.amount)
+                )
+                FROM WalletTransaction wt
+                WHERE wt.wallet.user.userId = :userId
+                AND wt.type = org.rent.room.be.constant.WalletTxType.BOOKING_INCOME
+                AND wt.status = org.rent.room.be.constant.WalletTxStatus.COMPLETED
+                AND EXTRACT(YEAR FROM wt.createdAt) = :year
+                GROUP BY FUNCTION('TO_CHAR', wt.createdAt, 'MM/YYYY')
+                ORDER BY MIN(wt.createdAt) ASC
+            """)
+    List<RevenueData> getMonthlyRevenue(@Param("userId") UUID userId, @Param("year") int year);
 }
 
