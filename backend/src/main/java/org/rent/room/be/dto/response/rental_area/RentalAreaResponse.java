@@ -3,6 +3,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.dto.response.room.RoomResponse;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,7 +20,8 @@ public class RentalAreaResponse {
     String contactName;
     String contactPhone;
     String status;
-
+    LocalTime openTime;
+    LocalTime closeTime;
     Long cityId;
     String cityName;
 

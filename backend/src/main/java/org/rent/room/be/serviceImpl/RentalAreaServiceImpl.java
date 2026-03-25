@@ -257,6 +257,8 @@ public class RentalAreaServiceImpl implements RentalAreaService {
                 .rooms(roomResponses)
                 .ownerId(rentalArea.getOwner().getUserId())
                 .ownerName(rentalArea.getOwner().getUserName())
+                .openTime(rentalArea.getOpenTime())
+                .closeTime(rentalArea.getCloseTime())
                 .build();
     }
 
@@ -297,7 +299,8 @@ public class RentalAreaServiceImpl implements RentalAreaService {
         rentalArea.setContactName(req.getContactName());
         rentalArea.setContactPhone(req.getContactPhone());
         rentalArea.setCity(city);
-
+       rentalArea.setCloseTime(req.getCloseTime());
+       rentalArea.setOpenTime(req.getOpenTime());
         rentalAreaRepository.save(rentalArea);
         return mapToResponse(rentalArea);
     }
