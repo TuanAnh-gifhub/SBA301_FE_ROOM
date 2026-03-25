@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import api from "../../config/axios";
 
 // ----------------------------------------------------------------
@@ -59,37 +60,50 @@ export interface ReviewStats {
   pendingReplyCount: number;
 }
 
+export interface RevenueData {
+  label: string;
+  amount: number;
+}
+
+export interface OwnerRevenueStatsResponse {
+  last7Days: RevenueData[];
+  monthlyInYear: RevenueData[];
+}
+
 export type TimeRange = "7d" | "30d" | "3m" | "ytd";
 
 // ----------------------------------------------------------------
 // HELPERS
 // ----------------------------------------------------------------
 
-export function getDateRange(range: TimeRange): { from: string; to: string } {
-  const now = new Date();
-  const to = now.toISOString().slice(0, 19); // "2025-03-17T10:00:00"
-  let from: Date;
+export const getDateRange = (range: TimeRange) => {
+  const now = dayjs(); // Lấy thời gian hiện tại của trình duyệt (ví dụ 14:54)
+  
+  // Format: "2026-03-25T14:54:40" (Không có chữ Z ở cuối để tránh bị Backend hiểu lầm là UTC)
+  const to = now.format("YYYY-MM-DDTHH:mm:ss");
 
+  let fromDate;
   switch (range) {
     case "7d":
-      from = new Date(now);
-      from.setDate(now.getDate() - 7);
+      fromDate = now.subtract(7, "day");
       break;
     case "30d":
-      from = new Date(now);
-      from.setDate(now.getDate() - 30);
+      fromDate = now.subtract(30, "day");
       break;
     case "3m":
-      from = new Date(now);
-      from.setMonth(now.getMonth() - 3);
+      fromDate = now.subtract(3, "month");
       break;
     case "ytd":
-      from = new Date(now.getFullYear(), 0, 1); // Jan 1 of current year
+      fromDate = now.startOf("year");
       break;
+    default:
+      fromDate = now.subtract(30, "day");
   }
 
-  return { from: from.toISOString().slice(0, 19), to };
-}
+  const from = fromDate.format("YYYY-MM-DDTHH:mm:ss");
+
+  return { from, to };
+};
 
 // ----------------------------------------------------------------
 // API CALLS
@@ -117,9 +131,13 @@ export const dashboardService = {
     return res.data.result;
   },
 
-  /** API 3: Tổng thu nhập wallet */
+/** API 3: Tổng thu nhập wallet */
   getWalletRevenue: async (range: TimeRange): Promise<WalletRevenue> => {
     const { from, to } = getDateRange(range);
+    
+    // Log này giúp bạn xác nhận toDate đã khớp với đồng hồ máy tính chưa
+    console.log(`[Wallet API] Range: ${range} | From: ${from} | To: ${to}`);
+
     const res = await api.get("/wallet/revenue", {
       params: { fromDate: from, toDate: to },
     });
@@ -150,6 +168,11 @@ export const dashboardService = {
     const res = await api.get("/owner/dashboard/review-stats", {
       params: { from, to },
     });
+    return res.data.result;
+  },
+
+  getOwnerRevenueStats: async (): Promise<OwnerRevenueStatsResponse> => {
+    const res = await api.get("/owner/dashboard/revenue-stats");
     return res.data.result;
   },
 };

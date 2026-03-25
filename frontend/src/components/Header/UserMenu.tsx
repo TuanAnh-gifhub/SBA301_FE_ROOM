@@ -154,7 +154,7 @@ const UserMenu = ({
             </Link>
 
             <Link
-              to="/owner"
+              to="/owner/dashboard"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
             >

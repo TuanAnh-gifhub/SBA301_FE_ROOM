@@ -284,9 +284,13 @@ public class BookingController {
     @GetMapping("/dashboard/summary")
     public ApiResponse<?> summary(
             @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)   // ← THÊM DÒNG NÀY
             LocalDateTime from,
+
             @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)   // ← THÊM DÒNG NÀY
             LocalDateTime to,
+
             @AuthenticationPrincipal UserDetails principal) {
         try {
             UUID currentUserId = null;
@@ -296,13 +300,17 @@ public class BookingController {
             if (currentUserId == null) {
                 throw new RuntimeException("User not authenticated");
             }
+
+            // Default: nếu không truyền from/to → lấy 30 ngày gần nhất
+            if (from == null) from = LocalDateTime.now().minusDays(30);
+            if (to == null)   to   = LocalDateTime.now();
+
             return ApiResponse.builder()
                     .code(200)
                     .message("Dashboard summary booking successfully")
-                    .result(bookingService.getBookingSummary(from,to,currentUserId))
+                    .result(bookingService.getBookingSummary(from, to, currentUserId))
                     .build();
         } catch (Exception e) {
-            e.getStackTrace();
             return ApiResponse.builder()
                     .code(500)
                     .message("Api system have some problems " + e.getMessage())
