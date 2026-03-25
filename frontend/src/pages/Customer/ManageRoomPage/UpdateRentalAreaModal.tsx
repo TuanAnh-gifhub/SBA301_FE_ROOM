@@ -8,7 +8,8 @@ import {
 } from "@ant-design/icons";
 import type { CityResponse } from "../../../services/cities/cities";
 import type { RentalAreaResponse } from "../../../services/rental-areas/rentalAreas";
-
+import { TimePicker } from "antd";
+import dayjs from "dayjs";
 const { Option } = Select;
 
 type FormValues = {
@@ -17,6 +18,8 @@ type FormValues = {
   contactName?: string;
   contactPhone?: string;
   cityId: number;
+  openTime: Dayjs;
+  closeTime: Dayjs;
 };
 
 type Props = {
@@ -49,6 +52,8 @@ const UpdateRentalAreaModal: React.FC<Props> = ({
         contactName: initial.contactName,
         contactPhone: initial.contactPhone,
         cityId: initial.cityId,
+        openTime: initial.openTime ? dayjs(initial.openTime, "HH:mm") : null,
+        closeTime: initial.closeTime ? dayjs(initial.closeTime, "HH:mm") : null,
       });
     }
 
@@ -60,13 +65,19 @@ const UpdateRentalAreaModal: React.FC<Props> = ({
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      await onSubmit(values);
+
+      const payload = {
+        ...values,
+        openTime: values.openTime?.format("HH:mm"),
+        closeTime: values.closeTime?.format("HH:mm"),
+      };
+
+      await onSubmit(payload);
       form.resetFields();
     } catch {
       //
     }
   };
-
   const handleCancel = () => {
     form.resetFields();
     onClose();
@@ -215,6 +226,26 @@ const UpdateRentalAreaModal: React.FC<Props> = ({
                 </span>
               </div>
             </div>
+          </div>
+
+          <div className={cardClass}>
+            <div className={sectionTitleClass}>Giờ hoạt động</div>
+
+            <Form.Item
+              label="Giờ mở cửa"
+              name="openTime"
+              rules={[{ required: true, message: "Chọn giờ mở cửa" }]}
+            >
+              <TimePicker format="HH:mm" minuteStep={30} className="w-full" />
+            </Form.Item>
+
+            <Form.Item
+              label="Giờ đóng cửa"
+              name="closeTime"
+              rules={[{ required: true, message: "Chọn giờ đóng cửa" }]}
+            >
+              <TimePicker format="HH:mm" minuteStep={30} className="w-full" />
+            </Form.Item>
           </div>
         </div>
       </Form>

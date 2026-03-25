@@ -47,6 +47,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -191,14 +192,23 @@ public class BookingServiceImpl implements BookingService {
                     slotReq.getRoomId()
             ).orElseThrow(() ->
                     new RuntimeException("Không tìm thấy phòng"));
-            if (rentalArea == null) {
-                rentalArea = room.getRentalArea();
-            } else if (!rentalArea.getRentalAreaId()
-                    .equals(room.getRentalArea().getRentalAreaId())) {
+            RentalArea ra = room.getRentalArea();
 
+            LocalTime openTime = ra.getOpenTime();
+            LocalTime closeTime = ra.getCloseTime();
+
+            LocalTime start = slotReq.getStartTime().toLocalTime();
+            LocalTime end = slotReq.getEndTime().toLocalTime();
+
+            if (start.isBefore(openTime) || end.isAfter(closeTime)) {
                 throw new RuntimeException(
-                        "Tất cả phòng phải thuộc cùng một khu vực"
+                        "Khung giờ vượt quá giờ hoạt động (" +
+                                openTime + " - " + closeTime + ")"
                 );
+            }
+
+            if (!start.isBefore(end)) {
+                throw new RuntimeException("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc");
             }
 
 
