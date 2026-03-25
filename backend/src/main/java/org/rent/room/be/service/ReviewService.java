@@ -76,4 +76,6 @@ public interface ReviewService {
      * Admin doi trang thai review (APPROVED / REJECTED / HIDDEN).
      */
     ReviewResponse updateReviewStatus(UUID reviewId, ReviewStatus status);
+
+    PageResponse<ReviewResponse> getAllReviewsForAdmin(int page, int size, String sort);
 }

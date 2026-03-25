@@ -159,6 +159,22 @@ const reviewService = {
   // ── ADMIN ─────────────────────────────────────────────────────
 
   /**
+   * Admin lay tat ca review tren he thong
+   * GET /reviews/admin
+   */
+  getAllReviewsAdmin: async (
+    page: number = 1,
+    size: number = 10,
+    sort: string = "newest"
+  ): Promise<ApiResponse<PageResponse<ReviewResponse>>> => {
+    const response = await api.get<ApiResponse<PageResponse<ReviewResponse>>>(
+      "/reviews/admin",
+      { params: { page, size, sort } }
+    );
+    return response.data;
+  },
+
+  /**
    * Admin doi trang thai review
    * PATCH /reviews/:reviewId/status?status=APPROVED
    */

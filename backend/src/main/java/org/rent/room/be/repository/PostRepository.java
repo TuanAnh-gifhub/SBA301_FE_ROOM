@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +34,9 @@ public interface PostRepository extends JpaRepository<Post, UUID>, JpaSpecificat
     Optional<Post> findByRoom_RoomIdAndUser_UserId(UUID roomId, UUID userId);
 
     Optional<Post> findByPostIdAndRoom_RentalArea_Owner_UserId(UUID postId, UUID ownerId);
+
+    // Đếm số bài viết user đã tạo trong thời gian gói cước có hiệu lực
+    int countByUser_UserIdAndCreatedAtBetween(UUID userId, LocalDateTime startDate, LocalDateTime endDate);
 
     List<Post> findAllByPostStatusIn(Collection<PostStatus> statuses);
 
@@ -70,5 +74,6 @@ public interface PostRepository extends JpaRepository<Post, UUID>, JpaSpecificat
             @Param("amenityCount") long amenityCount,
             Pageable pageable
     );
+
 
 }
