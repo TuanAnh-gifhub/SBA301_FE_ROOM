@@ -14,6 +14,7 @@ import roomsService, {
 import postsService, {
   type PostSummaryResponse,
 } from "../../../services/posts/posts";
+import { useNavigate } from "react-router-dom"; 
 
 type Props = {
   open: boolean;
@@ -26,6 +27,8 @@ type RoomOption = { label: string; value: string };
 const CreatePostModal: React.FC<Props> = ({ open, onClose, onCreated }) => {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+
+  const navigate = useNavigate(); // <-- Thêm dòng này
 
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [roomOptions, setRoomOptions] = useState<RoomOption[]>([]);
@@ -79,7 +82,7 @@ const CreatePostModal: React.FC<Props> = ({ open, onClose, onCreated }) => {
 
   const canCreate = useMemo(() => roomOptions.length > 0, [roomOptions]);
 
-  const onSubmit = async () => {
+ const onSubmit = async () => {
     try {
       const values = await form.validateFields();
       if (!values.roomId) {
@@ -100,12 +103,47 @@ const CreatePostModal: React.FC<Props> = ({ open, onClose, onCreated }) => {
     } catch (e: any) {
       if (e?.errorFields) return;
       console.error(e);
-      message.error(e?.response?.data?.message || "Tạo tin đăng thất bại");
+      
+      // Lấy mã lỗi (code) và câu thông báo (message) từ Backend trả về
+      const errorCode = e?.response?.data?.code; 
+      const errorMessage = e?.response?.data?.message || "Tạo tin đăng thất bại";
+
+      // BẮT CHÍNH XÁC MÃ LỖI 4007 (Hết lượt đăng / Chưa có gói)
+      if (errorCode === 4007 || errorCode === 4008) {
+        Modal.warning({
+          title: "Giới hạn đăng tin",
+          content: (
+            <div>
+              <p className="text-slate-600 mb-2">{errorMessage}</p>
+              <p className="text-slate-600">
+                Hãy nâng cấp gói cước để tiếp tục đăng bài tiếp cận hàng ngàn khách hàng nhé!
+              </p>
+            </div>
+          ),
+          okText: "Xem bảng giá ngay",
+          cancelText: "Để sau",
+          okCancel: true,
+          centered: true,
+          okButtonProps: {
+            style: { background: "#1677ff", borderRadius: 8, fontWeight: 600 }
+          },
+          cancelButtonProps: {
+            style: { borderRadius: 8, fontWeight: 500 }
+          },
+          onOk: () => {
+            onClose(); // Đóng modal tạo bài
+            navigate("/packages"); // Đổi thành "/package" nếu router của bạn cài đặt đường dẫn đó
+          },
+        });
+        return; // Dừng lại, không chạy dòng message.error ở dưới
+      }
+
+      // Nếu là các lỗi khác (lỗi mạng, server, validate khác...)
+      message.error(errorMessage);
     } finally {
       setSaving(false);
     }
   };
-
   return (
     <Modal
       title={null}
