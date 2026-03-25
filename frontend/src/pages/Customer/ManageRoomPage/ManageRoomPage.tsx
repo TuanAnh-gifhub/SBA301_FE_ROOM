@@ -235,6 +235,8 @@ const ManageRoomPage: React.FC = () => {
     contactName?: string;
     contactPhone?: string;
     cityId: number;
+    openTime: string;
+    closeTime: string;
   }) => {
     if (!editing) return;
 

@@ -34,9 +34,9 @@ export interface UseReviewsReturn {
   pagination: Omit<PageResponse<unknown>, "data">;
 
   // ── Loading states ──
-  loading: boolean;        // dang tai danh sach review
+  loading: boolean; // dang tai danh sach review
   summaryLoading: boolean; // dang tai summary
-  submitting: boolean;     // dang goi API (tao/sua/xoa/reply)
+  submitting: boolean; // dang goi API (tao/sua/xoa/reply)
 
   // ── Filter state (de component hien thi active state) ──
   filterRating: number | null;
@@ -52,21 +52,29 @@ export interface UseReviewsReturn {
 
   // ── Actions: CRUD ──
   onCreateReview: (payload: CreateReviewRequest) => Promise<void>;
-  onUpdateReview: (reviewId: string, payload: UpdateReviewRequest) => Promise<void>;
+  onUpdateReview: (
+    reviewId: string,
+    payload: UpdateReviewRequest,
+  ) => Promise<void>;
   onDeleteReview: (reviewId: string) => Promise<void>;
   onToggleVote: (reviewId: string) => Promise<void>;
   onReply: (reviewId: string, payload: ReplyReviewRequest) => Promise<void>;
-  onUpdateReply: (reviewId: string, payload: ReplyReviewRequest) => Promise<void>;
+  onUpdateReply: (
+    reviewId: string,
+    payload: ReplyReviewRequest,
+  ) => Promise<void>;
 }
 
 export function useReviews(rentalAreaId: string): UseReviewsReturn {
   // ── Core state ────────────────────────────────────────────────
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
   const [summary, setSummary] = useState<ReviewSummaryResponse | null>(null);
-  const [pagination, setPagination] = useState<Omit<PageResponse<unknown>, "data">>({
+  const [pagination, setPagination] = useState<
+    Omit<PageResponse<unknown>, "data">
+  >({
     currentPage: 1,
     totalPages: 0,
-    pageSize: 10,
+    pageSize: 5,
     totalElements: 0,
   });
 
@@ -111,9 +119,11 @@ export function useReviews(rentalAreaId: string): UseReviewsReturn {
         const res = await reviewService.getReviews(rentalAreaId, {
           page: overrides.page ?? page,
           size: 10,
-          rating: overrides.rating !== undefined ? overrides.rating : filterRating,
+          rating:
+            overrides.rating !== undefined ? overrides.rating : filterRating,
           sort: overrides.sort ?? sort,
-          hasMedia: overrides.hasMedia !== undefined ? overrides.hasMedia : hasMedia,
+          hasMedia:
+            overrides.hasMedia !== undefined ? overrides.hasMedia : hasMedia,
         });
         setReviews(res.result.data);
         setPagination({
@@ -131,7 +141,7 @@ export function useReviews(rentalAreaId: string): UseReviewsReturn {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rentalAreaId, page, filterRating, sort, hasMedia]
+    [rentalAreaId, page, filterRating, sort, hasMedia],
   );
 
   // ── Auto fetch khi rentalAreaId hoac filter thay doi ─────────
@@ -141,13 +151,13 @@ export function useReviews(rentalAreaId: string): UseReviewsReturn {
 
   useEffect(() => {
     fetchReviews();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rentalAreaId, page, filterRating, sort, hasMedia]);
 
   // ── Helper: cap nhat 1 review trong list (tranh fetch lai ca trang) ──
   const updateReviewInList = (reviewId: string, updated: ReviewResponse) => {
     setReviews((prev) =>
-      prev.map((r) => (r.reviewId === reviewId ? updated : r))
+      prev.map((r) => (r.reviewId === reviewId ? updated : r)),
     );
   };
 
@@ -164,8 +174,8 @@ export function useReviews(rentalAreaId: string): UseReviewsReturn {
     } catch (err: unknown) {
       // Lay message tu BE neu co
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "Đăng đánh giá thất bại";
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? "Đăng đánh giá thất bại";
       message.error(msg);
       throw err; // Re-throw de ReviewForm biet ma reset loading state
     } finally {
@@ -173,7 +183,10 @@ export function useReviews(rentalAreaId: string): UseReviewsReturn {
     }
   };
 
-  const onUpdateReview = async (reviewId: string, payload: UpdateReviewRequest) => {
+  const onUpdateReview = async (
+    reviewId: string,
+    payload: UpdateReviewRequest,
+  ) => {
     setSubmitting(true);
     try {
       const res = await reviewService.updateReview(reviewId, payload);
@@ -248,7 +261,10 @@ export function useReviews(rentalAreaId: string): UseReviewsReturn {
     }
   };
 
-  const onUpdateReply = async (reviewId: string, payload: ReplyReviewRequest) => {
+  const onUpdateReply = async (
+    reviewId: string,
+    payload: ReplyReviewRequest,
+  ) => {
     setSubmitting(true);
     try {
       const res = await reviewService.updateReply(reviewId, payload);

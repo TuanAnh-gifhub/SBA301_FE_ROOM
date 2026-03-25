@@ -9,7 +9,7 @@ export interface ApiResponse<T> {
 export type RentalAreaStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
 
 export interface UpdateRentalAreaStatusRequest {
-  status: "ACTIVE" | "INACTIVE"; 
+  status: "ACTIVE" | "INACTIVE";
 }
 
 export interface RentalAreaImageResponse {
@@ -26,18 +26,17 @@ export interface RentalAreaResponse {
   contactName?: string;
   contactPhone?: string;
   status: RentalAreaStatus;
-  cityId: number;   
-  cityName: string;   
+  cityId: number;
+  cityName: string;
   images: RentalAreaImageResponse[];
 }
-
 
 export interface CreateRentalAreaRequest {
   rentalAreaName: string;
   address: string;
   contactName?: string;
   contactPhone?: string;
-  cityId: number; 
+  cityId: number;
   images: File[];
 }
 
@@ -47,8 +46,9 @@ export interface UpdateRentalAreaRequest {
   contactName?: string;
   contactPhone?: string;
   cityId: number;
+  openTime: string;
+  closeTime: string;
 }
-
 
 const rentalAreasService = {
   createRentalArea: async (
@@ -62,7 +62,7 @@ const rentalAreasService = {
     formData.append("cityId", String(data.cityId));
 
     data.images.forEach((file) => {
-      formData.append("images", file); 
+      formData.append("images", file);
     });
 
     const response = await api.post<ApiResponse<RentalAreaResponse>>(
@@ -85,7 +85,9 @@ const rentalAreasService = {
     return response.data;
   },
 
-  deleteRentalArea: async (rentalAreaId: string): Promise<ApiResponse<void>> => {
+  deleteRentalArea: async (
+    rentalAreaId: string,
+  ): Promise<ApiResponse<void>> => {
     const response = await api.delete<ApiResponse<void>>(
       `/rental-areas/${rentalAreaId}`,
     );
@@ -114,7 +116,6 @@ const rentalAreasService = {
     );
     return response.data;
   },
-
 };
 
 export default rentalAreasService;

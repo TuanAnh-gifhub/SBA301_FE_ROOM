@@ -213,7 +213,19 @@ export default function RentalDetailPage() {
         toast.error(res.message || "Đặt phòng thất bại");
       }
     } catch (err: any) {
-      toast.error("Có lỗi xảy ra khi đặt phòng");
+      const data = err?.response?.data;
+
+      let msg = "Có lỗi xảy ra khi đặt phòng";
+
+      if (data) {
+        if (data.result) {
+          msg = Object.values(data.result).join(", ");
+        } else if (data.message) {
+          msg = data.message;
+        }
+      }
+
+      toast.error(msg);
     }
   };
 
@@ -254,7 +266,6 @@ export default function RentalDetailPage() {
         </Col>
       </Row>
 
-   
       <Modal
         title="Xác nhận đặt phòng"
         open={openConfirm}

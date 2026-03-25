@@ -9,6 +9,7 @@ import org.rent.room.be.constant.RentalAreaStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -66,7 +67,11 @@ public class RentalArea extends BaseEntity {
     Integer totalReviews = 0;
     @OneToMany(mappedBy = "rentalArea",fetch = FetchType.LAZY)
     List<Booking> bookings;
+    @Column(name = "open_time")
+    LocalTime openTime;
 
+    @Column(name = "close_time")
+    LocalTime closeTime;
 //    @OneToMany(mappedBy = "rentalArea")
 //    private List<Post> posts;
 }
