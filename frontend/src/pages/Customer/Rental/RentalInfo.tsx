@@ -6,6 +6,8 @@ type Props = {
     rentalAreaName?: string;
     address?: string;
     description?: string;
+    openTime?: string;
+    closeTime?: string;
   };
 };
 
@@ -35,6 +37,17 @@ const RentalInfo: React.FC<Props> = ({ rental }) => {
         <div className="flex-1 min-h-0 overflow-y-auto pr-2 text-slate-600 leading-7 text-[15px] md:text-base">
           {rental?.description ||
             "Không gian học tập hiện đại, đầy đủ tiện nghi, phù hợp cho học nhóm, workshop và meeting trong môi trường chuyên nghiệp."}
+        </div>
+        <div className="flex items-center mt-5">
+          <div className="flex flex-col">
+            <h2 className="text-xs text-gray-500">
+              <strong>Giờ hoạt động</strong>{" "}
+            </h2>
+
+            <div className="text-base font-semibold text-gray-800">
+              {rental?.openTime} - {rental?.closeTime}
+            </div>
+          </div>
         </div>
       </div>
     </div>

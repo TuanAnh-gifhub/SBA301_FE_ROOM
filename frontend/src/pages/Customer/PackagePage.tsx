@@ -11,14 +11,14 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function PackagePage() {
   // --- State ---
-  const [packages, setPackages] = useState<PackageResponse[]>([]);       // danh sách gói
-  const [mySubscription, setMySubscription] = useState<SubscriptionResponse | null>(null); // gói đang dùng
+  const [packages, setPackages] = useState<PackageResponse[]>([]);
+  const [mySubscription, setMySubscription] = useState<SubscriptionResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [buyingId, setBuyingId] = useState<string | null>(null);         // gói đang được mua (để show loading)
+  const [buyingId, setBuyingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const { isAuthenticated } = useAuth(); // lấy trạng thái đăng nhập
+  const { isAuthenticated } = useAuth();
 
   // --- Lấy dữ liệu khi component mount ---
   useEffect(() => {
@@ -28,17 +28,14 @@ export default function PackagePage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Lấy danh sách gói (public, ai cũng gọi được)
       const pkgRes = await packageService.getAllPackages();
       setPackages(pkgRes.data.result);
 
-      // Nếu đã đăng nhập → lấy gói đang dùng
       if (isAuthenticated) {
         try {
           const subRes = await subscriptionService.getMySubscription();
           setMySubscription(subRes.data.result);
         } catch {
-          // Chưa có gói → bình thường, không cần báo lỗi
           setMySubscription(null);
         }
       }
@@ -56,19 +53,16 @@ export default function PackagePage() {
       return;
     }
 
-    setBuyingId(packageId); // đánh dấu gói đang mua để disable button
+    setBuyingId(packageId);
     setError(null);
     setSuccessMsg(null);
 
     try {
       const res = await subscriptionService.subscribe(packageId);
-      setMySubscription(res.data.result);              // cập nhật gói đang dùng
+      setMySubscription(res.data.result);
       setSuccessMsg("Mua gói thành công! 🎉");
-} catch (err: unknown) {
-      // Ép kiểu err thành một object mô phỏng cấu trúc lỗi của Axios
+    } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      
-      // Lúc này gọi error?.response?.data?.message sẽ hoàn toàn hợp lệ và xanh mượt
       const msg = error?.response?.data?.message;
       
       if (msg === "User already has an active subscription") {
@@ -77,15 +71,14 @@ export default function PackagePage() {
         setError("Mua gói thất bại. Vui lòng thử lại.");
       }
     } finally {
-      setBuyingId(null); // bỏ loading
+      setBuyingId(null);
     }
   };
 
-  // --- Format tiền VND ---
+  // --- Format ---
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 
-  // --- Format ngày ---
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString("vi-VN");
 
@@ -95,124 +88,202 @@ export default function PackagePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600" />
+          <p className="text-gray-500 font-medium">Đang tải bảng giá...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
-
-      {/* ===== TIÊU ĐỀ ===== */}
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold text-gray-800">Gói Premium</h1>
-        <p className="text-gray-500 mt-2">
-          Nâng cấp tài khoản để đăng tin ưu tiên và nhiều tính năng hơn
-        </p>
-      </div>
-
-      {/* ===== THÔNG BÁO ===== */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-      {successMsg && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
-          {successMsg}
-        </div>
-      )}
-
-      {/* ===== GÓI ĐANG DÙNG ===== */}
-      {mySubscription && (
-        <div className="mb-10 p-6 bg-blue-50 border border-blue-200 rounded-xl">
-          <h2 className="text-lg font-semibold text-blue-800 mb-2">
-            ✅ Gói đang sử dụng
+    <div className="min-h-screen bg-gray-50/50 py-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* ===== TIÊU ĐỀ ===== */}
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <h2 className="text-base font-semibold text-blue-600 tracking-wide uppercase">
+            Bảng giá
           </h2>
-          <div className="grid grid-cols-2 gap-2 text-sm text-blue-700">
-            <span>Tên gói:</span>
-            <span className="font-medium">{mySubscription.packageName}</span>
-            <span>Ngày bắt đầu:</span>
-            <span className="font-medium">{formatDate(mySubscription.startDate)}</span>
-            <span>Ngày hết hạn:</span>
-            <span className="font-medium">{formatDate(mySubscription.endDate)}</span>
-            <span>Trạng thái:</span>
-            <span className="font-medium text-green-600">Đang hoạt động</span>
-          </div>
+          <p className="mt-2 text-4xl font-extrabold text-gray-900 sm:text-5xl">
+            Nâng tầm trải nghiệm cùng Premium
+          </p>
+          <p className="mt-4 text-xl text-gray-500">
+            Mở khóa các tính năng độc quyền, đăng tin ưu tiên và tiếp cận nhiều khách hàng hơn.
+          </p>
         </div>
-      )}
 
-      {/* ===== DANH SÁCH GÓI ===== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {packages.map((pkg) => {
-          // Kiểm tra gói này có phải gói đang dùng không
-          const isCurrentPkg = mySubscription?.packageId === pkg.rentPackageId;
-          const isBuying = buyingId === pkg.rentPackageId;
+        {/* ===== THÔNG BÁO ===== */}
+        <div className="max-w-3xl mx-auto mb-10">
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3 shadow-sm">
+              <svg className="w-6 h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
+          {successMsg && (
+            <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl flex items-center gap-3 shadow-sm">
+              <svg className="w-6 h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{successMsg}</span>
+            </div>
+          )}
+        </div>
 
-          return (
-            <div
-              key={pkg.rentPackageId}
-              className={`rounded-xl border p-6 flex flex-col gap-4 shadow-sm transition-all
-                ${isCurrentPkg
-                  ? "border-blue-400 bg-blue-50"   // highlight gói đang dùng
-                  : "border-gray-200 bg-white hover:shadow-md"
-                }`}
-            >
-              {/* Tên gói */}
+        {/* ===== GÓI ĐANG DÙNG ===== */}
+        {mySubscription && (
+          <div className="max-w-3xl mx-auto mb-16 p-6 sm:p-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg text-white">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold">Gói đang sử dụng</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-white/10 p-4 rounded-xl backdrop-blur-sm">
               <div>
-                <h3 className="text-xl font-bold text-gray-800">
-                  {pkg.rentPackageName}
-                </h3>
-                {isCurrentPkg && (
-                  <span className="text-xs text-blue-600 font-medium">
-                    ✅ Đang sử dụng
-                  </span>
-                )}
+                <p className="text-blue-100 mb-1">Tên gói</p>
+                <p className="font-semibold text-lg">{mySubscription.packageName}</p>
               </div>
-
-              {/* Mô tả */}
-              <p className="text-gray-500 text-sm flex-1">{pkg.description}</p>
-
-              {/* Thời hạn + giá */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">
-                  ⏱ {pkg.durationDays} ngày
-                </span>
-                <span className="text-lg font-bold text-blue-600">
-                  {formatPrice(pkg.price)}
-                </span>
+              <div>
+                <p className="text-blue-100 mb-1">Trạng thái</p>
+                <p className="font-semibold text-green-300 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                  Đang hoạt động
+                </p>
               </div>
+              <div>
+                <p className="text-blue-100 mb-1">Bắt đầu</p>
+                <p className="font-semibold">{formatDate(mySubscription.startDate)}</p>
+              </div>
+              <div>
+                <p className="text-blue-100 mb-1">Hết hạn</p>
+                <p className="font-semibold">{formatDate(mySubscription.endDate)}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
-              {/* Nút mua */}
-              <button
-                onClick={() => handleBuy(pkg.rentPackageId)}
-                disabled={!!mySubscription || isBuying} // disable nếu đang có gói active
-                className={`w-full py-2 rounded-lg font-medium text-sm transition-all
-                  ${mySubscription
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
+        {/* ===== DANH SÁCH GÓI ===== */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {packages.map((pkg) => {
+            const isCurrentPkg = mySubscription?.packageId === pkg.rentPackageId;
+            const isBuying = buyingId === pkg.rentPackageId;
+            
+            // Highlight gói phổ biến nhất (dựa trên tên hoặc mô tả để làm UI đẹp hơn)
+            const isPopular = pkg.rentPackageName.toLowerCase().includes("monthly") || pkg.description.includes("phổ biến");
+
+            return (
+              <div
+                key={pkg.rentPackageId}
+                className={`relative flex flex-col p-8 bg-white rounded-2xl transition-all duration-300
+                  ${isCurrentPkg
+                    ? "ring-2 ring-blue-500 shadow-xl shadow-blue-100 scale-[1.02]"
+                    : "border border-gray-200 shadow-sm hover:shadow-xl hover:-translate-y-1"
                   }`}
               >
-                {isBuying
-                  ? "Đang xử lý..."
-                  : isCurrentPkg
-                  ? "Đang dùng"
-                  : mySubscription
-                  ? "Đã có gói active"
-                  : "Mua ngay"}
-              </button>
-            </div>
-          );
-        })}
-      </div>
+                {/* Badge Phổ biến */}
+                {isPopular && !isCurrentPkg && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                    <span className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wide shadow-md">
+                      Phổ biến nhất
+                    </span>
+                  </div>
+                )}
+                
+                {/* Badge Đang sử dụng */}
+                {isCurrentPkg && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                    <span className="bg-green-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wide shadow-md flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Đang sử dụng
+                    </span>
+                  </div>
+                )}
 
-      {/* ===== KHÔNG CÓ GÓI NÀO ===== */}
-      {packages.length === 0 && (
-        <div className="text-center text-gray-400 py-20">
-          Hiện chưa có gói nào. Vui lòng quay lại sau.
+                {/* Tên gói & Mô tả */}
+                <div className="mb-6 text-center">
+                  <h3 className="text-2xl font-bold text-gray-900">{pkg.rentPackageName}</h3>
+                  <p className="mt-2 text-sm text-gray-500 h-10">{pkg.description}</p>
+                </div>
+
+                {/* Giá tiền */}
+                <div className="mb-6 flex items-baseline justify-center text-gray-900">
+                  <span className="text-4xl font-extrabold tracking-tight">
+                    {formatPrice(pkg.price)}
+                  </span>
+                </div>
+                
+                <div className="mb-8 text-center border-b border-gray-100 pb-6">
+                   <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                     Thời hạn: {pkg.durationDays} ngày
+                   </span>
+                </div>
+
+                {/* Quyền lợi ảo (UI only) để lấp đầy khoảng trống */}
+                <ul className="flex-1 space-y-4 text-sm text-gray-600 mb-8">
+                  <li className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Hỗ trợ đăng tin ưu tiên</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Huy hiệu thành viên Premium</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Mở khóa toàn bộ tính năng</span>
+                  </li>
+                </ul>
+
+                {/* Nút mua */}
+                <button
+                  onClick={() => handleBuy(pkg.rentPackageId)}
+                  disabled={!!mySubscription || isBuying}
+                  className={`mt-auto w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all duration-200
+                    ${mySubscription
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : isPopular && !isCurrentPkg
+                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg active:scale-[0.98]"
+                        : "bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-[0.98]"
+                    }`}
+                >
+                  {isBuying
+                    ? "Đang xử lý..."
+                    : isCurrentPkg
+                    ? "Gói hiện tại"
+                    : mySubscription
+                    ? "Đã có gói active"
+                    : "Đăng ký ngay"}
+                </button>
+              </div>
+            );
+          })}
         </div>
-      )}
+
+        {packages.length === 0 && (
+          <div className="text-center text-gray-400 py-20 bg-white rounded-2xl border border-dashed border-gray-300">
+             <svg className="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+            <p>Hiện chưa có gói nào. Vui lòng quay lại sau.</p>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }

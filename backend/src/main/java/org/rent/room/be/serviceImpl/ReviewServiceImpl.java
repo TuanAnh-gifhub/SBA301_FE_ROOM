@@ -556,4 +556,58 @@ public class ReviewServiceImpl implements ReviewService {
                 ? MediaType.VIDEO
                 : MediaType.IMAGE;
     }
+
+    @Override
+    public PageResponse<ReviewResponse> getAllReviewsForAdmin(int page, int size, String sort) {
+        // 1. Cấu hình sắp xếp (dựa vào trường createdAt ở BaseEntity)
+        Sort sortObj = sort.equalsIgnoreCase("oldest") ?
+                Sort.by("createdAt").ascending() :
+                Sort.by("createdAt").descending();
+
+        // 2. Cấu hình phân trang (Spring Boot mặc định page bắt đầu từ 0)
+        Pageable pageable = PageRequest.of(page - 1, size, sortObj);
+
+        // 3. Query toàn bộ trong Database
+        Page<Review> reviewPage = reviewRepository.findAll(pageable);
+
+        // 4. Map từ Entity (Review) sang DTO (ReviewResponse)
+        List<ReviewResponse> reviewResponses = reviewPage.getContent().stream()
+                .map(review -> {
+                    // Map thông tin người dùng (ReviewerInfo)
+                    ReviewResponse.ReviewerInfo reviewerInfo = null;
+                    if (review.getReviewer() != null) {
+                        reviewerInfo = ReviewResponse.ReviewerInfo.builder()
+                                .userId(review.getReviewer().getUserId())
+                                // LƯU Ý: Sửa lại getFullName() cho khớp với hàm lấy tên trong Entity User của bạn
+                                .userName(review.getReviewer().getUserName())
+                                .build();
+                    }
+
+                    // Build DTO chính
+                    return ReviewResponse.builder()
+                            .reviewId(review.getReviewId())
+                            .reviewer(reviewerInfo)
+                            .rating(review.getRating())
+                            .comment(review.getComment()) // Entity dùng "comment"
+                            .status(review.getStatus())   // Trực tiếp dùng Enum ReviewStatus
+                            .helpfulCount(review.getHelpfulCount())
+                            .createdAt(review.getCreatedAt())
+                            .updatedAt(review.getUpdatedAt())
+                            // Các trường dưới đây cho Admin quản lý nhanh thì không cần map để tránh nặng query (Lazy Loading)
+                            // Nếu cần hiển thị ảnh/tags ở trang Admin thì mới map tiếp nhé.
+                            .hasVoted(false)
+                            .canEdit(false)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        // 5. Trả về format PageResponse
+        return PageResponse.<ReviewResponse>builder()
+                .currentPage(page)
+                .totalPages(reviewPage.getTotalPages())
+                .pageSize(size)
+                .totalElements(reviewPage.getTotalElements())
+                .data(reviewResponses)
+                .build();
+    }
 }

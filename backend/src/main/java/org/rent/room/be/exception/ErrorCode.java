@@ -46,6 +46,10 @@ public enum ErrorCode {
     SUBSCRIPTION_ALREADY_ACTIVE(4005, "User already has an active subscription", HttpStatus.BAD_REQUEST),
     SUBSCRIPTION_NOT_FOUND(4006, "Subscription not found", HttpStatus.NOT_FOUND),
 
+    // Thêm dòng này để xử lý lỗi hết lượt đăng / hết hạn gói
+    SUBSCRIPTION_REQUIRED(4008, "Bạn chưa đăng ký gói cước nào. Vui lòng nâng cấp tài khoản để đăng tin!", HttpStatus.BAD_REQUEST),
+    POST_QUOTA_EXCEEDED(4007, "Bạn đã sử dụng hết lượt đăng tin hoặc gói đã hết hạn. Vui lòng nâng cấp gói mới!", HttpStatus.BAD_REQUEST),
+
     //QR
     QR_NOT_FOUND(4000, "QR không hợp lệ",HttpStatus.BAD_REQUEST),
     QR_INVALID(4000, "QR không hợp lệ",HttpStatus.BAD_REQUEST),

@@ -48,6 +48,7 @@ import ProfilePage from "../pages/Customer/ProfilePage/ProfilePage";
 import ScanQR from "../pages/Owner/ScanQR";
 import SuccessQrPage from "../pages/Owner/SuccessQrPage";
 import ProductDetailPage from "../pages/Customer/ProductDetail/ProductDetailPage";
+import AdminReviewPage from "../pages/Admin/ReviewManagement/AdminReviewPage";
 
 export const router = createBrowserRouter([
   {
@@ -276,6 +277,10 @@ export const router = createBrowserRouter([
         path: "wallet-freeze",
         element: <WalletFreezeManagementPage />,
       },
+      {
+        path: "reviews",
+        element: <AdminReviewPage />,
+      }
     ],
   },
 

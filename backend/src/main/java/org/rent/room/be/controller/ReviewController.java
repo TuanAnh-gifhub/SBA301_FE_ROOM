@@ -182,4 +182,18 @@ public class ReviewController {
                         .build()
         );
     }
+
+    // =================================================================
+    // DÀNH CHO ADMIN: Lấy tất cả review trên hệ thống
+    // =================================================================
+    @GetMapping("/admin")
+    // @PreAuthorize("hasRole('ADMIN')") // Mở comment dòng này ra nếu hệ thống bạn có check quyền Admin
+    public ApiResponse<PageResponse<ReviewResponse>> getAllReviewsForAdmin(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "newest") String sort) {
+
+        PageResponse<ReviewResponse> response = reviewService.getAllReviewsForAdmin(page, size, sort);
+        return ApiResponse.success("Lấy danh sách đánh giá thành công", response);
+    }
 }

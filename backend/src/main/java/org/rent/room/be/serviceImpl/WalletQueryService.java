@@ -13,7 +13,6 @@ import org.rent.room.be.entity.Wallet;
 import org.rent.room.be.entity.WalletTransaction;
 import org.rent.room.be.repository.BookingRepository;
 import org.rent.room.be.repository.CommissionConfigRepository;
-import org.rent.room.be.repository.WalletRepository;
 import org.rent.room.be.repository.WalletTransactionRepository;
 import org.rent.room.be.service.UserService;
 import org.springframework.data.domain.Page;

@@ -4,13 +4,11 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.rent.room.be.constant.BookingStatus;
-import org.rent.room.be.constant.BookingType;
-import org.rent.room.be.constant.RentalAreaStatus;
-import org.rent.room.be.constant.RoomCopyStatus;
+import org.rent.room.be.constant.*;
 import org.rent.room.be.entity.*;
 import org.rent.room.be.repository.*;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +23,7 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@Order(1)
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class DataInitializer implements CommandLineRunner {
 
@@ -39,6 +38,7 @@ public class DataInitializer implements CommandLineRunner {
     RentalAreaRepository rentalAreaRepository;
     RentPackageRepository rentPackageRepository;
     BookingRepository bookingRepository;
+    ReviewRepository reviewRepository;
 
     @Override
     public void run(String... args) throws Exception {
@@ -49,6 +49,7 @@ public class DataInitializer implements CommandLineRunner {
 //        seedRooms();
         seedPackages();
         seedBookings();
+        seedReviews();
     }
 
 
@@ -332,51 +333,54 @@ public class DataInitializer implements CommandLineRunner {
     private void seedPackages() {
         List<RentPackage> packages = new ArrayList<>();
 
-        // 1. Gói dùng thử (Trial) - Đánh vào tâm lý muốn thử nhưng sợ tốn tiền
-        // Giá ngày rất cao (15k/ngày) so với các gói khác, nhưng tổng tiền bỏ ra nhỏ.
+        // 1. Gói Trải Nghiệm (Chim mồi / Dùng thử)
+        // Cho phép đăng ít bài, thời gian ngắn để khách test tính năng.
         packages.add(RentPackage.builder()
-                .rentPackageName("Trial 1 Day") // Hoặc "Starter"
-                .price(new BigDecimal("15000"))
-                .durationDays(1)
-                .description("Trải nghiệm đầy đủ tính năng trong 24h")
-                .build());
-
-        // 2. Gói Tuần (Basic) - Dành cho nhu cầu ngắn hạn
-        // ~14k/ngày -> Khách thấy hời hơn hẳn gói 1 ngày
-        packages.add(RentPackage.builder()
-                .rentPackageName("Weekly Pass")
-                .price(new BigDecimal("99000"))
+                .rentPackageName("Trải Nghiệm")
+                .price(new BigDecimal("19000"))
                 .durationDays(7)
-                .description("Phù hợp cho nhu cầu ngắn hạn")
+                 .maxPosts(5)
+                .description("Tối đa 5 bài viết - Hiển thị trong 7 ngày")
                 .build());
 
-        // 3. Gói Tháng (Standard) - Gói Hero (Gói muốn bán nhất)
-        // ~10k/ngày -> Rẻ hơn 30% so với gói tuần. Số tiền 299k là ngưỡng tâm lý dễ chấp nhận.
+        // 2. Gói Khởi Đầu (Nhu cầu cá nhân ít tin)
+        // Thời gian dài hơn (1 tháng), số bài vừa đủ cho người dùng cá nhân.
         packages.add(RentPackage.builder()
-                .rentPackageName("Monthly Standard")
-                .price(new BigDecimal("299000"))
+                .rentPackageName("Khởi Đầu")
+                .price(new BigDecimal("99000"))
                 .durationDays(30)
-                .description("Tiết kiệm 30% - Lựa chọn phổ biến nhất") // Gắn tag Best Seller ở Frontend
+                 .maxPosts(15)
+                .description("Tối đa 15 bài viết - Hiển thị trong 30 ngày")
                 .build());
 
-        // 4. Gói Quý (Quarterly) - Thay vì Premium, gọi là Quarterly nghe rõ nghĩa hơn
-        // ~8.8k/ngày -> Giảm thêm chút ít.
+        // 3. Gói Tiêu Chuẩn (Gói HERO - Dễ bán nhất)
+        // Đẩy số lượng bài lên cao với mức giá hợp lý để thuyết phục người dùng chọn gói này.
         packages.add(RentPackage.builder()
-                .rentPackageName("Quarterly Pro")
-                .price(new BigDecimal("799000"))
+                .rentPackageName("Tiêu Chuẩn")
+                .price(new BigDecimal("249000"))
+                .durationDays(30)
+                 .maxPosts(50)
+                .description("🔥 Tối đa 50 bài viết - Lựa chọn phổ biến nhất (30 ngày)")
+                .build());
+
+        // 4. Gói Chuyên Nghiệp (Dành cho môi giới / người bán chuyên)
+        // Mua sỉ bán lẻ: Thời gian dài hơn, số bài nhiều hơn, giá chia trung bình trên mỗi bài sẽ rất rẻ.
+        packages.add(RentPackage.builder()
+                .rentPackageName("Chuyên Nghiệp")
+                .price(new BigDecimal("699000"))
                 .durationDays(90)
-                .description("Dành cho người dùng thường xuyên")
+                 .maxPosts(150)
+                .description("Tối đa 150 bài viết - Hiển thị liên tục suốt 3 tháng")
                 .build());
 
-        // 5. Gói Năm (Yearly) - Đổi tên từ Enterprise
-        // Đây là gói "khóa chân" khách hàng. Giá nên cực sốc.
-        // Mình đề xuất giảm xuống 1.999.000 hoặc 2.499.000 để tạo cảm giác "Deal hời".
-        // Nếu để 2.999.000 (gần 3tr), người ta sẽ thà mua gói tháng cho linh hoạt.
+        // 5. Gói Đối Tác (Gói cao cấp nhất)
+        // Khóa chân khách hàng thân thiết.
         packages.add(RentPackage.builder()
-                .rentPackageName("Yearly Saver")
-                .price(new BigDecimal("2499000")) // ~6.8k/ngày -> Siêu rẻ
+                .rentPackageName("Đối Tác")
+                .price(new BigDecimal("1999000"))
                 .durationDays(365)
-                .description("Tiết kiệm tối đa - Chỉ 6.8k/ngày")
+                 .maxPosts(500)
+                .description("Tối đa 500 bài viết - Thoải mái đăng tin cả năm")
                 .build());
 
         for (RentPackage rp : packages) {
@@ -514,6 +518,63 @@ public class DataInitializer implements CommandLineRunner {
         log.info("  renter              id = {}", renter.getUserId());
         log.info("========================================================");
         log.info("[DataInitializer] Copy cac ID tren de dung trong Postman!");
+    }
+
+    // ================================================================
+    // SEED REVIEWS - Tạo dữ liệu mẫu để test FE Admin
+    // ================================================================
+    private void seedReviews() {
+        // Nếu đã có review rồi thì bỏ qua
+        if (reviewRepository.count() > 0) {
+            log.info("[DataInitializer] Reviews đã tồn tại, bỏ qua seedReviews()");
+            return;
+        }
+
+        User renter = userRepository.findByEmail("renter@gmail.com").orElse(null);
+        if (renter == null) return;
+
+        // Lấy ra các booking đã hoàn thành (vì chỉ booking COMPLETED mới được review)
+        List<Booking> completedBookings = bookingRepository.findAll().stream()
+                .filter(b -> b.getBookingStatus() == BookingStatus.COMPLETED)
+                .toList();
+
+        if (completedBookings.size() < 3) return;
+
+        // 1. Review Tốt (APPROVED)
+        Review review1 = Review.builder()
+                .reviewer(renter)
+                .booking(completedBookings.get(0))
+                .rentalArea(completedBookings.get(0).getRentalArea())
+                .rating(5)
+                .comment("Phòng học cực kỳ xịn xò, yên tĩnh, wifi mạnh. Chủ nhà support rất nhiệt tình. Rất đáng tiền!")
+                .status(org.rent.room.be.constant.ReviewStatus.APPROVED) // Đã duyệt
+                .helpfulCount(12)
+                .build();
+
+        // 2. Review Bình Thường (PENDING - Chờ duyệt)
+        Review review2 = Review.builder()
+                .reviewer(renter)
+                .booking(completedBookings.get(1))
+                .rentalArea(completedBookings.get(1).getRentalArea())
+                .rating(3)
+                .comment("Không gian ổn, nhưng máy lạnh hơi yếu một chút. Cần vệ sinh kỹ hơn.")
+                .status(ReviewStatus.PENDING_MODERATION) // Chờ duyệt
+                .helpfulCount(2)
+                .build();
+
+        // 3. Review Tiêu Cực (HIDDEN - Bị ẩn)
+        Review review3 = Review.builder()
+                .reviewer(renter)
+                .booking(completedBookings.get(2))
+                .rentalArea(completedBookings.get(2).getRentalArea())
+                .rating(1)
+                .comment("Nội dung chứa từ ngữ thô tục, vi phạm tiêu chuẩn cộng đồng...")
+                .status(org.rent.room.be.constant.ReviewStatus.HIDDEN) // Đã bị ẩn
+                .helpfulCount(0)
+                .build();
+
+        reviewRepository.saveAll(List.of(review1, review2, review3));
+        log.info("[DataInitializer] Đã seed thành công 3 Reviews mẫu để test!");
     }
 
 }

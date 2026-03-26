@@ -40,6 +40,9 @@ public class RentPackage extends BaseEntity {
     @Column(name = "duration_days", nullable = false)
     private int durationDays;
 
+    @Column(name = "max_posts", nullable = false)
+    private int maxPosts;
+
     @Column(name = "description", length = 255)
     private String description;
 
