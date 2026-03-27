@@ -191,9 +191,9 @@ const ManageRoomPage: React.FC = () => {
       await rentalAreasService.deleteRentalArea(ra.rentalAreaId);
       message.success("Xóa tòa nhà thành công");
       await fetchMyRentalAreas();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      message.error("Xóa tòa nhà thất bại");
+      message.error(e?.response?.data?.message || "Xóa tòa nhà thất bại");
     }
   };
 

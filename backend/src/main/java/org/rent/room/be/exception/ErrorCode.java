@@ -37,6 +37,7 @@ public enum ErrorCode {
 
     //POST_NOT_FOUND
     POST_NOT_FOUND(4002, "Post not found", HttpStatus.NOT_FOUND), // Lưu ý: Đang bị trùng số 4002 với RENTPACKAGE_NOT_FOUND
+    RENTAL_AREA_HAS_ACTIVE_ROOM(4010, "Tòa nhà vẫn còn phòng. Vui lòng xóa toàn bộ phòng trước khi xóa tòa nhà.", HttpStatus.CONFLICT),
 
     // Rental Area
     RENTAL_AREA_NOT_FOUND(4004, "Rental area not found", HttpStatus.NOT_FOUND),
@@ -97,7 +98,12 @@ public enum ErrorCode {
     // WALLET & PAYMENT
     WALLET_NOT_FOUND(6001, "Không tìm thấy ví của người dùng", HttpStatus.NOT_FOUND),
     WALLET_LOCKED(6002, "Ví của bạn đang bị khóa, không thể thực hiện giao dịch", HttpStatus.FORBIDDEN),
-    INSUFFICIENT_BALANCE(6003, "Số dư trong ví không đủ để thanh toán gói cước này", HttpStatus.BAD_REQUEST);
+    INSUFFICIENT_BALANCE(6003, "Số dư trong ví không đủ để thanh toán gói cước này", HttpStatus.BAD_REQUEST),
+
+    // ROOM
+    ROOM_HAS_ACTIVE_POST(4009, "Phòng này đang có bài đăng. Vui lòng xóa bài đăng trước khi xóa phòng.", HttpStatus.CONFLICT),
+
+    ;
 
     private int code;
     private String message;

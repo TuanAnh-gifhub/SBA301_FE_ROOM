@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Card, Modal, Typography } from "antd";
+import { Button, Card, Modal, Typography, Empty } from "antd";
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -7,6 +7,10 @@ import {
   EyeInvisibleOutlined,
   ExportOutlined,
   EyeOutlined,
+  EnvironmentOutlined,
+  HomeOutlined,
+  AppstoreOutlined,
+  NumberOutlined,
 } from "@ant-design/icons";
 import type {
   PostSummaryResponse,
@@ -33,7 +37,6 @@ type Props = {
   onDelete: (item: PostSummaryResponse) => void;
 };
 
-const brandColor = "#1677ff";
 const approveColor = "#1677ff";
 const hideColor = "#d97706";
 const showColor = "#059669";
@@ -51,6 +54,16 @@ const softButtonStyle = (color: string) => ({
   borderColor: color,
   background: "#fff",
 });
+
+const InfoPill: React.FC<{
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ icon, children }) => (
+  <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
+    {icon}
+    <span>{children}</span>
+  </div>
+);
 
 const AdminPostCardList: React.FC<Props> = ({
   data,
@@ -134,6 +147,15 @@ const AdminPostCardList: React.FC<Props> = ({
     });
   };
 
+  if (!loading && data.length === 0) {
+    return (
+      <Empty
+        description="Không có bài đăng nào"
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+      />
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
       {data.map((p) => {
@@ -150,60 +172,52 @@ const AdminPostCardList: React.FC<Props> = ({
           <Card
             key={p.postId}
             loading={loading}
-            className="shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl overflow-hidden border border-gray-100"
-            bodyStyle={{ padding: 16 }}
+            className="!rounded-3xl !overflow-hidden !border-0 !shadow-sm hover:!shadow-lg transition-all duration-300"
+            styles={{ body: { padding: 18 } }}
             cover={
               cover ? (
-                <div className="h-48 w-full overflow-hidden bg-gray-100">
+                <div className="relative h-52 w-full overflow-hidden bg-slate-100">
                   <img
                     src={cover}
                     alt={p.title}
-                    className="h-48 w-full object-cover transition-transform duration-500 hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
                   />
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
-              ) : null
+              ) : (
+                <div className="flex h-52 items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
+                  <div className="text-center">
+                    <HomeOutlined className="text-3xl mb-2" />
+                    <div>Không có ảnh</div>
+                  </div>
+                </div>
+              )
             }
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="font-semibold text-[16px] text-gray-800 line-clamp-2 leading-6">
+                <div className="font-semibold text-[18px] text-slate-800 line-clamp-2 leading-7">
                   {p.title}
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {priceText ? (
-                    <span
-                      className="px-3 py-1 rounded-full text-sm font-semibold"
-                      style={{
-                        background: "rgba(22,119,255,0.10)",
-                        color: brandColor,
-                      }}
-                    >
+                    <span className="px-3 py-1 rounded-full text-sm font-semibold bg-sky-100 text-sky-700">
                       {priceText}
                     </span>
                   ) : null}
 
                   {p.capacity != null ? (
-                    <span className="text-sm text-gray-600">
+                    <InfoPill icon={<AppstoreOutlined />}>
                       Sức chứa: <b>{p.capacity}</b>
-                    </span>
+                    </InfoPill>
                   ) : null}
 
                   {p.area != null ? (
-                    <span className="text-sm text-gray-600">
+                    <InfoPill icon={<NumberOutlined />}>
                       Diện tích: <b>{p.area}</b> m²
-                    </span>
+                    </InfoPill>
                   ) : null}
-                </div>
-
-                <div className="mt-3 text-gray-700">
-                  <Text className="text-gray-700">
-                    <b>{p.roomName}</b> • {p.rentalAreaName}
-                  </Text>
-                </div>
-
-                <div className="mt-1 text-gray-500 text-sm line-clamp-2">
-                  {p.address}
                 </div>
               </div>
 
@@ -212,31 +226,49 @@ const AdminPostCardList: React.FC<Props> = ({
               </div>
             </div>
 
-            <div className="mt-4 text-xs text-gray-500">
+            <div className="mt-4 space-y-2">
+              <div className="text-slate-700">
+                <Text className="!text-slate-700 !font-medium">
+                  {p.roomName || "Chưa có tên phòng"}
+                </Text>
+                <span className="text-slate-400"> • </span>
+                <Text className="!text-slate-600">
+                  {p.rentalAreaName || "Chưa có khu"}
+                </Text>
+              </div>
+
+              <div className="flex items-start gap-2 text-sm text-slate-500">
+                <EnvironmentOutlined className="mt-1 text-slate-400" />
+                <span className="line-clamp-2">{p.address}</span>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
               Post ID: <span className="font-mono">{p.postId}</span>
             </div>
 
-            <div className="mt-5 pt-4 border-t border-gray-100 grid grid-cols-2 gap-2">
-              {" "}
+            <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2">
               <Button
                 block
                 icon={<ExportOutlined />}
                 onClick={() => onView(p.rentalAreaId)}
-                style={softButtonStyle(brandColor)}
-                className="rounded-xl font-medium h-10 px-4"
+                style={softButtonStyle("#1677ff")}
+                className="!rounded-xl !font-medium !h-10 !px-4"
               >
                 Xem chi tiết
               </Button>
+
               <Button
                 block
                 icon={<CheckCircleOutlined />}
                 disabled={!canApprove}
                 onClick={() => confirmApprove(p)}
                 style={canApprove ? filledButtonStyle(approveColor) : undefined}
-                className="rounded-xl font-medium h-10 px-4"
+                className="!rounded-xl !font-medium !h-10 !px-4"
               >
                 Duyệt
               </Button>
+
               <Button
                 block
                 icon={canHide ? <EyeInvisibleOutlined /> : <EyeOutlined />}
@@ -251,16 +283,17 @@ const AdminPostCardList: React.FC<Props> = ({
                       ? filledButtonStyle(showColor)
                       : undefined
                 }
-                className="rounded-xl font-medium h-10 px-4"
+                className="!rounded-xl !font-medium !h-10 !px-4"
               >
                 {canHide ? "Ẩn bài" : "Hiện bài"}
               </Button>
+
               <Button
                 block
                 danger
                 icon={<DeleteOutlined />}
                 onClick={() => confirmDelete(p)}
-                className="rounded-xl font-medium h-10 px-4"
+                className="!rounded-xl !font-medium !h-10 !px-4"
                 style={softButtonStyle(deleteColor)}
               >
                 Xóa

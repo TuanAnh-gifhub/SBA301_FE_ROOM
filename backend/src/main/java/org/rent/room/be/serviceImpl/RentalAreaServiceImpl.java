@@ -52,6 +52,7 @@ public class RentalAreaServiceImpl implements RentalAreaService {
     CityRepository cityRepository;
     UserRepository userRepository;
     CloudinaryService cloudinaryService;
+    RoomRepository roomRepository;
 
     @Override
     @Transactional
@@ -139,6 +140,17 @@ public class RentalAreaServiceImpl implements RentalAreaService {
 
         List<RentalAreaResponse> data = rentalAreas.stream().map(rentalArea -> {
 
+            List<RentalAreaImageResponse> rentalAreaImages = rentalAreaImageRepository.findByRentalArea(rentalArea)
+                    .stream()
+                    .sorted(Comparator.comparing(RentalAreaImage::getSortOrder, Comparator.nullsLast(Integer::compareTo)))
+                    .map(img -> RentalAreaImageResponse.builder()
+                            .rentalAreaImageId(img.getRentalAreaImageId())
+                            .imageUrl(img.getImageUrl())
+                            .isCover(img.getIsCover())
+                            .sortOrder(img.getSortOrder())
+                            .build())
+                    .toList();
+
 
             List<RoomResponse> roomResponses = rentalArea.getRoom().stream().map(room -> {
 
@@ -162,9 +174,11 @@ public class RentalAreaServiceImpl implements RentalAreaService {
 
             return RentalAreaResponse.builder()
                     .rentalAreaId(rentalArea.getRentalAreaId())
+                    .rentalAreaName(rentalArea.getRentalAreaName())
                     .address(rentalArea.getAddress())
                     .cityName(rentalArea.getCity().getCityName())
                     .contactPhone(rentalArea.getContactPhone())
+                    .images(rentalAreaImages)
                     .rooms(roomResponses)
                     .build();
         }).toList();
@@ -276,14 +290,22 @@ public class RentalAreaServiceImpl implements RentalAreaService {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
+        boolean hasRoom = roomRepository.existsActiveRoomByRentalAreaId(rentalAreaId);
+        if (hasRoom) {
+            throw new AppException(ErrorCode.RENTAL_AREA_HAS_ACTIVE_ROOM);
+        }
+
         rentalArea.setDeletedAt(LocalDateTime.now());
         rentalAreaRepository.save(rentalArea);
     }
 
     @Override
     @Transactional
-    public RentalAreaResponse updateRentalArea(UUID rentalAreaId, UpdateRentalAreaRequest req,
-                                               UUID currentUserId, String currentUserRole) {
+    public RentalAreaResponse updateRentalArea(UUID rentalAreaId,
+                                               UpdateRentalAreaRequest req,
+                                               List<MultipartFile> images,
+                                               UUID currentUserId,
+                                               String currentUserRole) {
 
         RentalArea rentalArea = rentalAreaRepository.findByIdActive(rentalAreaId)
                 .orElseThrow(() -> new AppException(ErrorCode.RENTAL_AREA_NOT_FOUND));
@@ -301,9 +323,16 @@ public class RentalAreaServiceImpl implements RentalAreaService {
         rentalArea.setContactName(req.getContactName());
         rentalArea.setContactPhone(req.getContactPhone());
         rentalArea.setCity(city);
-       rentalArea.setCloseTime(req.getCloseTime());
-       rentalArea.setOpenTime(req.getOpenTime());
+        rentalArea.setOpenTime(req.getOpenTime());
+        rentalArea.setCloseTime(req.getCloseTime());
+
         rentalAreaRepository.save(rentalArea);
+
+        boolean hasNewImages = images != null && images.stream().anyMatch(f -> f != null && !f.isEmpty());
+        if (hasNewImages) {
+            replaceRentalAreaImages(rentalArea, images);
+        }
+
         return mapToResponse(rentalArea);
     }
 
@@ -333,5 +362,51 @@ public class RentalAreaServiceImpl implements RentalAreaService {
         rentalAreaRepository.save(rentalArea);
 
         return mapToResponse(rentalArea);
+    }
+
+    private void replaceRentalAreaImages(RentalArea rentalArea, List<MultipartFile> images) {
+        List<MultipartFile> validImages = images == null
+                ? Collections.emptyList()
+                : images.stream()
+                .filter(f -> f != null && !f.isEmpty())
+                .toList();
+
+        if (validImages.isEmpty()) {
+            throw new IllegalArgumentException("RentalArea requires at least 1 image when updating images");
+        }
+
+        if (validImages.size() > 5) {
+            throw new IllegalArgumentException("RentalArea allows at most 5 images");
+        }
+
+        List<RentalAreaImage> oldImages = rentalAreaImageRepository.findByRentalArea(rentalArea);
+
+        for (RentalAreaImage oldImage : oldImages) {
+            if (oldImage.getPublicId() != null && !oldImage.getPublicId().isBlank()) {
+                cloudinaryService.deleteByPublicId(oldImage.getPublicId());
+            }
+        }
+
+        rentalAreaImageRepository.deleteAll(oldImages);
+
+        String folder = "rentals/" + rentalArea.getRentalAreaId();
+        List<CloudinaryUploadResult> uploaded = cloudinaryService.uploadImages(validImages, folder);
+
+        List<RentalAreaImage> newImages = new ArrayList<>();
+        for (int i = 0; i < uploaded.size(); i++) {
+            CloudinaryUploadResult u = uploaded.get(i);
+
+            RentalAreaImage img = RentalAreaImage.builder()
+                    .rentalArea(rentalArea)
+                    .imageUrl(u.getUrl())
+                    .publicId(u.getPublicId())
+                    .isCover(i == 0)
+                    .sortOrder(i)
+                    .build();
+
+            newImages.add(img);
+        }
+
+        rentalAreaImageRepository.saveAll(newImages);
     }
 }

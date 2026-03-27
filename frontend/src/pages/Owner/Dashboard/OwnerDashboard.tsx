@@ -10,6 +10,7 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   LockOutlined,
+  DashboardOutlined,
 } from "@ant-design/icons";
 import {
   dashboardService,
@@ -20,13 +21,10 @@ import {
   type EscrowSummary,
   type RoomSummary,
   type ReviewStats,
-  type RevenueData, // Dùng Interface mới
-  type OwnerRevenueStatsResponse, // Dùng Interface mới
+  type RevenueData,
+  type OwnerRevenueStatsResponse,
 } from "../../../services/ownerDashboard/service";
-
-// ----------------------------------------------------------------
-// HELPERS
-// ----------------------------------------------------------------
+import PageHeader from "../../../components/Header/PageHeader";
 
 const formatVND = (value: number | undefined | null) => {
   if (value == null) return "0 ₫";
@@ -55,38 +53,39 @@ function unwrap<T>(result: PromiseSettledResult<T>, fallback: T): T {
   return fallback;
 }
 
-// ----------------------------------------------------------------
-// SUB-COMPONENTS
-// ----------------------------------------------------------------
-
-// Cập nhật để dùng đúng field 'amount' từ Backend
 function MiniBarChart({ data, label }: { data: RevenueData[]; label: string }) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-24 text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-24 text-gray-400 text-sm rounded-2xl bg-slate-50">
         Không có dữ liệu
       </div>
     );
   }
-  // Dùng item.amount thay vì item.revenue
-  const maxVal = Math.max(...data.map((d) => d.amount ?? 0), 0); return (
-    <div>
-      <p className="text-xs text-gray-400 mb-2">{label}</p>
-      <div className="flex items-end gap-1 h-20">
+
+  const maxVal = Math.max(...data.map((d) => d.amount ?? 0), 0);
+
+  return (
+    <div className="rounded-2xl border border-slate-100 p-4">
+      <p className="text-sm font-medium text-slate-600 mb-3">{label}</p>
+      <div className="flex items-end gap-2 h-24">
         {data.map((item, i) => {
-          const heightPct = maxVal > 0 ? ((item.amount ?? 0) / maxVal) * 100 : 0;
+          const heightPct =
+            maxVal > 0 ? ((item.amount ?? 0) / maxVal) * 100 : 0;
+
           return (
-            <div
-              className="w-full bg-blue-400 group-hover:bg-blue-500 rounded-t transition-all duration-200"
-              style={{
-                height: `${heightPct}%`,
-                minHeight: item.amount > 0 ? '4px' : '2px'
-              }}
-            />
-          )
+            <div key={i} className="flex-1 flex flex-col justify-end">
+              <div
+                className="w-full rounded-t-xl bg-gradient-to-t from-sky-500 to-cyan-400 transition-all duration-200"
+                style={{
+                  height: `${heightPct}%`,
+                  minHeight: item.amount > 0 ? "6px" : "3px",
+                }}
+              />
+            </div>
+          );
         })}
       </div>
-      <div className="flex justify-between text-xs text-gray-400 mt-1">
+      <div className="flex justify-between text-xs text-slate-400 mt-2">
         <span>{data[0]?.label}</span>
         <span>{data[data.length - 1]?.label}</span>
       </div>
@@ -96,7 +95,7 @@ function MiniBarChart({ data, label }: { data: RevenueData[]; label: string }) {
 
 function StatCardSkeleton() {
   return (
-    <Card className="animate-pulse">
+    <Card className="animate-pulse rounded-3xl">
       <div className="h-4 bg-gray-200 rounded w-1/2 mb-3" />
       <div className="h-8 bg-gray-200 rounded w-3/4 mb-2" />
       <div className="h-3 bg-gray-100 rounded w-1/3" />
@@ -113,19 +112,19 @@ function PendingBadge({ count }: { count: number }) {
   );
 }
 
-// ----------------------------------------------------------------
-// MAIN COMPONENT
-// ----------------------------------------------------------------
-
 export default function OwnerDashboard() {
   const [range, setRange] = useState<TimeRange>("30d");
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<string[]>([]);
 
-  const [bookingSummary, setBookingSummary] = useState<BookingSummary | null>(null);
-  // Cập nhật State cho API mới
-  const [revenueStats, setRevenueStats] = useState<OwnerRevenueStatsResponse | null>(null);
-  const [walletRevenue, setWalletRevenue] = useState<WalletRevenue | null>(null);
+  const [bookingSummary, setBookingSummary] = useState<BookingSummary | null>(
+    null,
+  );
+  const [revenueStats, setRevenueStats] =
+    useState<OwnerRevenueStatsResponse | null>(null);
+  const [walletRevenue, setWalletRevenue] = useState<WalletRevenue | null>(
+    null,
+  );
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
   const [escrow, setEscrow] = useState<EscrowSummary | null>(null);
   const [roomSummary, setRoomSummary] = useState<RoomSummary | null>(null);
@@ -137,7 +136,7 @@ export default function OwnerDashboard() {
 
     const [
       bookingRes,
-      revenueStatsRes, // API biểu đồ mới
+      revenueStatsRes,
       walletRevRes,
       walletRes,
       escrowRes,
@@ -145,7 +144,7 @@ export default function OwnerDashboard() {
       reviewsRes,
     ] = await Promise.allSettled([
       dashboardService.getBookingSummary(selectedRange),
-      dashboardService.getOwnerRevenueStats(), // Gọi API /revenue-stats
+      dashboardService.getOwnerRevenueStats(),
       dashboardService.getWalletRevenue(selectedRange),
       dashboardService.getWalletInfo(),
       dashboardService.getEscrowSummary(),
@@ -162,11 +161,19 @@ export default function OwnerDashboard() {
     setReviewStats(unwrap(reviewsRes, null));
 
     const failed = [
-      bookingRes, revenueStatsRes, walletRevRes,
-      walletRes, escrowRes, roomsRes, reviewsRes,
+      bookingRes,
+      revenueStatsRes,
+      walletRevRes,
+      walletRes,
+      escrowRes,
+      roomsRes,
+      reviewsRes,
     ]
       .filter((r): r is PromiseRejectedResult => r.status === "rejected")
-      .map((r) => r.reason?.response?.data?.message ?? r.reason?.message ?? "API lỗi");
+      .map(
+        (r) =>
+          r.reason?.response?.data?.message ?? r.reason?.message ?? "API lỗi",
+      );
 
     if (failed.length > 0) {
       setErrors(failed);
@@ -180,23 +187,21 @@ export default function OwnerDashboard() {
   }, [range, fetchAll]);
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            Tổng quan hoạt động cho thuê phòng của bạn
-          </p>
-        </div>
-        <Select
-          value={range}
-          onChange={(val) => setRange(val as TimeRange)}
-          options={TIME_RANGE_OPTIONS}
-          className="w-32"
-          size="middle"
-        />
-      </div>
+    <div className="p-4 md:p-6 bg-slate-50 min-h-screen">
+      <PageHeader
+        title="Dashboard chủ phòng"
+        subtitle="Tổng quan doanh thu, booking, phòng và đánh giá của hệ thống cho thuê"
+        icon={<DashboardOutlined />}
+        extra={
+          <Select
+            value={range}
+            onChange={(val) => setRange(val as TimeRange)}
+            options={TIME_RANGE_OPTIONS}
+            className="w-36"
+            size="large"
+          />
+        }
+      />
 
       {errors.length > 0 && (
         <Alert
@@ -204,22 +209,24 @@ export default function OwnerDashboard() {
           message={`${errors.length} API chưa sẵn sàng — một số widget hiển thị 0`}
           description={
             <ul className="text-xs mt-1 space-y-0.5">
-              {errors.map((e, i) => <li key={i}>• {e}</li>)}
+              {errors.map((e, i) => (
+                <li key={i}>• {e}</li>
+              ))}
             </ul>
           }
-          className="mb-4"
+          className="mb-4 rounded-2xl"
           closable
           onClose={() => setErrors([])}
         />
       )}
 
-      {/* ── ROW 1: KPI cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
         ) : (
           <>
-            <Card className="border-l-4 border-l-blue-500 shadow-sm">
+            <Card className="!rounded-3xl !shadow-sm !border-0 bg-white">
+              <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 mb-4" />
               <Statistic
                 title={
                   <span className="text-sm text-gray-500 flex items-center gap-1">
@@ -228,14 +235,15 @@ export default function OwnerDashboard() {
                 }
                 value={bookingSummary?.totalRevenue ?? 0}
                 formatter={(v) => formatVND(Number(v))}
-                valueStyle={{ fontSize: 20, fontWeight: 700, color: "#1d4ed8" }}
+                valueStyle={{ fontSize: 24, fontWeight: 700, color: "#1d4ed8" }}
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-2">
                 Net: {formatVND(walletRevenue?.netRevenue)}
               </p>
             </Card>
 
-            <Card className="border-l-4 border-l-green-500 shadow-sm">
+            <Card className="!rounded-3xl !shadow-sm !border-0 bg-white">
+              <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400 mb-4" />
               <Statistic
                 title={
                   <span className="text-sm text-gray-500 flex items-center gap-1">
@@ -250,14 +258,15 @@ export default function OwnerDashboard() {
                 }
                 value={walletInfo?.balance ?? 0}
                 formatter={(v) => formatVND(Number(v))}
-                valueStyle={{ fontSize: 20, fontWeight: 700, color: "#15803d" }}
+                valueStyle={{ fontSize: 24, fontWeight: 700, color: "#15803d" }}
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-2">
                 Đang giữ: {formatVND(escrow?.totalNetAmount)}
               </p>
             </Card>
 
-            <Card className="border-l-4 border-l-purple-500 shadow-sm">
+            <Card className="!rounded-3xl !shadow-sm !border-0 bg-white">
+              <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-purple-500 to-fuchsia-400 mb-4" />
               <Statistic
                 title={
                   <span className="text-sm text-gray-500 flex items-center gap-1">
@@ -265,21 +274,22 @@ export default function OwnerDashboard() {
                   </span>
                 }
                 value={bookingSummary?.totalBookings ?? 0}
-                valueStyle={{ fontSize: 20, fontWeight: 700, color: "#7e22ce" }}
+                valueStyle={{ fontSize: 24, fontWeight: 700, color: "#7e22ce" }}
               />
-              <div className="flex gap-3 mt-1">
-                <span className="text-xs text-green-500 flex items-center gap-0.5">
+              <div className="flex gap-4 mt-2">
+                <span className="text-xs text-green-500 flex items-center gap-1">
                   <CheckCircleOutlined />
                   {bookingSummary?.completedBookings ?? 0}
                 </span>
-                <span className="text-xs text-red-400 flex items-center gap-0.5">
+                <span className="text-xs text-red-400 flex items-center gap-1">
                   <CloseCircleOutlined />
                   {bookingSummary?.cancelledBookings ?? 0}
                 </span>
               </div>
             </Card>
 
-            <Card className="border-l-4 border-l-yellow-400 shadow-sm">
+            <Card className="!rounded-3xl !shadow-sm !border-0 bg-white">
+              <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 mb-4" />
               <Statistic
                 title={
                   <span className="text-sm text-gray-500 flex items-center gap-1">
@@ -289,10 +299,12 @@ export default function OwnerDashboard() {
                   </span>
                 }
                 value={formatRating(reviewStats?.overallAvgRating)}
-                suffix={reviewStats?.overallAvgRating != null ? "/ 5" : undefined}
-                valueStyle={{ fontSize: 20, fontWeight: 700, color: "#b45309" }}
+                suffix={
+                  reviewStats?.overallAvgRating != null ? "/ 5" : undefined
+                }
+                valueStyle={{ fontSize: 24, fontWeight: 700, color: "#b45309" }}
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-2">
                 +{reviewStats?.newReviewsInPeriod ?? 0} review trong kỳ
               </p>
             </Card>
@@ -300,11 +312,14 @@ export default function OwnerDashboard() {
         )}
       </div>
 
-      {/* ── ROW 2: Chart + Phòng ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <Card
-          title={<span className="font-semibold text-gray-700">📈 Biểu đồ doanh thu</span>}
-          className="lg:col-span-2 shadow-sm"
+          title={
+            <span className="font-semibold text-slate-700">
+              📈 Biểu đồ doanh thu
+            </span>
+          }
+          className="lg:col-span-2 !rounded-3xl !shadow-sm !border-0"
         >
           {loading ? (
             <Spin className="w-full flex justify-center py-8" />
@@ -323,8 +338,12 @@ export default function OwnerDashboard() {
         </Card>
 
         <Card
-          title={<span className="font-semibold text-gray-700">🏠 Tình trạng phòng</span>}
-          className="shadow-sm"
+          title={
+            <span className="font-semibold text-slate-700">
+              🏠 Tình trạng phòng
+            </span>
+          }
+          className="!rounded-3xl !shadow-sm !border-0"
         >
           {loading ? (
             <Spin className="w-full flex justify-center py-8" />
@@ -362,8 +381,9 @@ export default function OwnerDashboard() {
                   {roomSummary?.inactiveRooms ?? 0}
                 </span>
               </div>
+
               {(roomSummary?.totalRooms ?? 0) > 0 && (
-                <div className="mt-3">
+                <div className="mt-4 rounded-2xl bg-slate-50 p-3">
                   <div className="flex rounded-full overflow-hidden h-3">
                     <div
                       className="bg-green-400 transition-all"
@@ -379,8 +399,12 @@ export default function OwnerDashboard() {
                     />
                     <div className="bg-gray-200 flex-1" />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1 text-right">
-                    {((roomSummary!.activeRooms / roomSummary!.totalRooms) * 100).toFixed(0)}% đang hoạt động
+                  <p className="text-xs text-gray-400 mt-2 text-right">
+                    {(
+                      (roomSummary!.activeRooms / roomSummary!.totalRooms) *
+                      100
+                    ).toFixed(0)}
+                    % đang hoạt động
                   </p>
                 </div>
               )}
@@ -389,13 +413,16 @@ export default function OwnerDashboard() {
         </Card>
       </div>
 
-      {/* ── ROW 3: Thu nhập + Tiền đang giữ + Review ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card
-          title={<span className="font-semibold text-gray-700">💰 Thu nhập ví</span>}
-          className="shadow-sm"
+          title={
+            <span className="font-semibold text-slate-700">💰 Thu nhập ví</span>
+          }
+          className="!rounded-3xl !shadow-sm !border-0"
         >
-          {loading ? <Spin className="w-full flex justify-center py-8" /> : (
+          {loading ? (
+            <Spin className="w-full flex justify-center py-8" />
+          ) : (
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600 text-sm">Tổng thu</span>
@@ -420,15 +447,23 @@ export default function OwnerDashboard() {
         </Card>
 
         <Card
-          title={<span className="font-semibold text-gray-700">🔒 Tiền đang giữ</span>}
-          className="shadow-sm"
+          title={
+            <span className="font-semibold text-slate-700">
+              🔒 Tiền đang giữ
+            </span>
+          }
+          className="!rounded-3xl !shadow-sm !border-0"
           extra={
             <Tooltip title="Tiền được giải phóng sau 7 ngày checkout">
-              <span className="text-xs text-gray-400 cursor-help">Giải phóng sau 7 ngày</span>
+              <span className="text-xs text-gray-400 cursor-help">
+                Giải phóng sau 7 ngày
+              </span>
             </Tooltip>
           }
         >
-          {loading ? <Spin className="w-full flex justify-center py-8" /> : (
+          {loading ? (
+            <Spin className="w-full flex justify-center py-8" />
+          ) : (
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600 text-sm">Tổng đang giữ</span>
@@ -443,7 +478,9 @@ export default function OwnerDashboard() {
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-t border-gray-100">
-                <span className="text-gray-700 font-semibold">Sẽ nhận được</span>
+                <span className="text-gray-700 font-semibold">
+                  Sẽ nhận được
+                </span>
                 <span className="font-bold text-green-600 text-lg">
                   {formatVND(escrow?.totalNetAmount)}
                 </span>
@@ -453,16 +490,24 @@ export default function OwnerDashboard() {
         </Card>
 
         <Card
-          title={<span className="font-semibold text-gray-700">⭐ Chi tiết đánh giá</span>}
-          className="shadow-sm"
+          title={
+            <span className="font-semibold text-slate-700">
+              ⭐ Chi tiết đánh giá
+            </span>
+          }
+          className="!rounded-3xl !shadow-sm !border-0"
         >
-          {loading ? <Spin className="w-full flex justify-center py-8" /> : (
+          {loading ? (
+            <Spin className="w-full flex justify-center py-8" />
+          ) : (
             <div className="space-y-3">
               <div className="text-center py-2 border-b border-gray-100">
                 <div className="text-4xl font-bold text-yellow-500">
                   {formatRating(reviewStats?.overallAvgRating)}
                 </div>
-                <div className="text-sm text-gray-400">Điểm trung bình tổng thể</div>
+                <div className="text-sm text-gray-400">
+                  Điểm trung bình tổng thể
+                </div>
               </div>
               <div className="flex justify-between items-center py-1">
                 <span className="text-gray-500 text-sm">Trong kỳ</span>
@@ -480,8 +525,13 @@ export default function OwnerDashboard() {
                 <span className="text-gray-600 flex items-center gap-1">
                   <MessageOutlined className="text-red-400" /> Chưa phản hồi
                 </span>
-                <span className={`font-bold text-lg ${(reviewStats?.pendingReplyCount ?? 0) > 0 ? "text-red-500" : "text-gray-400"
-                  }`}>
+                <span
+                  className={`font-bold text-lg ${
+                    (reviewStats?.pendingReplyCount ?? 0) > 0
+                      ? "text-red-500"
+                      : "text-gray-400"
+                  }`}
+                >
                   {reviewStats?.pendingReplyCount ?? 0}
                 </span>
               </div>

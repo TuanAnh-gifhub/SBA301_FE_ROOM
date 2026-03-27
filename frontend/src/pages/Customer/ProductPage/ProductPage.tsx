@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, Pagination, message } from "antd";
 import dayjs from "dayjs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import FilterSidebar from "./FilterSidebar";
 import RoomGrid from "./RoomGrid";
@@ -45,18 +45,26 @@ const mapPostToCard = (p: PostSummaryResponse): RoomCardItem => ({
 });
 
 const ProductsPage: React.FC = () => {
-  // Filters
-  const [cityId, setCityId] = useState<number | undefined>(undefined);
+  const [searchParams] = useSearchParams();
+
+  const initialCityId = searchParams.get("cityId");
+  const initialCategoryId = searchParams.get("categoryId");
+
+  const [cityId, setCityId] = useState<number | undefined>(
+    initialCityId ? Number(initialCityId) : undefined,
+  );
+
   const [date, setDate] = useState<any>(dayjs());
   const [timeRange, setTimeRange] = useState<[number, number]>([8, 18]);
 
-  // slider sức chứa
   const [capacityRange, setCapacityRange] = useState<[number, number]>([
     0, 100,
   ]);
 
   const [amenityIds, setAmenityIds] = useState<number[]>([]);
-  const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
+  const [categoryId, setCategoryId] = useState<number | undefined>(
+    initialCategoryId ? Number(initialCategoryId) : undefined,
+  );
 
   // options (from API)
   const [cityOptions, setCityOptions] = useState<NumberOption[]>([]);

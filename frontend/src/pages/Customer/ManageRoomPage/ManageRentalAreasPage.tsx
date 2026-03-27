@@ -5,10 +5,10 @@ import { useAuth } from "../../../context/AuthContext";
 import type { RentalArea, RentalAreaStatus } from "../../../types/rentalArea";
 import { rentalAreaApi } from "../../../services/rentalAreaApi";
 
-import PageHeader from "./components/PageHeader";
-import RentalAreaFilters from "./components/RentalAreaFilters";
-import RentalAreaTable from "./components/RentalAreaTable";
-import CreateRentalAreaModal from "./components/CreateRentalAreaModal";
+import PageHeader from "./PageHeader";
+import RentalAreaFilters from "./RentalAreaFilters";
+import RentalAreaTable from "./RentalAreaTable";
+import CreateRentalAreaModal from "./CreateRentalAreaModal";
 
 const ManageRentalAreasPage: React.FC = () => {
   const navigate = useNavigate();
@@ -104,7 +104,9 @@ const ManageRentalAreasPage: React.FC = () => {
     address: string;
     contactName?: string;
     contactPhone?: string;
-    cityId: string;
+    cityId: number;
+    openTime: string;
+    closeTime: string;
     images: File[];
   }) => {
     setCreateLoading(true);

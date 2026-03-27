@@ -74,11 +74,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     ]),
 
     // 3. Quản lý Tài nguyên (Phòng ốc) -> BỎ HẾT CHILD
-    getItem(
-      <Link to="/admin/rooms">Quản lý Phòng & Cơ sở</Link>,
-      "/admin/rooms",
-      <ShopOutlined />,
-    ),
+    // getItem(
+    //   <Link to="/admin/rooms">Quản lý Phòng & Cơ sở</Link>,
+    //   "/admin/rooms",
+    //   <ShopOutlined />,
+    // ),
 
     // 4. Quản lý tin đăng
     getItem(

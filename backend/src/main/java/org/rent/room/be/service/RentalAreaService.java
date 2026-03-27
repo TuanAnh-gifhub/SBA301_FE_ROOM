@@ -32,8 +32,11 @@ public interface RentalAreaService {
 
     void deleteRentalArea(UUID rentalAreaId, UUID currentUserId, String currentUserRole);
 
-    RentalAreaResponse updateRentalArea(UUID rentalAreaId, UpdateRentalAreaRequest req,
-                                        UUID currentUserId, String currentUserRole);
+    RentalAreaResponse updateRentalArea(UUID rentalAreaId,
+                                        UpdateRentalAreaRequest req,
+                                        List<MultipartFile> images,
+                                        UUID currentUserId,
+                                        String currentUserRole);
 
     RentalAreaResponse updateRentalAreaStatus(UUID rentalAreaId, UpdateRentalAreaStatusRequest req,
                                               UUID currentUserId, String currentUserRole);

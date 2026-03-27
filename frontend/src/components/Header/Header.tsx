@@ -200,9 +200,8 @@ const Header = () => {
 
   const displayUser = user
     ? {
-        name: user.userName ,
-        role: user.role
-        || "User",
+        name: user.userName,
+        role: user.role || "User",
       }
     : null;
 
@@ -439,7 +438,7 @@ const Header = () => {
 
                     {/* Đăng phòng */}
                     <button
-                      onClick={() => requireAuth(() => navigate("/post-item"))}
+                      onClick={() => requireAuth(() => navigate("/owner"))}
                       className={`${PRIMARY_BUTTON_CLASS} inline-flex items-center justify-center h-10 md:h-11 px-3 md:px-5 py-2 md:py-2.5 bg-[#4da6ff]/70 hover:bg-[#4da6ff]/90 text-white border-[#4da6ff]/50 hover:border-[#4da6ff]`}
                       title="Đăng tin"
                     >

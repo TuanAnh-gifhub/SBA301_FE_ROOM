@@ -1,129 +1,53 @@
-import type React from "react";
-import {
-  FaWifi,
-  FaSnowflake,
-  FaPlug,
-  FaChalkboard,
-  FaVideo,
-  FaTv,
-  FaMicrophone,
-  FaVolumeUp,
-  FaLightbulb,
-  FaUsers,
-  FaChair,
-  FaChalkboardTeacher,
-  FaPen,
-  FaDesktop,
-  FaPrint,
-  FaServer,
-  FaNetworkWired,
-  FaKeyboard,
-  FaHeadphones,
-  FaWind,
-  FaRulerCombined,
-  FaFan,
-  FaTint,
-  FaCouch,
-  FaDoorClosed,
-} from "react-icons/fa";
+import * as FaIcons from "react-icons/fa";
+import type { IconType } from "react-icons";
 
-/* =======================================================
-   1️⃣  Union type phải chứa TẤT CẢ icon bạn muốn dùng
-======================================================= */
+type IconMap = Record<string, IconType>;
 
-export type AmenityIconKey =
-  | "FaWifi"
-  | "FaSnowflake"
-  | "FaPlug"
-  | "FaChalkboard"
-  | "FaVideo"
-  | "FaTv"
-  | "FaMicrophone"
-  | "FaVolumeUp"
-  | "FaLightbulb"
-  | "FaUsers"
-  | "FaChair"
-  | "FaChalkboardTeacher"
-  | "FaPen"
-  | "FaDesktop"
-  | "FaPrint"
-  | "FaServer"
-  | "FaNetworkWired"
-  | "FaKeyboard"
-  | "FaHeadphones"
-  | "FaWind"
-  | "FaRulerCombined"
-  | "FaFan"
-  | "FaTint"
-  | "FaCouch"
-  | "FaDoorClosed";
+const rawFaIconEntries = Object.entries(FaIcons).filter(
+  ([key, value]) => key.startsWith("Fa") && typeof value === "function",
+) as [string, IconType][];
 
-/* =======================================================
-   2️⃣  Map key -> Component
-======================================================= */
+export const AMENITY_ICON_MAP: IconMap = rawFaIconEntries.reduce<IconMap>(
+  (acc, [key, icon]) => {
+    acc[key] = icon;
+    return acc;
+  },
+  {},
+);
 
-export const AMENITY_ICON_MAP: Record<
-  AmenityIconKey,
-  React.ComponentType<{ className?: string }>
-> = {
-  FaWifi,
-  FaSnowflake,
-  FaPlug,
-  FaChalkboard,
-  FaVideo,
-  FaTv,
-  FaMicrophone,
-  FaVolumeUp,
-  FaLightbulb,
-  FaUsers,
-  FaChair,
-  FaChalkboardTeacher,
-  FaPen,
-  FaDesktop,
-  FaPrint,
-  FaServer,
-  FaNetworkWired,
-  FaKeyboard,
-  FaHeadphones,
-  FaWind,
-  FaRulerCombined,
-  FaFan,
-  FaTint,
-  FaCouch,
-  FaDoorClosed,
+export type AmenityIconKey = keyof typeof AMENITY_ICON_MAP;
+
+const formatIconLabel = (key: string) =>
+  key
+    .replace(/^Fa/, "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const normalizeKeyword = (value: string) =>
+  value.toLowerCase().replace(/\s+/g, "").trim();
+
+export const AMENITY_ICON_OPTIONS = rawFaIconEntries
+  .map(([key]) => ({
+    value: key as AmenityIconKey,
+    label: formatIconLabel(key),
+    searchText: normalizeKeyword(`${key} ${formatIconLabel(key)}`),
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label, "en", { sensitivity: "base" }));
+
+export const DEFAULT_AMENITY_ICON: AmenityIconKey = "FaUsers";
+
+export const getAmenityIcon = (iconKey?: string) => {
+  if (!iconKey) return AMENITY_ICON_MAP[DEFAULT_AMENITY_ICON];
+  return AMENITY_ICON_MAP[iconKey] || AMENITY_ICON_MAP[DEFAULT_AMENITY_ICON];
 };
 
-/* =======================================================
-   3️⃣  Option cho Select
-======================================================= */
+export const searchAmenityIcons = (keyword: string) => {
+  const normalized = normalizeKeyword(keyword);
 
-export const AMENITY_ICON_OPTIONS: {
-  value: AmenityIconKey;
-  label: string;
-}[] = [
-  { value: "FaWifi", label: "WiFi" },
-  { value: "FaSnowflake", label: "Máy lạnh" },
-  { value: "FaPlug", label: "Ổ điện" },
-  { value: "FaChalkboard", label: "Bảng trắng" },
-  { value: "FaVideo", label: "Máy chiếu" },
-  { value: "FaTv", label: "TV / Màn hình lớn" },
-  { value: "FaMicrophone", label: "Micro" },
-  { value: "FaVolumeUp", label: "Loa" },
-  { value: "FaLightbulb", label: "Đèn LED" },
-  { value: "FaUsers", label: "Bàn họp" },
-  { value: "FaChair", label: "Ghế" },
-  { value: "FaChalkboardTeacher", label: "Bảng điện tử" },
-  { value: "FaPen", label: "Bút trình chiếu" },
-  { value: "FaDesktop", label: "Máy tính" },
-  { value: "FaPrint", label: "Máy in" },
-  { value: "FaServer", label: "Server" },
-  { value: "FaNetworkWired", label: "Thiết bị mạng" },
-  { value: "FaKeyboard", label: "Bàn phím" },
-  { value: "FaHeadphones", label: "Tai nghe" },
-  { value: "FaWind", label: "Hệ thống thông gió" },
-  { value: "FaRulerCombined", label: "Thiết bị đo lường" },
-  { value: "FaFan", label: "Quạt" },
-  { value: "FaTint", label: "Máy lọc nước" },
-  { value: "FaCouch", label: "Khu nghỉ ngơi" },
-  { value: "FaDoorClosed", label: "Cửa cách âm" },
-];
+  if (!normalized) return AMENITY_ICON_OPTIONS;
+
+  return AMENITY_ICON_OPTIONS.filter((item) =>
+    item.searchText.includes(normalized),
+  );
+};

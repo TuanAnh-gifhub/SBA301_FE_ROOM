@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Button, Popconfirm, Space, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { AmenityResponse } from "../../../services/amenities/amenities";
-import { AMENITY_ICON_MAP, type AmenityIconKey } from "./amenityIcons";
+import { getAmenityIcon } from "./amenityIcons";
 
 interface AmenityTableProps {
   data: AmenityResponse[];
@@ -17,7 +17,6 @@ const AmenityTable: React.FC<AmenityTableProps> = ({
   onEdit,
   onDelete,
 }) => {
-  // 🔹 Sort mặc định A-Z
   const sortedData = useMemo(() => {
     return [...data].sort((a, b) =>
       a.amenityName.localeCompare(b.amenityName, "vi", {
@@ -42,14 +41,17 @@ const AmenityTable: React.FC<AmenityTableProps> = ({
       title: "Biểu tượng",
       dataIndex: "iconKey",
       key: "iconKey",
-      width: 150,
+      width: 180,
       align: "center",
       render: (iconKey: string) => {
-        const Icon =
-          AMENITY_ICON_MAP[(iconKey as AmenityIconKey) ?? "FaUsers"] ??
-          AMENITY_ICON_MAP.FaUsers;
+        const Icon = getAmenityIcon(iconKey);
 
-        return <Icon className="text-[#4da6ff] text-lg mx-auto" />;
+        return (
+          <div className="flex flex-col items-center justify-center gap-1">
+            <Icon className="text-[#4da6ff] text-lg" />
+            <span className="text-[11px] text-slate-400">{iconKey}</span>
+          </div>
+        );
       },
     },
     {

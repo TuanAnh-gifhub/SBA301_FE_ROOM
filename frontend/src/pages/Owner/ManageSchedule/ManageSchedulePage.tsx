@@ -4,8 +4,16 @@ import resourceTimeGridPlugin from "@fullcalendar/resource-timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import { Modal, Input } from "antd";
+import { Modal, Input, Button, Tag } from "antd";
+import {
+  CalendarOutlined,
+  DeleteOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  FileTextOutlined,
+} from "@ant-design/icons";
 import roomsService from "../../../services/rooms/rooms";
+import PageHeader from "../../../components/Header/PageHeader";
 
 export default function ManageSchedulePage() {
   const roomColors = {
@@ -57,7 +65,6 @@ export default function ManageSchedulePage() {
                 end: slot.endTime,
                 title: bookingInfo.userName || "Đã đặt",
                 backgroundColor: roomColors[room.roomId] || "#6366f1",
-
                 extendedProps: {
                   roomName: `${room.roomName} (${rc.roomCode})`,
                   roomId: room.roomId,
@@ -95,9 +102,7 @@ export default function ManageSchedulePage() {
 
     slots.forEach((s) => {
       const key = s.roomId;
-
       if (!map[key]) map[key] = [];
-
       map[key].push(s);
     });
 
@@ -162,7 +167,6 @@ export default function ManageSchedulePage() {
       end: s.endTime,
       title: payload.userName,
       backgroundColor: roomColors[s.roomId] || "#6366f1",
-
       extendedProps: {
         roomName: resources.find((r) => r.id === s.roomId)?.title,
         phone: payload.userPhone,
@@ -200,149 +204,158 @@ export default function ManageSchedulePage() {
   };
 
   return (
-    <div className="p-6">
-      <FullCalendar
-        plugins={[
-          resourceTimeGridPlugin,
-          interactionPlugin,
-          dayGridPlugin,
-          timeGridPlugin,
-        ]}
-        initialView="resourceTimeGridDay"
-        selectable
-        selectMirror
-        select={handleSelect}
-        eventClick={handleEventClick}
-        resources={resources}
-        events={[...events, ...previewEvents]}
-        height="auto"
-        locale="vi"
-        customButtons={{
-          addBooking: {
-            text: "Tạo lịch đặt",
-            click: () => setOpenModal(true),
-          },
-        }}
-        headerToolbar={{
-          left: "prev,next today addBooking",
-          center: "title",
-          right: "dayGridMonth,timeGridWeek,resourceTimeGridDay",
-        }}
-        buttonText={{
-          today: "Hôm nay",
-          month: "Tháng",
-          week: "Tuần",
-          day: "Ngày",
-        }}
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <PageHeader
+        title="Quản lý lịch phòng"
+        subtitle="Theo dõi lịch đặt, chọn khung giờ và tạo booking trực tiếp trên lịch"
+        icon={<CalendarOutlined />}
+        actionText="Tạo lịch đặt"
+        onAction={() => setOpenModal(true)}
       />
 
+      <div className="rounded-3xl bg-white shadow-sm border border-slate-100 p-4 md:p-5">
+        <FullCalendar
+          plugins={[
+            resourceTimeGridPlugin,
+            interactionPlugin,
+            dayGridPlugin,
+            timeGridPlugin,
+          ]}
+          initialView="resourceTimeGridDay"
+          selectable
+          selectMirror
+          select={handleSelect}
+          eventClick={handleEventClick}
+          resources={resources}
+          events={[...events, ...previewEvents]}
+          height="auto"
+          locale="vi"
+          customButtons={{
+            addBooking: {
+              text: "Tạo lịch đặt",
+              click: () => setOpenModal(true),
+            },
+          }}
+          headerToolbar={{
+            left: "prev,next today addBooking",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,resourceTimeGridDay",
+          }}
+          buttonText={{
+            today: "Hôm nay",
+            month: "Tháng",
+            week: "Tuần",
+            day: "Ngày",
+          }}
+        />
+      </div>
+
       <Modal
-        title="Tạo lịch đặt phòng"
+        title={
+          <span className="text-lg font-semibold">Tạo lịch đặt phòng</span>
+        }
         open={openModal}
         onCancel={() => setOpenModal(false)}
         onOk={handleSubmitBooking}
         okText="Tạo lịch"
         cancelText="Hủy"
-        width={600}
+        width={720}
       >
-        <Input
-          className="!mb-3"
-          placeholder="Tên khách hàng"
-          value={customerName}
-          onChange={(e) => setCustomerName(e.target.value)}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <Input
+            className="!h-11 !rounded-xl"
+            placeholder="Tên khách hàng"
+            prefix={<UserOutlined className="text-slate-400" />}
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+          />
 
-        <Input
-          className="!mb-3"
-          placeholder="Số điện thoại"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
+          <Input
+            className="!h-11 !rounded-xl"
+            placeholder="Số điện thoại"
+            prefix={<PhoneOutlined className="text-slate-400" />}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </div>
 
         <Input.TextArea
-          className="!mb-3"
+          className="!mb-4 !rounded-xl"
           placeholder="Ghi chú"
+          rows={4}
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
 
-        <div>
-          <h3 style={{ fontWeight: 600, marginBottom: 8 }}>
+        <div className="rounded-2xl bg-slate-50 p-4 border border-slate-100">
+          <h3 className="font-semibold text-slate-800 mb-3">
             Các khung giờ đã chọn
           </h3>
 
           {selectedSlots.length === 0 && (
-            <div style={{ color: "#888" }}>Chưa có khung giờ nào</div>
+            <div className="text-slate-400">Chưa có khung giờ nào</div>
           )}
 
-          {selectedSlots.map((s, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "6px 0",
-                borderBottom: "1px solid #eee",
-                fontSize: 13,
-              }}
-            >
-              <div>
-                <b>Phòng {s.roomId}</b>
-                <div>
-                  {s.startTime} → {s.endTime}
-                </div>
-              </div>
-
-              <button
-                style={{
-                  background: "#ef4444",
-                  color: "white",
-                  border: "none",
-                  padding: "4px 8px",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                }}
-                onClick={() => handleRemoveSlot(i)}
+          <div className="space-y-3">
+            {selectedSlots.map((s, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded-2xl bg-white border border-slate-100 px-4 py-3"
               >
-                Xóa
-              </button>
-            </div>
-          ))}
+                <div>
+                  <Tag color="blue" className="!rounded-full !px-3 !py-1 !mb-2">
+                    Phòng {s.roomId}
+                  </Tag>
+                  <div className="text-sm text-slate-600">
+                    {s.startTime} → {s.endTime}
+                  </div>
+                </div>
+
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  className="!rounded-xl"
+                  onClick={() => handleRemoveSlot(i)}
+                >
+                  Xóa
+                </Button>
+              </div>
+            ))}
+          </div>
         </div>
       </Modal>
 
       <Modal
-        title="Chi tiết lịch đặt"
+        title={<span className="text-lg font-semibold">Chi tiết lịch đặt</span>}
         open={detailModal}
         footer={null}
         onCancel={() => setDetailModal(false)}
       >
         {eventDetail && (
-          <div>
-            <p>
-              <b>Phòng:</b> {eventDetail.roomName}
-            </p>
+          <div className="space-y-3">
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p>
+                <b>Phòng:</b> {eventDetail.roomName}
+              </p>
+              <p>
+                <b>Khách hàng:</b> {eventDetail.customerName}
+              </p>
+              <p>
+                <b>SĐT:</b> {eventDetail.phone}
+              </p>
+            </div>
 
-            <p>
-              <b>Khách hàng:</b> {eventDetail.customerName}
-            </p>
-
-            <p>
-              <b>SĐT:</b> {eventDetail.phone}
-            </p>
-
-            <p>
-              <b>Bắt đầu:</b> {eventDetail.start?.toLocaleString()}
-            </p>
-
-            <p>
-              <b>Kết thúc:</b> {eventDetail.end?.toLocaleString()}
-            </p>
-
-            <p>
-              <b>Ghi chú:</b> {eventDetail.note}
-            </p>
+            <div className="rounded-2xl border border-slate-100 p-4">
+              <p>
+                <b>Bắt đầu:</b> {eventDetail.start?.toLocaleString()}
+              </p>
+              <p>
+                <b>Kết thúc:</b> {eventDetail.end?.toLocaleString()}
+              </p>
+              <p>
+                <b>Ghi chú:</b> {eventDetail.note}
+              </p>
+            </div>
           </div>
         )}
       </Modal>
