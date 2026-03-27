@@ -8,9 +8,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -214,4 +216,14 @@ AND b.createdAt BETWEEN :from AND :to
             BookingStatus bookingStatus,
             Pageable pageable
     );
+
+    List<Booking> findByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate);
+
+    @Query(value = "SELECT COUNT(*) FROM bookings WHERE booking_status = :status", nativeQuery = true)
+    long countByNativeStatus(@Param("status") String status);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE bookings SET created_at = :createdAt WHERE booking_id = :id", nativeQuery = true)
+    void updateCreatedAt(@Param("id") java.util.UUID id, @Param("createdAt") java.time.LocalDateTime createdAt);
 }

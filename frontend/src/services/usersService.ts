@@ -52,6 +52,12 @@ export interface UpdateUserStatusRequest {
   status: boolean;
 }
 
+export interface NewUserStatsResponse {
+  total: number;
+  hosts: number;
+  tenants: number;
+}
+
 export const userService = {
 
   adminCreateUser: (data: CreateUsersRequest) => {
@@ -84,6 +90,12 @@ export const userService = {
   updateStatus: (userId: string, newStatus: boolean) => {
     return api.patch<any, ApiResponse<void>>(`/users/${userId}`, {
       status: newStatus,
+    });
+  },
+
+  getNewUserStats: (range: string) => {
+    return api.get<any, ApiResponse<NewUserStatsResponse>>("/users/stats/new-users", {
+      params: { range }
     });
   },
 };
