@@ -52,7 +52,7 @@ public class RentalAreaServiceImpl implements RentalAreaService {
     CityRepository cityRepository;
     UserRepository userRepository;
     CloudinaryService cloudinaryService;
-    BookingRepository bookingRepository;
+
     @Override
     @Transactional
     public RentalAreaResponse createRentalArea(CreateRentalAreaRequest req, List<MultipartFile> images, UUID currentUserId) {
@@ -75,6 +75,8 @@ public class RentalAreaServiceImpl implements RentalAreaService {
                 .status(req.getStatus() != null ? req.getStatus() : RentalAreaStatus.ACTIVE)
                 .city(city)
                 .owner(owner)
+                .openTime(req.getOpenTime())
+                .closeTime(req.getCloseTime())
                 .build();
 
         rentalArea = rentalAreaRepository.save(rentalArea);

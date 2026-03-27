@@ -1,11 +1,13 @@
 package org.rent.room.be.dto.request.rental_area;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.rent.room.be.constant.RentalAreaStatus;
 
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Getter
@@ -31,4 +33,10 @@ public class CreateRentalAreaRequest {
     Long cityId;
 
     RentalAreaStatus status;
+
+    @JsonFormat(pattern = "HH:mm")
+    LocalTime openTime;
+
+    @JsonFormat(pattern = "HH:mm")
+    LocalTime closeTime;
 }

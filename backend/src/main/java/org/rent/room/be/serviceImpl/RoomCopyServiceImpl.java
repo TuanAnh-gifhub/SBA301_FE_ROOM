@@ -12,6 +12,7 @@ import org.rent.room.be.service.RoomCopyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 
@@ -21,7 +22,6 @@ public class RoomCopyServiceImpl implements RoomCopyService {
     private RoomCopyRepository roomCopyRepository;
     @Autowired
     private RoomRepository roomRepository;
-
     @Override
     public void createRoomCopy(RoomCopyAllRequest request) {
         Room room = roomRepository.findById(request.getRoomId())
@@ -47,6 +47,21 @@ public class RoomCopyServiceImpl implements RoomCopyService {
                 .roomCode(roomCopy.getRoomCode())
                 .roomCopyStatus(roomCopy.getRoomCopyStatus())
                 .build();
+    }
+
+    @Override
+    public List<RoomCopyResponse> getAllRoomCopiesByRentalArea(UUID rentalAreaId) {
+//List<RoomCopy> findByRoom_RentalArea_RentalAreaId(UUID rentalAreaId);
+        List<RoomCopy> roomCopies = roomCopyRepository.findAllByRentalAreaId(rentalAreaId);
+
+        return roomCopies.stream()
+                .map(rc -> RoomCopyResponse.builder()
+                        .roomCopyId(rc.getRoomCopyId())
+                        .roomCode(rc.getRoomCode())
+                        .roomCopyStatus(rc.getRoomCopyStatus())
+                        .build()
+                )
+                .toList();
     }
 
 }
