@@ -5,6 +5,7 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.rent.room.be.constant.PostStatus;
 import org.rent.room.be.constant.RoomCopyStatus;
 import org.rent.room.be.constant.RoomStatus;
 import org.rent.room.be.dto.internal.CloudinaryUploadResult;
@@ -17,6 +18,8 @@ import org.rent.room.be.dto.response.room.RoomResponse;
 import org.rent.room.be.dto.response.room_copy.RoomCopyResponse;
 import org.rent.room.be.dto.response.slot.SlotResponse;
 import org.rent.room.be.entity.*;
+import org.rent.room.be.exception.AppException;
+import org.rent.room.be.exception.ErrorCode;
 import org.rent.room.be.repository.*;
 import org.rent.room.be.service.CloudinaryService;
 import org.rent.room.be.service.RoomService;
@@ -38,6 +41,7 @@ public class RoomServiceImpl implements RoomService {
     AmenityRepository amenityRepository;
     CloudinaryService cloudinaryService;
     RoomCopyRepository roomCopyRepository;
+    PostRepository postRepository;
 
     @Override
     @Transactional
@@ -301,6 +305,15 @@ public class RoomServiceImpl implements RoomService {
         UUID ownerId = room.getRentalArea().getOwner().getUserId();
         if (ownerId == null || !ownerId.equals(currentUserId)) {
             throw new RuntimeException("Forbidden: not owner of this room");
+        }
+
+        boolean hasPost = postRepository.existsByRoom_RoomIdAndPostStatusNot(
+                roomId,
+                PostStatus.DELETED
+        );
+
+        if (hasPost) {
+            throw new AppException(ErrorCode.ROOM_HAS_ACTIVE_POST);
         }
 
         List<RoomImage> oldImages = roomImageRepository.findByRoom(room);

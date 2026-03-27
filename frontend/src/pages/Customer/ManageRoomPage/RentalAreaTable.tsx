@@ -89,6 +89,9 @@ const RentalAreaTable: React.FC<Props> = ({
           <div className="mt-1 font-semibold text-gray-800 line-clamp-2">
             {ra.rentalAreaName}
           </div>
+          <div className="mt-2 text-sm text-amber-600">
+            Lưu ý: Bạn chỉ có thể xóa khi tòa nhà không còn phòng nào.
+          </div>
         </div>
       ),
       okText: "Xóa",
@@ -137,6 +140,10 @@ const RentalAreaTable: React.FC<Props> = ({
         const canShow = ra.status === "INACTIVE";
         const isSuspended = ra.status === "SUSPENDED";
         const status = statusMeta(ra.status);
+        const coverImage =
+          ra.images?.find((img) => img.isCover)?.imageUrl ||
+          ra.images?.[0]?.imageUrl ||
+          "";
 
         return (
           <Card
@@ -144,6 +151,20 @@ const RentalAreaTable: React.FC<Props> = ({
             className="rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100"
             styles={{ body: { padding: 16 } }}
           >
+            <div className="mb-4 -mx-4 -mt-4">
+              {coverImage ? (
+                <img
+                  src={coverImage}
+                  alt={ra.rentalAreaName}
+                  className="w-full h-48 object-cover"
+                />
+              ) : (
+                <div className="w-full h-48 bg-slate-100 flex items-center justify-center text-slate-400 text-sm">
+                  Chưa có ảnh tòa nhà
+                </div>
+              )}
+            </div>
+
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-semibold text-slate-800 text-[17px] line-clamp-2 leading-6">

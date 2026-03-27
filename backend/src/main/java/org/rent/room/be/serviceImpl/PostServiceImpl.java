@@ -63,7 +63,7 @@ public class PostServiceImpl implements PostService {
         }
 
         // IMPORTANT: 1 room chỉ được 1 post
-        if (postRepository.existsByRoom_RoomId(room.getRoomId())) {
+        if (postRepository.existsActivePostByRoomId(room.getRoomId())) {
             throw new IllegalArgumentException("This room already has a post");
         }
 

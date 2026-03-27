@@ -29,6 +29,8 @@ export interface RentalAreaResponse {
   cityId: number;
   cityName: string;
   images: RentalAreaImageResponse[];
+  openTime?: string;
+  closeTime?: string;
 }
 
 export interface CreateRentalAreaRequest {
@@ -37,6 +39,8 @@ export interface CreateRentalAreaRequest {
   contactName?: string;
   contactPhone?: string;
   cityId: number;
+  openTime: string;
+  closeTime: string;
   images: File[];
 }
 
@@ -48,6 +52,7 @@ export interface UpdateRentalAreaRequest {
   cityId: number;
   openTime: string;
   closeTime: string;
+  images?: File[];
 }
 
 const rentalAreasService = {
@@ -60,6 +65,8 @@ const rentalAreasService = {
     if (data.contactName) formData.append("contactName", data.contactName);
     if (data.contactPhone) formData.append("contactPhone", data.contactPhone);
     formData.append("cityId", String(data.cityId));
+    formData.append("openTime", data.openTime);
+    formData.append("closeTime", data.closeTime);
 
     data.images.forEach((file) => {
       formData.append("images", file);
@@ -107,15 +114,35 @@ const rentalAreasService = {
   },
 
   updateRentalArea: async (
-    rentalAreaId: string,
-    data: UpdateRentalAreaRequest,
-  ): Promise<ApiResponse<RentalAreaResponse>> => {
-    const response = await api.put<ApiResponse<RentalAreaResponse>>(
-      `/rental-areas/${rentalAreaId}`,
-      data,
-    );
-    return response.data;
-  },
+  rentalAreaId: string,
+  data: UpdateRentalAreaRequest,
+): Promise<ApiResponse<RentalAreaResponse>> => {
+  const formData = new FormData();
+
+  formData.append("rentalAreaName", data.rentalAreaName);
+  formData.append("address", data.address);
+  if (data.contactName) formData.append("contactName", data.contactName);
+  if (data.contactPhone) formData.append("contactPhone", data.contactPhone);
+  formData.append("cityId", String(data.cityId));
+  formData.append("openTime", data.openTime);
+  formData.append("closeTime", data.closeTime);
+
+  if (data.images && data.images.length > 0) {
+    data.images.forEach((file) => {
+      formData.append("images", file);
+    });
+  }
+
+  const response = await api.put<ApiResponse<RentalAreaResponse>>(
+    `/rental-areas/${rentalAreaId}`,
+    formData,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+    },
+  );
+
+  return response.data;
+},
 };
 
 export default rentalAreasService;

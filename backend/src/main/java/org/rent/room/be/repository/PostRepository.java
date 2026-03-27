@@ -44,7 +44,8 @@ public interface PostRepository extends JpaRepository<Post, UUID>, JpaSpecificat
     select p.postId
     from Post p
     where p.room.roomId = :roomId
-    """)
+      and p.postStatus <> org.rent.room.be.constant.PostStatus.DELETED
+""")
     Optional<UUID> findPostIdByRoomId(@Param("roomId") UUID roomId);
 
     @Query("""
@@ -77,4 +78,17 @@ public interface PostRepository extends JpaRepository<Post, UUID>, JpaSpecificat
 
     @Query(value = "SELECT COUNT(*) FROM posts WHERE post_status = :status", nativeQuery = true)
     long countByNativeStatus(@Param("status") String status);
+
+    @Query("""
+    select count(p) > 0
+    from Post p
+    where p.room.roomId = :roomId
+      and p.postStatus <> org.rent.room.be.constant.PostStatus.DELETED
+""")
+    boolean existsActivePostByRoomId(@Param("roomId") UUID roomId);
+
+    boolean existsByRoom_RoomIdAndPostStatusNot(UUID roomId, PostStatus status);
+
+    Optional<Post> findByRoom_RoomIdAndPostStatusNot(UUID roomId, PostStatus status);
 }
+

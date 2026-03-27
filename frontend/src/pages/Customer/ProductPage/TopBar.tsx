@@ -3,7 +3,7 @@ import { Select, Typography } from "antd";
 
 const { Title, Text } = Typography;
 
-type SortValue = "POPULARITY" | "PRICE_ASC" | "PRICE_DESC" | "NEWEST";
+type SortValue = "PRICE_ASC" | "PRICE_DESC" | "NEWEST";
 
 type Props = {
   total: number;
@@ -27,7 +27,6 @@ const TopBar: React.FC<Props> = ({ total, sort, onSortChange }) => {
           style={{ width: 180 }}
           onChange={onSortChange}
           options={[
-            { value: "POPULARITY", label: "Phổ biến" },
             { value: "NEWEST", label: "Mới nhất" },
             { value: "PRICE_ASC", label: "Giá: Thấp → Cao" },
             { value: "PRICE_DESC", label: "Giá: Cao → Thấp" },

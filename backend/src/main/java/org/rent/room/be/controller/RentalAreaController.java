@@ -151,10 +151,11 @@ public class RentalAreaController {
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{rentalAreaId}")
+    @PutMapping(value = "/{rentalAreaId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<RentalAreaResponse>> updateRentalArea(
             @PathVariable UUID rentalAreaId,
-            @Valid @RequestBody UpdateRentalAreaRequest request,
+            @Valid @ModelAttribute UpdateRentalAreaRequest request,
+            @RequestPart(value = "images", required = false) MultipartFile[] images,
             @AuthenticationPrincipal UserDetails principal
     ) {
         UUID currentUserId = null;
@@ -167,10 +168,17 @@ public class RentalAreaController {
                     .findFirst()
                     .orElse(null);
         }
-        if (currentUserId == null) throw new RuntimeException("User not authenticated");
+
+        if (currentUserId == null) {
+            throw new RuntimeException("User not authenticated");
+        }
 
         RentalAreaResponse result = rentalAreaService.updateRentalArea(
-                rentalAreaId, request, currentUserId, currentUserRole
+                rentalAreaId,
+                request,
+                images != null ? List.of(images) : null,
+                currentUserId,
+                currentUserRole
         );
 
         return ResponseEntity.ok(ApiResponse.<RentalAreaResponse>builder()

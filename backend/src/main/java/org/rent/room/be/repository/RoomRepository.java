@@ -58,4 +58,12 @@ List<Room> findAllRoomsByOwnerId(@Param("userId") UUID userId);
     );
 
     List<Room> findByRentalArea_RentalAreaId(UUID rentalAreaId);
+
+    @Query("""
+    select count(r) > 0
+    from Room r
+    where r.rentalArea.rentalAreaId = :rentalAreaId
+      and r.roomStatus <> org.rent.room.be.constant.RoomStatus.INACTIVE
+""")
+    boolean existsActiveRoomByRentalAreaId(@Param("rentalAreaId") UUID rentalAreaId);
 }

@@ -155,6 +155,9 @@ const RoomCardList: React.FC<Props> = ({ rentalAreaId, onChanged }) => {
           <div className="mt-1 font-semibold text-gray-800 line-clamp-2">
             {room.roomName}
           </div>
+          <div className="mt-2 text-sm text-amber-600">
+            Lưu ý: Bạn chỉ có thể xóa khi phòng không còn bài đăng.
+          </div>
         </div>
       ),
       okText: "Xóa",

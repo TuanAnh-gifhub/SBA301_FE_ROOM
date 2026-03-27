@@ -52,7 +52,7 @@ const LandingPage = () => {
 
       const res = await postsService.getPublicPosts({
         page: 1,
-        size: 10,
+        size: 6,
         cityId: filters?.cityId,
         categoryId: filters?.categoryId,
       });
@@ -252,8 +252,8 @@ const LandingPage = () => {
               </div>
             </div>
           ) : (
-            <div className="mb-8 w-full">
-              <div className="text-center mb-12">
+            <div className="mb-4 w-full">
+              <div className="text-center mb-6">
                 <h1 className="text-xl md:text-2xl font-bold mb-4 text-[#4da6ff]">
                   <ScrambleText
                     text="Phòng học mới nhất"
@@ -262,7 +262,7 @@ const LandingPage = () => {
                 </h1>
               </div>
 
-              <div className="p-8 grid md:grid-cols-3 gap-6">
+              <div className="pt-2 pb-2 grid md:grid-cols-3 gap-6">
                 {loadingPosts && <p>Loading...</p>}
 
                 {!loadingPosts &&
@@ -274,8 +274,8 @@ const LandingPage = () => {
           )}
         </div>
 
-        <div id="official-stores" className="max-w-7xl mx-auto p-8">
-          <div className="flex justify-center mt-4 mb-8">
+        <div id="official-stores" className="max-w-7xl mx-auto pt-0 pb-6">
+          <div className="flex justify-center -mt-4 mb-4">
             <Link
               to="/products"
               className={`border px-6 py-2 rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 font-medium ${
@@ -284,9 +284,7 @@ const LandingPage = () => {
                   : "border-gray-300 bg-white text-gray-700 hover:bg-[#4da6ff] hover:text-white hover:border-[#4da6ff]"
               }`}
             >
-              Xem thêm{" "}
-              {posts.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}{" "}
-              phòng học
+              Xem thêm phòng học
             </Link>
           </div>
         </div>

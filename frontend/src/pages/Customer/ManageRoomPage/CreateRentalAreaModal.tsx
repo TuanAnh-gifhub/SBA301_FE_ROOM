@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { Form, Input, Modal, Select, Upload, message } from "antd";
+import { Form, Input, Modal, Select, Upload, message, TimePicker } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
+import type { Dayjs } from "dayjs";
 import {
   EnvironmentOutlined,
   HomeOutlined,
   PhoneOutlined,
   UploadOutlined,
   UserOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import type { CityResponse } from "../../../services/cities/cities";
 import BlockingLoadingOverlay from "./BlockingLoadingOverlay";
@@ -19,6 +21,8 @@ type FormValues = {
   contactName?: string;
   contactPhone?: string;
   cityId: number;
+  openTime: Dayjs;
+  closeTime: Dayjs;
 };
 
 type Props = {
@@ -26,7 +30,13 @@ type Props = {
   loading: boolean;
   cities: CityResponse[];
   onClose: () => void;
-  onSubmit: (data: FormValues & { images: File[] }) => Promise<void>;
+  onSubmit: (
+    data: Omit<FormValues, "openTime" | "closeTime"> & {
+      openTime: string;
+      closeTime: string;
+      images: File[];
+    },
+  ) => Promise<void>;
 };
 
 const sectionTitleClass = "text-sm font-semibold text-slate-800 mb-3";
@@ -56,8 +66,15 @@ const CreateRentalAreaModal: React.FC<Props> = ({
         return;
       }
 
+      const payload = {
+        ...values,
+        openTime: values.openTime?.format("HH:mm"),
+        closeTime: values.closeTime?.format("HH:mm"),
+        images,
+      };
+
       setSubmitting(true);
-      await onSubmit({ ...values, images });
+      await onSubmit(payload);
       form.resetFields();
       setFileList([]);
     } catch {
@@ -236,6 +253,48 @@ const CreateRentalAreaModal: React.FC<Props> = ({
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className={`${cardClass} mt-4`}>
+            <div className={sectionTitleClass}>Giờ hoạt động</div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                label="Giờ mở cửa"
+                name="openTime"
+                rules={[
+                  { required: true, message: "Vui lòng chọn giờ mở cửa" },
+                ]}
+              >
+                <TimePicker
+                  format="HH:mm"
+                  minuteStep={30}
+                  className="w-full"
+                  placeholder="Chọn giờ mở cửa"
+                  suffixIcon={
+                    <ClockCircleOutlined className="text-slate-400" />
+                  }
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Giờ đóng cửa"
+                name="closeTime"
+                rules={[
+                  { required: true, message: "Vui lòng chọn giờ đóng cửa" },
+                ]}
+              >
+                <TimePicker
+                  format="HH:mm"
+                  minuteStep={30}
+                  className="w-full"
+                  placeholder="Chọn giờ đóng cửa"
+                  suffixIcon={
+                    <ClockCircleOutlined className="text-slate-400" />
+                  }
+                />
+              </Form.Item>
             </div>
           </div>
 
