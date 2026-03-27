@@ -194,6 +194,11 @@ public class BookingServiceImpl implements BookingService {
                     new RuntimeException("Không tìm thấy phòng"));
             RentalArea ra = room.getRentalArea();
 
+            // --- THÊM DÒNG NÀY ĐỂ GÁN GIÁ TRỊ ---
+            if (rentalArea == null) {
+                rentalArea = ra;
+            }
+
             LocalTime openTime = ra.getOpenTime();
             LocalTime closeTime = ra.getCloseTime();
 
@@ -956,10 +961,19 @@ public class BookingServiceImpl implements BookingService {
 
                     RoomCopy roomCopy = slot.getRoomCopy();
 
-                    RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
-                            .roomCopyId(roomCopy.getRoomCopyId())
-                            .roomCode(roomCopy.getRoomCode())
-                            .build();
+                    RoomCopyResponse roomCopyResponse = null;
+                    BigDecimal roomPrice = BigDecimal.ZERO;
+
+                    if (roomCopy != null) {
+                        roomCopyResponse = RoomCopyResponse.builder()
+                                .roomCopyId(roomCopy.getRoomCopyId())
+                                .roomCode(roomCopy.getRoomCode())
+                                .build();
+
+                        if (roomCopy.getRoom() != null) {
+                            roomPrice = roomCopy.getRoom().getPrice();
+                        }
+                    }
 
                     return SlotResponse.builder()
                             .slotId(slot.getSlotId())
@@ -967,11 +981,25 @@ public class BookingServiceImpl implements BookingService {
                             .endTime(slot.getEndTime())
                             .roomCopy(roomCopyResponse)
                             .status(slot.getSlotStatus())
-                            .price(roomCopy.getRoom().getPrice())
+                            .price(roomPrice)
                             .build();
                 })
                 .toList();
+        RentalAreaResponse rentalAreaResponse = null;
 
+        if (booking.getSlots() != null && !booking.getSlots().isEmpty()) {
+            RoomCopy firstRoomCopy = booking.getSlots().get(0).getRoomCopy();
+            if (firstRoomCopy != null &&
+                    firstRoomCopy.getRoom() != null &&
+                    firstRoomCopy.getRoom().getRentalArea() != null) {
+
+                var entityArea = firstRoomCopy.getRoom().getRentalArea();
+                rentalAreaResponse = RentalAreaResponse.builder()
+                        .rentalAreaId(entityArea.getRentalAreaId())
+                        .rentalAreaName(entityArea.getRentalAreaName())
+                        .build();
+            }
+        }
         return BookingResponse.builder()
                 .bookingId(booking.getBookingId())
                 .userName(booking.getRenter().getUserName())
@@ -985,6 +1013,7 @@ public class BookingServiceImpl implements BookingService {
                 .bookingType(booking.getBookingType())
                 .paymentMethod(paymentMethod)
                 .slots(slotResponses)
+                .rentalArea(rentalAreaResponse)
                 .build();
     }
 

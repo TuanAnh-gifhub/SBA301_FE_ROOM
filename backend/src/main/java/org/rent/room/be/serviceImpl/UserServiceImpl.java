@@ -7,6 +7,7 @@ import org.rent.room.be.dto.request.auth.ResetPasswordRequest;
 import org.rent.room.be.dto.request.user.CreateUsersRequest;
 import org.rent.room.be.dto.request.user.UpdateUserRequest;
 import org.rent.room.be.dto.response.UserResponse;
+import org.rent.room.be.dto.response.user.NewUserStatsResponse;
 import org.rent.room.be.entity.PasswordResetToken;
 import org.rent.room.be.entity.Role;
 import org.rent.room.be.entity.User;
@@ -33,6 +34,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -244,5 +248,38 @@ class UserServiceImpl implements UserService {
     private void deleteTokenResetPassword(String token) {
         passwordResetTokenRepository.findByToken(token)
                 .ifPresent(passwordResetTokenRepository::delete);
+    }
+
+    @Override
+    public NewUserStatsResponse getNewUserStats(String range) {
+        LocalDateTime startDate = calculateStartDate(range);
+
+        long total = userRepository.countByCreatedAtAfter(startDate);
+
+        // Đổi "HOST" và "USER" thành đúng tên Role trong DB của bạn
+        long hosts = userRepository.countByRole_RoleNameAndCreatedAtAfter("OWNER", startDate);
+        long tenants = userRepository.countByRole_RoleNameAndCreatedAtAfter("RENTER", startDate);
+
+        return NewUserStatsResponse.builder()
+                .total(total)
+                .hosts(hosts)
+                .tenants(tenants)
+                .build();
+    }
+
+    // Hàm phụ trợ tính mốc thời gian
+    private LocalDateTime calculateStartDate(String range) {
+        LocalDateTime now = LocalDateTime.now();
+        if (range == null) {
+            return now.minusDays(30);
+        }
+
+        return switch (range.toLowerCase()) {
+            case "7d" -> now.minusDays(7);
+            case "3m" -> now.minusMonths(3);
+            case "ytd" -> now.with(TemporalAdjusters.firstDayOfYear()).with(LocalTime.MIN);
+            case "30d" -> now.minusDays(30);
+            default -> now.minusDays(30); // Mặc định là 30 ngày
+        };
     }
 }

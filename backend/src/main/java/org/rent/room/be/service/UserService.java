@@ -5,6 +5,7 @@ import org.rent.room.be.dto.request.auth.ResetPasswordRequest;
 import org.rent.room.be.dto.request.user.CreateUsersRequest;
 import org.rent.room.be.dto.request.user.UpdateUserRequest;
 import org.rent.room.be.dto.response.UserResponse;
+import org.rent.room.be.dto.response.user.NewUserStatsResponse;
 import org.rent.room.be.entity.User;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,4 +33,6 @@ public interface UserService {
     UserResponse updateUser(UUID id, UpdateUserRequest request);
 
     User getCurrentUserEntity();
+
+    NewUserStatsResponse getNewUserStats(String range);
 }

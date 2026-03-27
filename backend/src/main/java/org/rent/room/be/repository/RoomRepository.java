@@ -57,4 +57,5 @@ List<Room> findAllRoomsByOwnerId(@Param("userId") UUID userId);
             @Param("status") RoomStatus status
     );
 
+    List<Room> findByRentalArea_RentalAreaId(UUID rentalAreaId);
 }

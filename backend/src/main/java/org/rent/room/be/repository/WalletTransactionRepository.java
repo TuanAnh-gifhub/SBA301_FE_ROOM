@@ -10,8 +10,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -143,5 +145,32 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
                 ORDER BY MIN(wt.createdAt) ASC
             """)
     List<RevenueData> getMonthlyRevenue(@Param("userId") UUID userId, @Param("year") int year);
+
+    @Query(value = "SELECT * FROM wallet_transactions " +
+            "WHERE created_at BETWEEN :startDate AND :endDate " +
+            "AND status = 'COMPLETED' " +
+            "AND transaction_type = 'BOOKING_INCOME'",
+            nativeQuery = true)
+    List<WalletTransaction> getRevenueTransactions(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    @Query(value = "SELECT COALESCE(SUM(amount), 0) FROM wallet_transactions " +
+            "WHERE status = :status AND transaction_type = :type", nativeQuery = true)
+    BigDecimal sumAmountByStatusAndType(@Param("status") String status, @Param("type") String type);
+
+    @Query(value = "SELECT COALESCE(SUM(amount), 0) FROM wallet_transactions " +
+            "WHERE created_at BETWEEN :startDate AND :endDate " +
+            "AND status = :status AND transaction_type = :type", nativeQuery = true)
+    java.math.BigDecimal sumAmountByDateAndStatusAndType(
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate,
+            @Param("status") String status,
+            @Param("type") String type);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE wallet_transactions SET created_at = :createdAt WHERE wallet_transaction_id = :id", nativeQuery = true)
+    void updateCreatedAt(@Param("id") UUID id, @Param("createdAt") LocalDateTime createdAt);
 }
 

@@ -32,15 +32,14 @@ public enum ErrorCode {
     INVALID_PAGINATION(4001, "Invalid pagination parameters", HttpStatus.BAD_REQUEST),
 
     // Package Errors
-    RENTPACKAGE_NOT_FOUND(4002, "Package not found", HttpStatus.NOT_FOUND),      // đổi 4001→4002
-    INVALID_RENTPACKAGE(4003, "Invalid package data", HttpStatus.BAD_REQUEST),    // đổi 4002→4003
-
+    RENTPACKAGE_NOT_FOUND(4002, "Package not found", HttpStatus.NOT_FOUND),
+    INVALID_RENTPACKAGE(4003, "Invalid package data", HttpStatus.BAD_REQUEST),
 
     //POST_NOT_FOUND
-    POST_NOT_FOUND(4002, "Post not found", HttpStatus.NOT_FOUND),
+    POST_NOT_FOUND(4002, "Post not found", HttpStatus.NOT_FOUND), // Lưu ý: Đang bị trùng số 4002 với RENTPACKAGE_NOT_FOUND
 
     // Rental Area
-    RENTAL_AREA_NOT_FOUND(4004, "Rental area not found", HttpStatus.NOT_FOUND),  // đổi 4001→4004
+    RENTAL_AREA_NOT_FOUND(4004, "Rental area not found", HttpStatus.NOT_FOUND),
 
     // Subscription
     SUBSCRIPTION_ALREADY_ACTIVE(4005, "User already has an active subscription", HttpStatus.BAD_REQUEST),
@@ -55,7 +54,7 @@ public enum ErrorCode {
     QR_INVALID(4000, "QR không hợp lệ",HttpStatus.BAD_REQUEST),
     QR_ALREADY_USED(4000, "QR đã dùng",HttpStatus.BAD_REQUEST),
     QR_EXPIRED(4000, "QR hết hạn",HttpStatus.BAD_REQUEST),
-    BOOKING_NOT_FOUND(4004, "Không tìm thấy booking",HttpStatus.NOT_FOUND),
+    BOOKING_NOT_FOUND(4004, "Không tìm thấy booking",HttpStatus.NOT_FOUND), // Trùng số 4004 với RENTAL_AREA
     BOOKING_ALREADY_CHECKED_IN(4000, "Đã check-in rồi",HttpStatus.BAD_REQUEST),
     CANNOT_CHECKOUT_BEFORE_CHECKIN(4000, "Chưa check-in thì không thể check-out",HttpStatus.BAD_REQUEST),
 
@@ -69,7 +68,8 @@ public enum ErrorCode {
     // BOOKING (Review Context)
     BOOKING_NOT_COMPLETED(5011, "Chỉ có thể review sau khi hoàn thành booking", HttpStatus.BAD_REQUEST),
     BOOKING_NOT_BELONG_TO_USER(5012, "Booking này không thuộc về bạn", HttpStatus.FORBIDDEN),
-    BOOKING_CANCELLED(5011, "Lịch hẹn đã hủy thì không thẻ quét mã", HttpStatus.BAD_REQUEST),
+    BOOKING_CANCELLED(5011, "Lịch hẹn đã hủy thì không thẻ quét mã", HttpStatus.BAD_REQUEST), // Trùng 5011
+
     // REPLY
     REPLY_ALREADY_EXISTS(5020, "Review này đã có phản hồi rồi", HttpStatus.CONFLICT),
     REPLY_NOT_FOUND(5021, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND),
@@ -89,11 +89,15 @@ public enum ErrorCode {
     SLOT_CONFLICT(4103, "Thời gian này bị xung đột với booking khác", HttpStatus.CONFLICT),
     SLOT_NOT_BELONG_TO_BOOKING(400, "Slot không thuộc booking này",HttpStatus.BAD_REQUEST),
     SLOT_ALREADY_CANCELLED(400, "Slot đã bị hủy",HttpStatus.BAD_REQUEST),
+
     // MEDIA
-    TOO_MANY_MEDIA(5050, "Tối đa 5 file mỗi review", HttpStatus.BAD_REQUEST);
-    ;
+    TOO_MANY_MEDIA(5050, "Tối đa 5 file mỗi review", HttpStatus.BAD_REQUEST),
 
 
+    // WALLET & PAYMENT
+    WALLET_NOT_FOUND(6001, "Không tìm thấy ví của người dùng", HttpStatus.NOT_FOUND),
+    WALLET_LOCKED(6002, "Ví của bạn đang bị khóa, không thể thực hiện giao dịch", HttpStatus.FORBIDDEN),
+    INSUFFICIENT_BALANCE(6003, "Số dư trong ví không đủ để thanh toán gói cước này", HttpStatus.BAD_REQUEST);
 
     private int code;
     private String message;

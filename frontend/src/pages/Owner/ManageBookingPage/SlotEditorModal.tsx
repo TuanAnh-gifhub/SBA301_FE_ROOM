@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   Radio,
@@ -11,46 +11,44 @@ import {
   Typography,
   DatePicker,
   TimePicker,
-  Spin,
   Card,
   message,
+  Select,
 } from "antd";
 import {
   ClockCircleOutlined,
   SwapOutlined,
   CheckCircleOutlined,
   SearchOutlined,
-  WarningOutlined,
-  WalletOutlined,
-  CreditCardOutlined,
-  DollarOutlined,
-  SyncOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 import { bookingSlotService } from "../../../services/bookingSlotService";
+import { roomCopyService } from "../../../services/roomCopyService";
 
 const { Text } = Typography;
+const { Option } = Select;
 
 // --- Types ---
 interface Props {
   open: boolean;
   booking: any;
   onClose: () => void;
-  onSuccess: () => void; // Dùng để trigger fetch lại data ở page cha
+  onSuccess: () => void;
 }
 
 type Mode = "extend" | "swap";
 
-// Quản lý state cho từng Slot riêng biệt
 interface SlotState {
   checking: boolean;
   confirming: boolean;
   done: boolean;
   checkResult: any | null;
-  // Dành riêng cho Swap
+  // State cho Swap
   swapDate?: Dayjs | null;
   swapStartTime?: Dayjs | null;
   swapEndTime?: Dayjs | null;
+  swapRoomCode?: string | null;
 }
 
 const SlotEditorModal: React.FC<Props> = ({
@@ -63,10 +61,23 @@ const SlotEditorModal: React.FC<Props> = ({
   const [extendAmount, setExtendAmount] = useState(1);
   const [extendUnit, setExtendUnit] = useState<"hour" | "minute">("hour");
 
-  // State tổng quản lý theo ID của Slot: { "uuid-1": { ... }, "uuid-2": { ... } }
   const [slotStates, setSlotStates] = useState<Record<string, SlotState>>({});
 
+  const [availableRooms, setAvailableRooms] = useState<any[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+
   const allSlots = booking?.slots ?? [];
+
+  useEffect(() => {
+    if (open && booking?.rentalAreaId) {
+      setLoadingRooms(true);
+      roomCopyService
+        .getRoomCopiesByRentalArea(booking.rentalAreaId)
+        .then((res) => setAvailableRooms(res.result || []))
+        .catch(() => message.error("Không thể lấy danh sách phòng của cơ sở"))
+        .finally(() => setLoadingRooms(false));
+    }
+  }, [open, booking?.rentalAreaId]);
 
   // --- Helpers ---
   const fmtVND = (n: number) =>
@@ -75,21 +86,18 @@ const SlotEditorModal: React.FC<Props> = ({
       currency: "VND",
     }).format(n);
 
-  const getSlotState = (id: string): SlotState =>
+  const getSState = (id: string): SlotState =>
     slotStates[id] ?? {
       checking: false,
       confirming: false,
       done: false,
       checkResult: null,
-      swapDate: null,
-      swapStartTime: null,
-      swapEndTime: null,
     };
 
-  const updateSlotState = (id: string, patch: Partial<SlotState>) => {
+  const updateSState = (id: string, patch: Partial<SlotState>) => {
     setSlotStates((prev) => ({
       ...prev,
-      [id]: { ...getSlotState(id), ...patch },
+      [id]: { ...getSState(id), ...patch },
     }));
   };
 
@@ -109,93 +117,95 @@ const SlotEditorModal: React.FC<Props> = ({
   // --- Logic Gia Hạn (Extend) ---
   const handleCheckExtend = async (slot: any) => {
     const id = slot.slotId;
-    updateSlotState(id, { checking: true, checkResult: null });
+    updateSState(id, { checking: true, checkResult: null });
     try {
       const res = await bookingSlotService.checkExtend(booking.bookingId, id, {
         amount: extendAmount,
         unit: extendUnit,
       });
-      updateSlotState(id, { checkResult: res, checking: false });
+      updateSState(id, { checkResult: res, checking: false });
     } catch (e: any) {
-      updateSlotState(id, { checking: false });
+      updateSState(id, { checking: false });
       message.error(e?.response?.data?.message || "Lỗi kiểm tra gia hạn");
     }
   };
 
   const handleConfirmExtend = async (slot: any) => {
     const id = slot.slotId;
-    updateSlotState(id, { confirming: true });
+    updateSState(id, { confirming: true });
     try {
       await bookingSlotService.confirmExtend(booking.bookingId, id, {
         amount: extendAmount,
         unit: extendUnit,
       });
-      updateSlotState(id, { confirming: false, done: true });
-      message.success(`Đã gia hạn phòng ${slot.roomCopy?.roomCode}`);
-      onSuccess(); // Update lại data tổng ở ngoài
+      updateSState(id, { confirming: false, done: true });
+      message.success(`Đã gia hạn thành công phòng ${slot.roomCopy?.roomCode}`);
+      onSuccess();
     } catch (e: any) {
-      updateSlotState(id, { confirming: false });
-      message.error(e?.response?.data?.message || "Lỗi xác nhận");
+      updateSState(id, { confirming: false });
+      message.error(e?.response?.data?.message || "Lỗi xác nhận gia hạn");
     }
   };
 
-  // --- Logic Chuyển Slot (Swap) ---
+  // --- Logic Đổi Khung Giờ/Phòng (Swap) ---
   const handleCheckSwap = async (slot: any) => {
     const id = slot.slotId;
-    const s = getSlotState(id);
+    const s = getSState(id);
     if (!s.swapDate || !s.swapStartTime || !s.swapEndTime) {
-      return message.warning("Vui lòng chọn đầy đủ ngày giờ mới");
+      return message.warning("Vui lòng chọn đầy đủ ngày và giờ mới");
     }
 
-    updateSlotState(id, { checking: true, checkResult: null });
+    updateSState(id, { checking: true, checkResult: null });
     try {
       const res = await bookingSlotService.checkSwap(booking.bookingId, id, {
         newStartTime: buildISO(s.swapDate, s.swapStartTime),
         newEndTime: buildISO(s.swapDate, s.swapEndTime),
+        newRoomCode: s.swapRoomCode || slot.roomCopy?.roomCode,
       });
-      updateSlotState(id, { checkResult: res, checking: false });
+      updateSState(id, { checkResult: res, checking: false });
     } catch (e: any) {
-      updateSlotState(id, { checking: false });
-      message.error(e?.response?.data?.message || "Lỗi kiểm tra chuyển slot");
+      updateSState(id, { checking: false });
+      message.error(e?.response?.data?.message || "Lỗi kiểm tra đổi slot");
     }
   };
 
   const handleConfirmSwap = async (slot: any) => {
     const id = slot.slotId;
-    const s = getSlotState(id);
-    updateSlotState(id, { confirming: true });
+    const s = getSState(id);
+    updateSState(id, { confirming: true });
     try {
       await bookingSlotService.confirmSwap(booking.bookingId, id, {
         newStartTime: buildISO(s.swapDate!, s.swapStartTime!),
         newEndTime: buildISO(s.swapDate!, s.swapEndTime!),
+        newRoomCode: s.swapRoomCode || slot.roomCopy?.roomCode,
       });
-      updateSlotState(id, { confirming: false, done: true });
-      message.success(`Đã chuyển slot phòng ${slot.roomCopy?.roomCode}`);
+      updateSState(id, { confirming: false, done: true });
+      message.success(
+        `Đã đổi thành công sang phòng ${s.swapRoomCode || slot.roomCopy?.roomCode}`,
+      );
       onSuccess();
     } catch (e: any) {
-      updateSlotState(id, { confirming: false });
-      message.error(e?.response?.data?.message || "Lỗi xác nhận chuyển");
+      updateSState(id, { confirming: false });
+      message.error(e?.response?.data?.message || "Lỗi xác nhận đổi");
     }
   };
 
   // --- Render từng thẻ Slot ---
   const renderSlotCard = (slot: any) => {
     const id = slot.slotId;
-    const state = getSlotState(id);
+    const state = getSState(id);
     const originalDuration = dayjs(slot.endTime).diff(
       dayjs(slot.startTime),
       "minute",
     );
 
-    // Nếu slot đã cập nhật xong, hiển thị trạng thái hoàn tất
     if (state.done) {
       return (
         <Alert
           key={id}
           type="success"
           showIcon
-          icon={<CheckCircleOutlined />}
-          message={`Phòng ${slot.roomCopy?.roomCode} - Đã cập nhật thành công`}
+          message={`Phòng ${slot.roomCopy?.roomCode} - Hoàn tất cập nhật`}
           style={{ marginBottom: 12 }}
         />
       );
@@ -209,7 +219,7 @@ const SlotEditorModal: React.FC<Props> = ({
           <Space>
             <Tag color="blue">Phòng {slot.roomCopy?.roomCode}</Tag>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {dayjs(slot.startTime).format("HH:mm")} -{" "}
+              Hiện tại: {dayjs(slot.startTime).format("HH:mm")} -{" "}
               {dayjs(slot.endTime).format("HH:mm")}
             </Text>
           </Space>
@@ -223,7 +233,7 @@ const SlotEditorModal: React.FC<Props> = ({
         {mode === "extend" ? (
           <Space direction="vertical" style={{ width: "100%" }}>
             <div style={{ background: "#f5f5f5", padding: 8, borderRadius: 4 }}>
-              <Text size="small">Kết thúc mới: </Text>
+              <Text>Giờ kết thúc mới: </Text>
               <Text strong style={{ color: "#1890ff" }}>
                 {dayjs(slot.endTime)
                   .add(extendAmount, extendUnit)
@@ -239,7 +249,7 @@ const SlotEditorModal: React.FC<Props> = ({
                     : state.checkResult.conflictMessage
                 }
                 showIcon
-                style={{ padding: "2px 8px" }}
+                size="small"
               />
             )}
             <Space>
@@ -252,42 +262,41 @@ const SlotEditorModal: React.FC<Props> = ({
                 Kiểm tra
               </Button>
               {state.checkResult?.available && (
-                <div
-                  style={{
-                    marginTop: 8,
-                    padding: "8px",
-                    background: "#f6ffed",
-                    border: "1px solid #b7eb8f",
-                    borderRadius: 4,
-                  }}
+                <Button
+                  size="small"
+                  type="primary"
+                  loading={state.confirming}
+                  onClick={() => handleConfirmExtend(slot)}
                 >
-                  <Space direction="vertical" size={0}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      Phí phát sinh:{" "}
-                      <Text strong>{fmtVND(state.checkResult.extraPrice)}</Text>
-                    </Text>
-                    <Button
-                      size="small"
-                      type="primary"
-                      icon={<CheckCircleOutlined />}
-                      loading={state.confirming}
-                      onClick={() => handleConfirmExtend(slot)}
-                    >
-                      Xác nhận gia hạn
-                    </Button>
-                  </Space>
-                </div>
+                  Xác nhận gia hạn (+{fmtVND(state.checkResult.extraPrice)})
+                </Button>
               )}
             </Space>
           </Space>
         ) : (
           <Space direction="vertical" style={{ width: "100%" }}>
+            <Select
+              placeholder="Chọn phòng mới (mặc định phòng cũ)"
+              style={{ width: "100%" }}
+              loading={loadingRooms}
+              value={state.swapRoomCode}
+              onChange={(val) =>
+                updateSState(id, { swapRoomCode: val, checkResult: null })
+              }
+            >
+              {availableRooms.map((r) => (
+                <Option key={r.roomCopyId} value={r.roomCode}>
+                  {r.roomCode} - {r.roomName}
+                </Option>
+              ))}
+            </Select>
+
             <Space wrap>
               <DatePicker
                 size="small"
                 placeholder="Ngày mới"
                 onChange={(d) =>
-                  updateSlotState(id, { swapDate: d, checkResult: null })
+                  updateSState(id, { swapDate: d, checkResult: null })
                 }
               />
               <TimePicker
@@ -295,7 +304,7 @@ const SlotEditorModal: React.FC<Props> = ({
                 format="HH:mm"
                 placeholder="Bắt đầu"
                 onChange={(t) =>
-                  updateSlotState(id, { swapStartTime: t, checkResult: null })
+                  updateSState(id, { swapStartTime: t, checkResult: null })
                 }
               />
               <TimePicker
@@ -303,7 +312,7 @@ const SlotEditorModal: React.FC<Props> = ({
                 format="HH:mm"
                 placeholder="Kết thúc"
                 onChange={(t) =>
-                  updateSlotState(id, { swapEndTime: t, checkResult: null })
+                  updateSState(id, { swapEndTime: t, checkResult: null })
                 }
               />
             </Space>
@@ -317,12 +326,12 @@ const SlotEditorModal: React.FC<Props> = ({
                     "minute",
                   ) === originalDuration
                     ? "success"
-                    : "danger"
+                    : "warning"
                 }
               >
-                Thời lượng:{" "}
-                {dayjs(state.swapEndTime).diff(state.swapStartTime, "minute")} /{" "}
-                {originalDuration} phút
+                Thời lượng mới:{" "}
+                {dayjs(state.swapEndTime).diff(state.swapStartTime, "minute")}{" "}
+                phút (Gốc: {originalDuration} phút)
               </Text>
             )}
 
@@ -331,12 +340,13 @@ const SlotEditorModal: React.FC<Props> = ({
                 type={state.checkResult.available ? "success" : "error"}
                 message={
                   state.checkResult.available
-                    ? "Khung giờ trống"
+                    ? "Phòng và khung giờ hợp lệ"
                     : state.checkResult.conflictMessage
                 }
                 showIcon
               />
             )}
+
             <Space>
               <Button
                 size="small"
@@ -353,7 +363,7 @@ const SlotEditorModal: React.FC<Props> = ({
                   loading={state.confirming}
                   onClick={() => handleConfirmSwap(slot)}
                 >
-                  Đổi ngay
+                  Xác nhận đổi
                 </Button>
               )}
             </Space>
@@ -366,7 +376,7 @@ const SlotEditorModal: React.FC<Props> = ({
   return (
     <Modal
       open={open}
-      title="Chỉnh sửa từng khung giờ phòng"
+      title="Chỉnh sửa chi tiết từng khung giờ"
       onCancel={resetAll}
       width={700}
       footer={[
@@ -378,11 +388,18 @@ const SlotEditorModal: React.FC<Props> = ({
       <div style={{ marginBottom: 16 }}>
         <Radio.Group
           value={mode}
-          onChange={(e) => setMode(e.target.value)}
+          onChange={(e) => {
+            setMode(e.target.value);
+            setSlotStates({});
+          }}
           buttonStyle="solid"
         >
-          <Radio.Button value="extend">Gia hạn thêm</Radio.Button>
-          <Radio.Button value="swap">Đổi khung giờ</Radio.Button>
+          <Radio.Button value="extend">
+            <ClockCircleOutlined /> Gia hạn thêm
+          </Radio.Button>
+          <Radio.Button value="swap">
+            <SwapOutlined /> Đổi phòng & giờ
+          </Radio.Button>
         </Radio.Group>
       </div>
 
@@ -396,15 +413,21 @@ const SlotEditorModal: React.FC<Props> = ({
           }}
         >
           <Space>
-            <Text>Gia hạn chung cho các phòng:</Text>
+            <Text>Gia hạn :</Text>
             <InputNumber
               min={1}
               value={extendAmount}
-              onChange={(v) => setExtendAmount(v || 1)}
+              onChange={(v) => {
+                setExtendAmount(v || 1);
+                setSlotStates({});
+              }}
             />
             <Radio.Group
               value={extendUnit}
-              onChange={(e) => setExtendUnit(e.target.value)}
+              onChange={(e) => {
+                setExtendUnit(e.target.value);
+                setSlotStates({});
+              }}
             >
               <Radio value="hour">Giờ</Radio>
               <Radio value="minute">Phút</Radio>
@@ -414,10 +437,10 @@ const SlotEditorModal: React.FC<Props> = ({
       )}
 
       <Divider orientation="left" style={{ fontSize: 12 }}>
-        Danh sách phòng trong Booking
+        Danh sách các phòng trong Booking
       </Divider>
 
-      <div style={{ maxHeight: "400px", overflowY: "auto", paddingRight: 8 }}>
+      <div style={{ maxHeight: "450px", overflowY: "auto", paddingRight: 8 }}>
         {allSlots.map(renderSlotCard)}
       </div>
     </Modal>

@@ -75,5 +75,6 @@ public interface PostRepository extends JpaRepository<Post, UUID>, JpaSpecificat
             Pageable pageable
     );
 
-
+    @Query(value = "SELECT COUNT(*) FROM posts WHERE post_status = :status", nativeQuery = true)
+    long countByNativeStatus(@Param("status") String status);
 }
