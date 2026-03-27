@@ -63,17 +63,13 @@ const Sidebar: React.FC<SidebarProps> = ({
     getItem(<Link to="/admin">Dashboard</Link>, "/admin", <AppstoreOutlined />),
 
     getItem("Quản lý Đặt phòng", "sub_booking", <CalendarOutlined />, [
-      getItem(
-        <Link to="/admin/bookings/calendar">Lịch phòng (Calendar)</Link>,
-        "/admin/bookings/calendar",
-      ),
+      // getItem(
+      //   <Link to="/admin/bookings/calendar">Lịch phòng (Calendar)</Link>,
+      //   "/admin/bookings/calendar",
+      // ),
       getItem(
         <Link to="/admin/bookings/list">Danh sách đơn đặt</Link>,
         "/admin/bookings/list",
-      ),
-      getItem(
-        <Link to="/admin/bookings/check-in">Check-in/Check-out</Link>,
-        "/admin/bookings/check-in",
       ),
     ]),
 

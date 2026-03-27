@@ -60,9 +60,7 @@ const SlotEditorModal: React.FC<Props> = ({
   const [mode, setMode] = useState<Mode>("extend");
   const [extendAmount, setExtendAmount] = useState(1);
   const [extendUnit, setExtendUnit] = useState<"hour" | "minute">("hour");
-
   const [slotStates, setSlotStates] = useState<Record<string, SlotState>>({});
-
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
 
@@ -151,6 +149,7 @@ const SlotEditorModal: React.FC<Props> = ({
   const handleCheckSwap = async (slot: any) => {
     const id = slot.slotId;
     const s = getSState(id);
+
     if (!s.swapDate || !s.swapStartTime || !s.swapEndTime) {
       return message.warning("Vui lòng chọn đầy đủ ngày và giờ mới");
     }
@@ -219,8 +218,8 @@ const SlotEditorModal: React.FC<Props> = ({
           <Space>
             <Tag color="blue">Phòng {slot.roomCopy?.roomCode}</Tag>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              Hiện tại: {dayjs(slot.startTime).format("HH:mm")} -{" "}
-              {dayjs(slot.endTime).format("HH:mm")}
+              Hiện tại: {dayjs(slot.startTime).format("HH:mm DD/MM/YYYY")} -{" "}
+              {dayjs(slot.endTime).format("HH:mm DD/MM/YYYY")}
             </Text>
           </Space>
         }
@@ -290,7 +289,6 @@ const SlotEditorModal: React.FC<Props> = ({
                 </Option>
               ))}
             </Select>
-
             <Space wrap>
               <DatePicker
                 size="small"
@@ -316,7 +314,6 @@ const SlotEditorModal: React.FC<Props> = ({
                 }
               />
             </Space>
-
             {state.swapStartTime && state.swapEndTime && (
               <Text
                 size="small"
@@ -334,7 +331,6 @@ const SlotEditorModal: React.FC<Props> = ({
                 phút (Gốc: {originalDuration} phút)
               </Text>
             )}
-
             {state.checkResult && (
               <Alert
                 type={state.checkResult.available ? "success" : "error"}
@@ -346,7 +342,6 @@ const SlotEditorModal: React.FC<Props> = ({
                 showIcon
               />
             )}
-
             <Space>
               <Button
                 size="small"

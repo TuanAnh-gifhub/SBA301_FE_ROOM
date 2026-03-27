@@ -32,57 +32,83 @@ export default function PostPage() {
   }, [page]);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Trang tin đăng</h1>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">Trang tin đăng</h1>
 
-      {loading && <p>Đang tải...</p>}
+      {loading && (
+        <div className="flex justify-center py-10">
+          <p className="text-gray-500 animate-pulse">Đang tải...</p>
+        </div>
+      )}
 
-      {!loading && posts.length === 0 && <p>Không có bài đăng nào.</p>}
+      {!loading && posts.length === 0 && (
+        <div className="text-center py-10 text-gray-500">
+          Không có bài đăng nào.
+        </div>
+      )}
 
-      <div className="grid gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {posts.map((post) => (
           <div
             key={post.postId}
-            className="border rounded-xl p-4 shadow-sm bg-white"
+            className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group"
           >
-            <h2 className="text-lg font-semibold mb-2">{post.title}</h2>
+            {/* Content */}
+            <div className="p-5">
+              <h2 className="text-lg font-semibold text-gray-800 mb-2 group-hover:text-purple-600 transition">
+                {post.title}
+              </h2>
 
-            <p className="text-gray-600 mb-2 line-clamp-2">{post.content}</p>
+              <p className="text-gray-500 text-sm mb-3 line-clamp-2">
+                {post.content}
+              </p>
 
-            <div className="text-sm text-gray-500 mb-2">
-              <p>Chủ sỡ hữu: {post.ownerName}</p>
-              <p>SĐT: {post.ownerPhone}</p>
-              <p>Địa chỉ: {post.rentalArea.address}</p>
-              <p>Giá Phòng :{post.rentalArea.rooms.price} /Giờ</p>
-            </div>
+              {/* Info */}
+              <div className="text-sm text-gray-600 space-y-1 mb-3">
+                <p>
+                  👤 <span className="font-medium">{post.ownerName}</span>
+                </p>
+                <p> {post.ownerPhone}</p>
+                <p> {post.rentalArea.address}</p>
+                <p className="text-purple-600 font-semibold">
+                  {post.rentalArea.rooms.price} / giờ
+                </p>
+              </div>
 
-            <div className="bg-gray-100 p-3 rounded-lg text-sm">
-              <p className="font-medium">{post.rentalArea.rentalAreaName}</p>
-              <p>{post.rentalArea.address}</p>
+              {/* Rental Area */}
+              <div className="bg-gray-50 p-3 rounded-xl border">
+                <p className="font-medium text-gray-700">
+                  {post.rentalArea.rentalAreaName}
+                </p>
+                <p className="text-gray-500 text-sm">
+                  {post.rentalArea.address}
+                </p>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="flex justify-center gap-2 mt-6">
+      {/* Pagination */}
+      <div className="flex justify-center items-center gap-4 mt-10">
         <button
           disabled={page === 1}
           onClick={() => setPage(page - 1)}
-          className="px-3 py-1 border rounded disabled:opacity-50"
+          className="px-4 py-2 rounded-xl border bg-white hover:bg-gray-100 disabled:opacity-40 transition"
         >
-          Prev
+          ⬅ Prev
         </button>
 
-        <span>
+        <span className="text-gray-700 font-medium">
           Trang {page} / {totalPages}
         </span>
 
         <button
           disabled={page === totalPages}
           onClick={() => setPage(page + 1)}
-          className="px-3 py-1 border rounded disabled:opacity-50"
+          className="px-4 py-2 rounded-xl border bg-white hover:bg-gray-100 disabled:opacity-40 transition"
         >
-          Next
+          Next ➡
         </button>
       </div>
     </div>
