@@ -51,52 +51,21 @@ public class DataInitializer implements CommandLineRunner {
     }
 
 
-    private void seedRooms(){
+    private void seedRooms() {
         List<City> cities = cityRepository.findAll();
         List<Amenity> amenities = amenityRepository.findAll();
         Set<Amenity> amenitySet = new HashSet<>(amenities);
         List<Category> categories = categoryRepository.findAll();
         User owner = userRepository.findByEmail("owner@gmail.com").orElse(null);
-        RentalArea rentalArea =RentalArea.builder()
+        RentalArea rentalArea = RentalArea.builder()
                 .address("90 Phạm Đăng Giảng, phường Bình Hưng Hòa")
                 .contactName("Quang B")
                 .contactPhone("0777964742")
                 .owner(owner)
-                .city(cities.getFirst() != null ? cities.getFirst() : City.builder()
-                        .cityName("Thành phố Huế")
-                        .build())
+                .city(!cities.isEmpty() ? cities.get(0) : null)
                 .status(RentalAreaStatus.ACTIVE)
                 .build();
         rentalAreaRepository.save(rentalArea);
-        RoomCopy roomCopy1 = RoomCopy.builder()
-                .roomCode("Phỏng 301")
-                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
-                .build();
-        RoomCopy roomCopy2 = RoomCopy.builder()
-                .roomCode("Phỏng 302")
-                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
-                .build();
-        RoomCopy roomCopy3 = RoomCopy.builder()
-                .roomCode("Phỏng 303")
-                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
-                .build();
-
-        RoomCopy roomCopy4 = RoomCopy.builder()
-                .roomCode("Phỏng 401")
-                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
-                .build();
-        RoomCopy roomCopy5 = RoomCopy.builder()
-                .roomCode("Phỏng 402")
-                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
-                .build();
-
-
-        roomCopyRepository.save(roomCopy1);
-        roomCopyRepository.save(roomCopy2);
-        roomCopyRepository.save(roomCopy3);
-        roomCopyRepository.save(roomCopy4);
-        roomCopyRepository.save(roomCopy5);
-
 
         Room room1 = Room.builder()
                 .roomName("Phòng học 30 người")
@@ -108,13 +77,26 @@ public class DataInitializer implements CommandLineRunner {
                 .price(BigDecimal.valueOf(50000))
                 .build();
 
-        roomCopy1.setRoom(room1);
-        roomCopy2.setRoom(room1);
-        roomCopy3.setRoom(room1);
         roomRepository.save(room1);
+        RoomCopy roomCopy1 = RoomCopy.builder()
+                .roomCode("Phòng 301")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .room(room1)
+                .build();
+
+        RoomCopy roomCopy2 = RoomCopy.builder()
+                .roomCode("Phòng 302")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .room(room1)
+                .build();
+
+        RoomCopy roomCopy3 = RoomCopy.builder()
+                .roomCode("Phòng 303")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .room(room1)
+                .build();
+
         roomCopyRepository.saveAll(List.of(roomCopy1, roomCopy2, roomCopy3));
-
-
 
         Room room2 = Room.builder()
                 .roomName("Phòng học 40 người")
@@ -125,9 +107,23 @@ public class DataInitializer implements CommandLineRunner {
                 .capacity(40)
                 .price(BigDecimal.valueOf(60000))
                 .build();
-        roomRepository.save(room1);
+
         roomRepository.save(room2);
 
+        // Room Copies (401,402)
+        RoomCopy roomCopy4 = RoomCopy.builder()
+                .roomCode("Phòng 401")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .room(room2)
+                .build();
+
+        RoomCopy roomCopy5 = RoomCopy.builder()
+                .roomCode("Phòng 402")
+                .roomCopyStatus(RoomCopyStatus.AVAILABLE)
+                .room(room2)
+                .build();
+
+        roomCopyRepository.saveAll(List.of(roomCopy4, roomCopy5));
     }
 
 

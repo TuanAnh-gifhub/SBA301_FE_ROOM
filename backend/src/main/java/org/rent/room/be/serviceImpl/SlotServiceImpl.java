@@ -172,34 +172,45 @@ public class SlotServiceImpl implements SlotService {
     public SlotSwapCheckResponse checkSwap(UUID bookingId, UUID slotId, SlotSwapCheckRequest req) {
         Slot slot = getValidSlot(bookingId, slotId);
 
-
         if (slot.getRoomCopy() == null || slot.getRoomCopy().getRoom() == null) {
-            throw new RuntimeException("Phòng không tìm thấy");
+            throw new RuntimeException("Phòng hiện tại không hợp lệ");
         }
-        UUID originalRoomId = slot.getRoomCopy().getRoom().getRoomId();
+        UUID targetRoomId = slot.getRoomCopy().getRoom().getRoomId();
+        String targetRoomCode = slot.getRoomCopy().getRoomCode();
 
+
+        if (req.getNewRoomCode() != null && !req.getNewRoomCode().isBlank()) {
+
+            RoomCopy newRoomCopy = roomCopyRepository.findByRoomCode(req.getNewRoomCode())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy mã phòng: " + req.getNewRoomCode()));
+
+            targetRoomId = newRoomCopy.getRoom().getRoomId();
+            targetRoomCode = newRoomCopy.getRoomCode();
+        }
 
         long originalMinutes = Duration.between(slot.getStartTime(), slot.getEndTime()).toMinutes();
         long newMinutes = Duration.between(req.getNewStartTime(), req.getNewEndTime()).toMinutes();
 
         if (originalMinutes != newMinutes) {
-            return buildResponse(slot, req, false, String.format("Thời gian phải bằng %d phút", originalMinutes));
+            return buildResponse(slot, req, targetRoomCode, false,
+                    String.format("Thời gian phải bằng %d phút", originalMinutes));
         }
 
         boolean conflict = slotRepository.existsConflictByRoom(
-                originalRoomId, req.getNewStartTime(), req.getNewEndTime(), slotId
+                targetRoomId, req.getNewStartTime(), req.getNewEndTime(), slotId
         );
 
-        return buildResponse(slot, req, !conflict, conflict ? "Khung giờ này  đã có người đặt rồi!" : null);
+        return buildResponse(slot, req, targetRoomCode, !conflict,
+                conflict ? "Phòng " + targetRoomCode + " khung giờ này đã có người đặt rồi!" : null);
     }
 
 
-    private SlotSwapCheckResponse buildResponse(Slot slot, SlotSwapCheckRequest req, boolean available, String msg) {
+    private SlotSwapCheckResponse buildResponse(Slot slot, SlotSwapCheckRequest req, String targetRoomCode, boolean available, String msg) {
         return SlotSwapCheckResponse.builder()
                 .available(available)
                 .conflictMessage(msg)
                 .slotId(slot.getSlotId().toString())
-                .roomCode(slot.getRoomCopy().getRoomCode())
+                .roomCode(targetRoomCode)
                 .originalStart(slot.getStartTime())
                 .originalEnd(slot.getEndTime())
                 .newStart(req.getNewStartTime())
@@ -215,44 +226,48 @@ public class SlotServiceImpl implements SlotService {
         if (!check.isAvailable()) {
             throw new AppException(ErrorCode.SLOT_CONFLICT);
         }
-
         Slot slot = getValidSlot(bookingId, slotId);
         slot.setStartTime(req.getNewStartTime());
         slot.setEndTime(req.getNewEndTime());
         slot.setSlotStatus(SlotStatus.BOOKED);
+
+        if (req.getNewRoomCode() != null && !req.getNewRoomCode().isBlank()) {
+            RoomCopy newRoomCopy = roomCopyRepository.findByRoomCode(req.getNewRoomCode())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng với mã: " + req.getNewRoomCode()));
+
+            slot.setRoomCopy(newRoomCopy);
+
+            slot.setPrice(newRoomCopy.getRoom().getPrice());
+        }
+
         slotRepository.save(slot);
 
-
         Booking booking = slot.getBooking();
+
+
         recalcBookingTime(booking);
-
-
         bookingRepository.save(booking);
-
-        List<SlotResponse> slotResponses = booking.getSlots()
-                .stream().map(s -> {
-
-                            RoomCopy roomCopy = slot.getRoomCopy();
-                            RoomCopyResponse roomCopyResponse = RoomCopyResponse.builder()
-                                    .roomCopyId(roomCopy.getRoomCopyId())
-                                    .roomCode(roomCopy.getRoomCode())
-                                    .build();
-                            return SlotResponse.builder()
-                                    .slotId(slot.getSlotId())
-                                    .startTime(slot.getStartTime())
-                                    .endTime(slot.getEndTime())
-                                    .price(slot.getPrice())
-                                    .status(slot.getSlotStatus())
-                                    .roomCopy(roomCopyResponse)
-                                    .build();
-                        }
-                ).toList();
-
+        List<SlotResponse> slotResponses = booking.getSlots().stream()
+                .map(s -> {
+                    RoomCopy rc = s.getRoomCopy();
+                    RoomCopyResponse rcResponse = RoomCopyResponse.builder()
+                            .roomCopyId(rc.getRoomCopyId())
+                            .roomCode(rc.getRoomCode())
+                            .build();
+                    return SlotResponse.builder()
+                            .slotId(s.getSlotId())
+                            .startTime(s.getStartTime())
+                            .endTime(s.getEndTime())
+                            .price(s.getPrice())
+                            .status(s.getSlotStatus())
+                            .roomCopy(rcResponse)
+                            .build();
+                })
+                .toList();
 
         String urlPdfInvoice = invoicePdfService.generateInvoice(booking, slotResponses, null);
         booking.setInvoiceUrl(urlPdfInvoice);
         bookingRepository.save(booking);
-
     }
 
 

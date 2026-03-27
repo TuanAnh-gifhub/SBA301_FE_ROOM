@@ -9,6 +9,7 @@ import org.rent.room.be.service.RoomCopyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -18,7 +19,14 @@ public class RoomCopyController {
 
     @Autowired
     private RoomCopyService roomCopyService;
+    @GetMapping("/rental-area/{rentalAreaId}")
+    public ApiResponse<List<RoomCopyResponse>> getRoomCopiesByRentalArea(
+            @PathVariable UUID rentalAreaId) {
 
+        return ApiResponse.<List<RoomCopyResponse>>builder()
+                .result(roomCopyService.getAllRoomCopiesByRentalArea(rentalAreaId))
+                .build();
+    }
     @PostMapping
     public ApiResponse<?> createRoomCopy(@RequestBody @Valid RoomCopyAllRequest roomCopy) {
         try {
@@ -42,4 +50,6 @@ public class RoomCopyController {
             return ApiResponse.error(e.getMessage());
         }
     }
+
+
 }

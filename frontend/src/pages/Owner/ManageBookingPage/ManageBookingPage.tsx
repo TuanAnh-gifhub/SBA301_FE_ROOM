@@ -9,12 +9,13 @@ import {
   DatePicker,
   Space,
   Dropdown,
-  Tooltip,
+  message,
+  Divider,
 } from "antd";
+import { MoreOutlined, EditOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { getBookingsByRentalId } from "../../../services/booking/bookingService";
 import { useAuth } from "../../../context/AuthContext";
-import { MoreOutlined, EditOutlined } from "@ant-design/icons";
 import SlotEditorModal from "./SlotEditorModal";
 import UpdateBookingModal from "./UpdateBookingModal";
 
@@ -30,7 +31,6 @@ const { Option } = Select;
 const ManageBookingPage = () => {
   const { user } = useAuth();
   const userId = user?.userId;
-  if (!userId) return null;
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -40,21 +40,17 @@ const ManageBookingPage = () => {
   const [status, setStatus] = useState("ALL");
   const [dates, setDates] = useState<any[]>([]);
 
-  // Detail modal
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [openModal, setOpenModal] = useState(false);
-
-  // Slot editor modal
   const [slotEditorOpen, setSlotEditorOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<any>(null);
-
-  // Update booking modal
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updatingBooking, setUpdatingBooking] = useState<any>(null);
 
   const pageSize = 5;
 
   const fetchBookings = async () => {
+    if (!userId) return;
     try {
       setLoading(true);
       const params: any = { userId, page, size: pageSize };
@@ -68,7 +64,7 @@ const ManageBookingPage = () => {
       setData(res.result.data || []);
       setTotal(res.result.totalElements || 0);
     } catch (error) {
-      console.error(error);
+      message.error("Không thể tải danh sách đặt lịch");
     } finally {
       setLoading(false);
     }
@@ -76,11 +72,18 @@ const ManageBookingPage = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, [page, keyword, status, dates]);
+  }, [page, keyword, status, dates, userId]);
 
-  // Mở slot editor
   const openSlotEditor = (record: any) => {
-    setEditingBooking(record);
+    const rId =
+      record.rentalArea?.rentalAreaId || // <-- Đã được map từ BE thông qua bản vá ở trên
+      record.rentalAreaId ||
+      record.slots?.[0]?.roomCopy?.room?.rentalArea?.rentalAreaId;
+
+    setEditingBooking({
+      ...record,
+      rentalAreaId: rId,
+    });
     setSlotEditorOpen(true);
   };
 
@@ -91,45 +94,40 @@ const ManageBookingPage = () => {
       render: (_: any, __: any, index: number) =>
         (page - 1) * pageSize + index + 1,
     },
-    {
-      title: "Mã đặt",
-      dataIndex: "bookingId",
-      ellipsis: true,
-      width: 120,
-    },
-    {
-      title: "Khách hàng",
-      dataIndex: "userName",
-    },
-    {
-      title: "SĐT",
-      dataIndex: "phoneNumber",
-    },
+    { title: "Mã đặt", dataIndex: "bookingId", ellipsis: true, width: 100 },
+    { title: "Khách hàng", dataIndex: "userName" },
+    { title: "SĐT", dataIndex: "phoneNumber" },
     {
       title: "Phòng",
-      render: (_: any, record: any) => {
-        const rooms = record.slots?.map((s: any) => s.roomCopy?.roomCode);
-        return rooms?.join(", ");
-      },
+      render: (_: any, record: any) => (
+        <Space wrap>
+          {record.slots?.map((s: any) => (
+            <Tag color="cyan" key={s.slotId}>
+              {s.roomCopy?.roomCode}
+            </Tag>
+          ))}
+        </Space>
+      ),
     },
     {
-      title: "Thời gian bắt đầu",
+      title: "Bắt đầu",
       dataIndex: "startTime",
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
+      render: (v: string) => dayjs(v).format("DD/MM HH:mm"),
     },
     {
-      title: "Thời gian kết thúc",
+      title: "Kết thúc",
       dataIndex: "endTime",
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
+      render: (v: string) => dayjs(v).format("DD/MM HH:mm"),
     },
     {
       title: "Tổng tiền",
       dataIndex: "totalPrice",
-      render: (v: number) => `${v?.toLocaleString()} VND`,
+      render: (v: number) => <b>{v?.toLocaleString()} đ</b>,
     },
     {
-      title: "Phương thức",
-      dataIndex: "paymentMethod",
+      title: "Thanh toán",
+      dataIndex: "paymentMethod", // Sửa lại đúng tên trường BE trả về (VD: paymentMethod, paymentType...)
+      render: (pm: string) => <Tag color="purple">{pm || "Chưa rõ"}</Tag>,
     },
     {
       title: "Trạng thái",
@@ -141,16 +139,16 @@ const ManageBookingPage = () => {
     },
     {
       title: "Hành động",
-      width: 140,
+      width: 80,
       render: (_: any, record: any) => {
         const isBooked = record.status === "BOOKED";
-        const isHourly =
-          record.bookingType === "HOURLY" && record.slots?.length > 0;
+        const isHourly = record.bookingType === "HOURLY";
 
         const dropdownItems = [
           {
             key: "detail",
             label: "Xem chi tiết",
+            icon: <EyeOutlined />,
             onClick: () => {
               setSelectedBooking(record);
               setOpenModal(true);
@@ -158,9 +156,8 @@ const ManageBookingPage = () => {
           },
           {
             key: "updateStatus",
-            label: "Cập nhật trạng thái",
+            label: "Đổi trạng thái",
             icon: <EditOutlined />,
-            // disabled: record.status === "CANCELLED",
             onClick: () => {
               setUpdatingBooking(record);
               setUpdateModalOpen(true);
@@ -170,7 +167,7 @@ const ManageBookingPage = () => {
             ? [
                 {
                   key: "editSlot",
-                  label: "Chỉnh sửa slot",
+                  label: "Chỉnh sửa Slot (Đổi/Gia hạn)",
                   icon: <EditOutlined />,
                   onClick: () => openSlotEditor(record),
                 },
@@ -179,40 +176,31 @@ const ManageBookingPage = () => {
         ];
 
         return (
-          <Space size={4}>
-            <Dropdown menu={{ items: dropdownItems }} trigger={["click"]}>
-              <Button
-                type="text"
-                icon={<MoreOutlined style={{ fontSize: 18 }} />}
-              />
-            </Dropdown>
-          </Space>
+          <Dropdown menu={{ items: dropdownItems }} trigger={["click"]}>
+            <Button type="text" icon={<MoreOutlined />} />
+          </Dropdown>
         );
       },
     },
   ];
 
   return (
-    <>
-      <h1 className="mb-2">Quản lý đặt lịch</h1>
+    <div style={{ padding: 24 }}>
+      <h1 style={{ marginBottom: 16 }}>Quản lý đặt lịch</h1>
 
-      <Space style={{ marginBottom: 20 }}>
+      <Space wrap style={{ marginBottom: 20 }}>
         <Input
           placeholder="Tìm khách hàng..."
           style={{ width: 200 }}
           onChange={(e) => setKeyword(e.target.value)}
         />
-        <Select
-          value={status}
-          style={{ width: 160 }}
-          onChange={(value) => setStatus(value)}
-        >
-          <Option value="ALL">Tất cả</Option>
+        <Select value={status} style={{ width: 150 }} onChange={setStatus}>
+          <Option value="ALL">Tất cả trạng thái</Option>
           <Option value="BOOKED">Đã đặt</Option>
           <Option value="COMPLETED">Đã hoàn thành</Option>
           <Option value="CANCELLED">Đã hủy</Option>
         </Select>
-        <RangePicker onChange={(value) => setDates(value || [])} />
+        <RangePicker onChange={(v) => setDates(v || [])} />
       </Space>
 
       <Table
@@ -224,10 +212,11 @@ const ManageBookingPage = () => {
           current: page,
           pageSize,
           total,
-          onChange: (p) => setPage(p),
+          onChange: setPage,
         }}
       />
 
+      {/* Chi tiết Booking Modal */}
       <Modal
         title="Thông tin chi tiết"
         open={openModal}
@@ -235,49 +224,19 @@ const ManageBookingPage = () => {
         onCancel={() => setOpenModal(false)}
       >
         {selectedBooking && (
-          <>
+          <Space direction="vertical" style={{ width: "100%" }}>
             <p>
-              <b>Khách hàng:</b> {selectedBooking.userName}
+              <b>Khách hàng:</b> {selectedBooking.userName} (
+              {selectedBooking.phoneNumber})
             </p>
             <p>
-              <b>SĐT:</b> {selectedBooking.phoneNumber}
-            </p>
-            <p>
-              <b>Loại đặt:</b> {selectedBooking.bookingType}
+              <b>Loại:</b> {selectedBooking.bookingType}
             </p>
             <p>
               <b>Tổng tiền:</b> {selectedBooking.totalPrice?.toLocaleString()}{" "}
               VND
             </p>
-            <p>
-              <b>Check-in:</b>{" "}
-              {selectedBooking.checkIn
-                ? dayjs(selectedBooking.checkIn).format("DD/MM/YYYY HH:mm")
-                : "Chưa check-in"}
-            </p>
-            <p>
-              <b>Check-out:</b>{" "}
-              {selectedBooking.checkOut
-                ? dayjs(selectedBooking.checkOut).format("DD/MM/YYYY HH:mm")
-                : "Chưa check-out"}
-            </p>
-            <p>
-              <b>Trạng thái:</b>{" "}
-              <Tag color={BOOKING_STATUS[selectedBooking.status]?.color}>
-                {BOOKING_STATUS[selectedBooking.status]?.text}
-              </Tag>
-            </p>
-            <p>
-              <b>Ghi chú:</b> {selectedBooking.note || "Không có"}
-            </p>
-            <p>
-              <b>Ngày tạo đơn:</b>{" "}
-              {dayjs(selectedBooking.createdAt).format("DD/MM/YYYY HH:mm")}
-            </p>
-            <hr />
-            <p>
-              <b>Danh sách phòng đã đặt:</b>
-            </p>
+            <Divider orientation="left">Danh sách Slot</Divider>
             {selectedBooking.slots?.map((slot: any) => (
               <div key={slot.slotId} style={{ marginBottom: 8 }}>
                 <Tag color="blue">Phòng {slot.roomCopy?.roomCode}</Tag>
@@ -285,11 +244,10 @@ const ManageBookingPage = () => {
                 {dayjs(slot.endTime).format("HH:mm")}
               </div>
             ))}
-          </>
+          </Space>
         )}
       </Modal>
 
-      {/* Modal chỉnh sửa slot */}
       <SlotEditorModal
         open={slotEditorOpen}
         booking={editingBooking}
@@ -297,9 +255,7 @@ const ManageBookingPage = () => {
           setSlotEditorOpen(false);
           setEditingBooking(null);
         }}
-        onSuccess={() => {
-          fetchBookings();
-        }}
+        onSuccess={fetchBookings}
       />
 
       <UpdateBookingModal
@@ -309,11 +265,9 @@ const ManageBookingPage = () => {
           setUpdateModalOpen(false);
           setUpdatingBooking(null);
         }}
-        onSuccess={() => {
-          fetchBookings();
-        }}
+        onSuccess={fetchBookings}
       />
-    </>
+    </div>
   );
 };
 

@@ -384,13 +384,13 @@ public class CompleteDemoDataSeeder implements CommandLineRunner {
             %s
             
             ## Tiện ích
-            - ✅ WiFi tốc độ cao (>1Gbps)
-            - ✅ Điều hòa 2 chiều
-            - ✅ Máy chiếu 4K / TV lớn
-            - ✅ Bảng trắng & bút
-            - ✅ Ổ điện đầy đủ
-            - ✅ Nước uống miễn phí
-            - ✅ Bãi đỗ xe
+            -  WiFi tốc độ cao (>1Gbps)
+            - Điều hòa 2 chiều
+            - Máy chiếu 4K / TV lớn
+            - Bảng trắng & bút
+            - Ổ điện đầy đủ
+            -  Nước uống miễn phí
+            -  Bãi đỗ xe
             
             ## Quy tắc đặt phòng
             - Đặt trước ít nhất 2 giờ
