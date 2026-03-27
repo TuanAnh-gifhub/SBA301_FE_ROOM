@@ -106,7 +106,7 @@ const UserAddModal: React.FC<Props> = ({
             <Form.Item label="Vai trò" name="roleName" rules={[{ required: true }]}>
               <Select placeholder="Chọn vai trò">
                 <Select.Option value="ADMIN">Quản trị viên</Select.Option>
-                <Select.Option value="OWNER">Chủ xe</Select.Option>
+                <Select.Option value="OWNER">Chủ nhà</Select.Option>
                 <Select.Option value="RENTER">Khách thuê</Select.Option>
               </Select>
             </Form.Item>

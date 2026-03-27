@@ -192,7 +192,11 @@ public class CompleteDemoDataSeeder implements CommandLineRunner {
         seedReports(renter1, renter2);
 
         // === BƯỚC 12: TẠO BOOKING INTENTS ===
-        seedBookingIntents(renter1, renter2, areaRoomsMap);
+
+        if(bookingIntentRepository.count() == 0){
+            seedBookingIntents(renter1, renter2, areaRoomsMap);
+        }
+
 
         log.info("[CompleteDemoDataSeeder] ========================================");
         log.info("[CompleteDemoDataSeeder] ✅ DEMO DATA SEED HOÀN TẤT!");

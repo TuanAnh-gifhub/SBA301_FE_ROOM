@@ -86,7 +86,7 @@ export default function RoomCard({ room, onAddRoom }) {
                   </h3>
 
                   <span className="shrink-0 text-xs font-semibold bg-amber-50 text-amber-700 px-3 py-1 rounded-full">
-                    Còn lại {availableRooms} phòng
+                    Số lượng {availableRooms} phòng
                   </span>
                 </div>
 
