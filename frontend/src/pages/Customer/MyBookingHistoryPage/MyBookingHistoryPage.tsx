@@ -13,7 +13,19 @@ export default function MyBookingHistoryPage() {
   const [totalPages, setTotalPages] = useState(0);
 
   const size = 3;
+  const calculateTotalDuration = (slots: any[]) => {
+    let totalMs = 0;
 
+    slots.forEach((slot) => {
+      const start = new Date(slot.startTime).getTime();
+      const end = new Date(slot.endTime).getTime();
+      totalMs += end - start;
+    });
+
+    const totalHours = totalMs / (1000 * 60 * 60);
+
+    return totalHours;
+  };
   useEffect(() => {
     if (user?.userId) {
       fetchBookings(page);
@@ -85,7 +97,6 @@ export default function MyBookingHistoryPage() {
                   </p>
                 </div>
 
-                {/* ✅ Status badge */}
                 <span
                   className={`px-3 py-1 text-sm rounded-full font-medium ${status.class}`}
                 >
@@ -142,7 +153,6 @@ export default function MyBookingHistoryPage() {
         })}
       </div>
 
-      
       <div className="flex justify-center items-center gap-2 mt-6">
         <button
           disabled={page === 1}

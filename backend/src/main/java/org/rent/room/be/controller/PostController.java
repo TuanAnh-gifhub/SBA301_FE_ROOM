@@ -41,17 +41,29 @@ public class PostController {
             @Valid @RequestBody CreatePostRequest request,
             @AuthenticationPrincipal UserDetails principal
     ) {
-        UUID currentUserId = extractUserId(principal);
 
-        PostResponse result = postService.createPost(request, currentUserId);
+        try{
+            UUID currentUserId = extractUserId(principal);
 
-        ApiResponse<PostResponse> response = ApiResponse.<PostResponse>builder()
-                .code(200)
-                .message("Create post successfully")
-                .result(result)
-                .build();
+            PostResponse result = postService.createPost(request, currentUserId);
 
-        return ResponseEntity.ok(response);
+            ApiResponse<PostResponse> response = ApiResponse.<PostResponse>builder()
+                    .code(200)
+                    .message("Create post successfully")
+                    .result(result)
+                    .build();
+
+            return ResponseEntity.ok(response);
+        }catch (Exception e){
+
+            ApiResponse<PostResponse> response = ApiResponse.<PostResponse>builder()
+                    .code(500)
+                    .message("Error "+ e.getMessage())
+                    .result(null)
+                    .build();
+            return  ResponseEntity.badRequest().body(response);
+        }
+
     }
 
     // Public feed

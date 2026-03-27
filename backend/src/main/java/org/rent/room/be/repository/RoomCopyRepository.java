@@ -6,10 +6,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -56,6 +58,12 @@ public interface RoomCopyRepository extends JpaRepository<RoomCopy, UUID> {
             LocalDateTime startTime,
             LocalDateTime endTime
     );
-
-
+    Optional<RoomCopy> findByRoomCode(String roomCode);
+    @Query("""
+    SELECT rc FROM RoomCopy rc
+    JOIN rc.room r
+    JOIN r.rentalArea ra
+    WHERE ra.rentalAreaId = :rentalAreaId
+""")
+    List<RoomCopy> findAllByRentalAreaId(@Param("rentalAreaId") UUID rentalAreaId);
 }

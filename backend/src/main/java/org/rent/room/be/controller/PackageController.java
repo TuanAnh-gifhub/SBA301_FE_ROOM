@@ -55,7 +55,12 @@ public class PackageController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
-        packageFacade.deletePackage(id);
-        return ResponseBuilder.success(null, "Deleted");
+        try{
+            packageFacade.deletePackage(id);
+            return ResponseBuilder.success(null, "Deleted");
+        } catch (Exception e) {
+            return ResponseBuilder.success(null, "Error "+ e.getMessage());
+        }
+
     }
 }
