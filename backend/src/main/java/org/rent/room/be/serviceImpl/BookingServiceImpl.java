@@ -194,6 +194,11 @@ public class BookingServiceImpl implements BookingService {
                     new RuntimeException("Không tìm thấy phòng"));
             RentalArea ra = room.getRentalArea();
 
+            // --- THÊM DÒNG NÀY ĐỂ GÁN GIÁ TRỊ ---
+            if (rentalArea == null) {
+                rentalArea = ra;
+            }
+
             LocalTime openTime = ra.getOpenTime();
             LocalTime closeTime = ra.getCloseTime();
 
