@@ -4,21 +4,21 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.rent.room.be.constant.WalletStatus;
+import org.rent.room.be.constant.WalletTxStatus;
+import org.rent.room.be.constant.WalletTxType;
 import org.rent.room.be.dto.response.subscription.SubscriptionResponse;
-import org.rent.room.be.entity.RentPackage;
-import org.rent.room.be.entity.Subscription;
-import org.rent.room.be.entity.User;
+import org.rent.room.be.entity.*;
 import org.rent.room.be.exception.AppException;
 import org.rent.room.be.exception.ErrorCode;
 import org.rent.room.be.mapper.SubscriptionMapper;
-import org.rent.room.be.repository.RentPackageRepository;
-import org.rent.room.be.repository.SubscriptionRepository;
-import org.rent.room.be.repository.UserRepository;
+import org.rent.room.be.repository.*;
 import org.rent.room.be.service.SubscriptionService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -32,6 +32,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     RentPackageRepository rentPackageRepository;
     UserRepository userRepository;
     SubscriptionMapper subscriptionMapper;
+    private final WalletRepository walletRepository;
+    private final WalletTransactionRepository walletTransactionRepository;
 
     // Lấy email từ JWT token
     private User getCurrentUser() {
@@ -62,21 +64,58 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         RentPackage pkg = rentPackageRepository.findById(packageId)
                 .orElseThrow(() -> new AppException(ErrorCode.RENTPACKAGE_NOT_FOUND));
 
-        // 3. (Đã xóa bỏ query User thừa ở đây vì getCurrentUser() đã xử lý rồi)
+        // Lấy giá tiền của gói (Giả sử Entity RentPackage của bạn có trường "price" kiểu BigDecimal)
+        BigDecimal packagePrice = pkg.getPrice();
 
-        // 4. Tạo subscription
+        // 3. XỬ LÝ TRỪ TIỀN TRONG VÍ
+        // Tìm ví của user
+        Wallet wallet = walletRepository.findByUser_UserId(user.getUserId())
+                .orElseThrow(() -> new AppException(ErrorCode.WALLET_NOT_FOUND));
+
+        // Kiểm tra trạng thái ví có đang bị khóa không (Tùy thuộc vào Enum WalletStatus của bạn)
+        if (wallet.getWalletStatus() != WalletStatus.ACTIVE) {
+            throw new AppException(ErrorCode.WALLET_LOCKED);
+        }
+
+        // Kiểm tra số dư khả dụng (phải lớn hơn hoặc bằng giá gói)
+        if (wallet.getBalance().compareTo(packagePrice) < 0) {
+            throw new AppException(ErrorCode.INSUFFICIENT_BALANCE); // Không đủ số dư
+        }
+
+        // Lưu lại số dư hiện tại để ghi log
+        BigDecimal balanceBefore = wallet.getBalance();
+
+        // Thực hiện trừ tiền
+        wallet.setBalance(balanceBefore.subtract(packagePrice));
+        walletRepository.save(wallet);
+
+        // 4. LƯU LỊCH SỬ GIAO DỊCH (WALLET TRANSACTION)
+        WalletTransaction transaction = WalletTransaction.builder()
+                .wallet(wallet)
+                // Thay "PAYMENT" bằng Enum tương ứng trong WalletTxType của bạn (VD: PACKAGE_SUBSCRIPTION)
+                .type(WalletTxType.PACKAGE_PURCHASE)
+                // Thay "SUCCESS" bằng Enum tương ứng trong WalletTxStatus của bạn
+                .status(WalletTxStatus.COMPLETED)
+                .amount(packagePrice)
+                .balanceBefore(balanceBefore)
+                .balanceAfter(wallet.getBalance())
+                .description("Thanh toán mua gói Premium: " + pkg.getRentPackageName())
+                .build();
+        walletTransactionRepository.save(transaction);
+
+        // 5. TẠO VÀ LƯU SUBSCRIPTION
         LocalDateTime now = LocalDateTime.now();
         Subscription subscription = Subscription.builder()
                 .user(user)
                 .rentPackage(pkg)
                 .startDate(now)
-                // Lưu ý: Đảm bảo pkg.getDurationDays() không trả về null
                 .endDate(now.plusDays(pkg.getDurationDays()))
                 .active(true)
                 .build();
 
         Subscription saved = subscriptionRepository.save(subscription);
-        log.info("User {} subscribed to package {}", user.getUserId(), packageId);
+
+        log.info("User {} subscribed to package {}. Deducted {} from wallet.", user.getUserId(), packageId, packagePrice);
 
         return subscriptionMapper.toResponse(saved);
     }
