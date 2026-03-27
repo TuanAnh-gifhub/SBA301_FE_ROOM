@@ -15,10 +15,8 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.time.YearMonth;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
@@ -139,57 +137,50 @@ public class DataInitializer implements CommandLineRunner {
         Role renterRole = createRoleIfNotExist("RENTER", "Người thuê");
 
         if (userRepository.count() > 0) return;
-        User user1 = User.builder()
-                .userName("RenterName")
-                .gender("Male")
-                .email("renter@gmail.com")
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("0987654321")
-                .dateOfBirth(LocalDate.of(2000, 1, 2))
-                .role(ownerRole)
-                .active(true).build();
 
-        User user2 = User.builder()
-                .userName("OwnerName")
-                .gender("Female")
-                .email("owner@gmail.com")
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("0123456789")
-                .dateOfBirth(LocalDate.of(1990, 1, 2))
-                .role(ownerRole)
-                .active(true).build();
+        // 1. Tạo 5 Users cứng để Login (Set thời gian là đầu năm)
+        LocalDateTime startOfYear = LocalDateTime.now().withDayOfYear(1);
 
-        User user3 = User.builder()
-                .userName("AdminName")
-                .gender("Other")
-                .email("admin@gmail.com")
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("1234567890")
-                .dateOfBirth(LocalDate.of(2008, 1, 2))
-                .role(adminRole)
-                .active(true).build();
+        List<User> coreUsers = List.of(
+                User.builder().userName("RenterName").email("renter@gmail.com").passwordHash(passwordEncoder.encode("12345678")).role(ownerRole).active(true).build(),
+                User.builder().userName("OwnerName").email("owner@gmail.com").passwordHash(passwordEncoder.encode("12345678")).role(ownerRole).active(true).build(),
+                User.builder().userName("AdminName").email("admin@gmail.com").passwordHash(passwordEncoder.encode("12345678")).role(adminRole).active(true).build(),
+                User.builder().userName("Quang").email("quang@gmail.com").passwordHash(passwordEncoder.encode("12345678")).role(adminRole).active(true).build(),
+                User.builder().userName("Quân").email("quan@gmail.com").passwordHash(passwordEncoder.encode("12345678")).role(renterRole).active(true).build()
+        );
 
-        User user4 = User.builder()
-                .userName("Quang")
-                .gender("Other")
-                .email("quang@gmail.com")
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("1234567890")
-                .dateOfBirth(LocalDate.of(2004, 1, 2))
-                .role(adminRole)
-                .active(true).build();
+        for (User u : coreUsers) {
+            User savedUser = userRepository.save(u);
+            userRepository.updateCreatedAt(savedUser.getUserId(), startOfYear); // Update thời gian
+        }
 
-        User user5 = User.builder()
-                .userName("Quân")
-                .gender("Other")
-                .email("quan@gmail.com")
-                .passwordHash(passwordEncoder.encode("12345678"))
-                .phone("1234567810")
-                .dateOfBirth(LocalDate.of(2004, 1, 2))
-                .role(renterRole)
-                .active(true).build();
+        // 2. Bơm thêm 40 User ảo rải đều khắp năm nay
+        LocalDateTime now = LocalDateTime.now();
+        int currentYear = now.getYear();
+        int currentMonth = now.getMonthValue();
+        Random rng = new Random();
 
-        userRepository.saveAll(List.of(user1, user2, user3, user4,user5));
+        for (int i = 0; i < 40; i++) {
+            // Random tháng từ 1 đến tháng hiện tại
+            int month = rng.nextInt(currentMonth) + 1;
+            int limitDay = (month == currentMonth) ? Math.max(1, now.getDayOfMonth()) : YearMonth.of(currentYear, month).lengthOfMonth();
+
+            LocalDateTime fakeDate = LocalDateTime.of(currentYear, month, rng.nextInt(limitDay) + 1, rng.nextInt(14) + 8, rng.nextInt(60));
+
+            // Tránh lỗi ném về tương lai
+            if (fakeDate.isAfter(now)) fakeDate = now;
+
+            User fakeUser = User.builder()
+                    .userName("Fake Renter " + i)
+                    .email("fake" + i + "@gmail.com")
+                    .passwordHash(passwordEncoder.encode("12345678"))
+                    .role((i % 3 == 0) ? ownerRole : renterRole) // Tỉ lệ 1 Chủ nhà : 2 Khách thuê
+                    .active(true)
+                    .build();
+
+            User savedUser = userRepository.save(fakeUser);
+            userRepository.updateCreatedAt(savedUser.getUserId(), fakeDate);
+        }
     }
 
 

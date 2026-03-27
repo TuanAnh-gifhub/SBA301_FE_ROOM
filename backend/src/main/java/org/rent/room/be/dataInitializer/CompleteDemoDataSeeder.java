@@ -18,6 +18,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.*;
 import org.rent.room.be.entity.Order;
 
@@ -345,10 +346,25 @@ public class CompleteDemoDataSeeder implements CommandLineRunner {
 
     private Post seedPost(Room room, RentalArea area, User owner) {
         String content = buildPostContent(room, area);
+
+        Random rng = new Random();
+        int roll = rng.nextInt(100);
+
+        PostStatus status;
+        if (roll < 60) {
+            status = PostStatus.PUBLISHED; // 60% bài viết Đang hiển thị
+        } else if (roll < 85) {
+            status = PostStatus.PENDING;   // 25% bài viết Chờ duyệt (để thẻ KPI nhảy số)
+        } else if (roll < 95) {
+            status = PostStatus.HIDDEN;    // 10% bài viết Bị ẩn
+        } else {
+            status = PostStatus.DELETED;   // 5% bài viết Bị xóa
+        }
+
         Post post = Post.builder()
                 .title(room.getRoomName() + " — " + area.getRentalAreaName())
                 .content(content)
-                .postStatus(PostStatus.PUBLISHED)
+                .postStatus(status) // Gán trạng thái random có tỉ lệ
                 .user(owner)
                 .room(room)
                 .rentalArea(area)
@@ -390,13 +406,6 @@ public class CompleteDemoDataSeeder implements CommandLineRunner {
     }
 
     private int[] seedBookingsAndReviewsForArea(RentalArea area, User renter1, User renter2, User renter3, Random rng) {
-        int[][] bookingScenarios = {
-                {60, 4, 80000, 0}, {50, 6, 120000, 0}, {40, 3, 60000, 0}, {30, 4, 80000, 0}, {20, 8, 160000, 0},
-                {15, 4, 80000, 0}, {10, 6, 120000, 0}, {7, 3, 60000, 0}, {5, 4, 80000, 0}, {3, 4, 80000, 0},
-                {2, 6, 120000, 1}, {1, 3, 60000, 1}, {0, 4, 80000, 1},
-                {35, 4, 80000, 2}, {18, 3, 60000, 2}
-        };
-
         List<User> renters = List.of(renter1, renter2, renter3);
         List<String> comments = List.of(
                 "Phòng sạch, thoáng mát, wifi nhanh. Rất hài lòng!",
@@ -410,23 +419,38 @@ public class CompleteDemoDataSeeder implements CommandLineRunner {
         int bookingCount = 0, reviewCount = 0;
         int commentIdx = 0;
 
-        for (int[] sc : bookingScenarios) {
-            int daysAgo = sc[0];
-            int durationHrs = sc[1];
-            BigDecimal price = new BigDecimal(sc[2]);
-            int statusCode = sc[3];
+        LocalDateTime now = LocalDateTime.now();
+        int currentYear = now.getYear();
+        int currentMonth = now.getMonthValue();
+        List<LocalDateTime> targetDates = new ArrayList<>();
 
-            LocalDateTime start = LocalDateTime.now()
-                    .minusDays(daysAgo)
-                    .withHour(8 + rng.nextInt(10))
-                    .withMinute(0).withSecond(0).withNano(0);
+        // 1. Sinh Data rải đều từ tháng 1 đến hiện tại
+        for (int month = 1; month <= currentMonth; month++) {
+            int limitDay = (month == currentMonth) ? Math.max(1, now.getDayOfMonth()) : YearMonth.of(currentYear, month).lengthOfMonth();
+            int numTx = rng.nextInt(3) + 1; // 1-3 booking mỗi tháng
+            for (int i = 0; i < numTx; i++) {
+                LocalDateTime d = LocalDateTime.of(currentYear, month, rng.nextInt(limitDay) + 1, rng.nextInt(10) + 8, 0);
+                if (d.isBefore(now)) targetDates.add(d);
+            }
+        }
+
+        // 2. Nhồi thêm cho 7 ngày qua
+        for (int i = 0; i < 7; i++) {
+            LocalDateTime d = now.minusDays(i).withHour(rng.nextInt(10) + 8).withMinute(0);
+            if (d.getYear() == currentYear) targetDates.add(d);
+        }
+
+        Collections.sort(targetDates);
+
+        // 3. Tạo Booking dựa trên ngày giả
+        for (LocalDateTime start : targetDates) {
+            int durationHrs = rng.nextInt(6) + 2; // Thuê từ 2 - 7 tiếng
             LocalDateTime end = start.plusHours(durationHrs);
+            BigDecimal price = BigDecimal.valueOf(durationHrs * 40000L); // Giả sử 40k/h
 
-            BookingStatus status = switch (statusCode) {
-                case 1 -> BookingStatus.BOOKED;
-                case 2 -> BookingStatus.CANCELLED;
-                default -> BookingStatus.COMPLETED;
-            };
+            // Random Status: 70% Completed, 20% Booked, 10% Canceled
+            int roll = rng.nextInt(100);
+            BookingStatus status = (roll < 70) ? BookingStatus.COMPLETED : (roll < 90 ? BookingStatus.BOOKED : BookingStatus.CANCELLED);
 
             User renter = renters.get(rng.nextInt(renters.size()));
 
@@ -446,6 +470,9 @@ public class CompleteDemoDataSeeder implements CommandLineRunner {
                     .disputeFlag(false)
                     .build();
             Booking savedBooking = bookingRepository.save(booking);
+
+            // HACK THỜI GIAN NGAY SAU KHI LƯU
+            bookingRepository.updateCreatedAt(savedBooking.getBookingId(), start);
             bookingCount++;
 
             // Tạo Slots
@@ -688,14 +715,57 @@ public class CompleteDemoDataSeeder implements CommandLineRunner {
     }
 
     private void seedWalletTransactions(User owner1, User owner2, Random rng) {
+        LocalDateTime now = LocalDateTime.now();
+        int currentYear = now.getYear();
+        int currentMonth = now.getMonthValue();
+
         for (User owner : List.of(owner1, owner2)) {
             Wallet wallet = walletRepository.findByUser(owner).orElse(null);
             if (wallet == null) continue;
 
             BigDecimal runningBalance = wallet.getBalance();
+            List<LocalDateTime> targetDates = new ArrayList<>();
 
-            for (int i = 0; i < 5; i++) {
-                BigDecimal amount = BigDecimal.valueOf(rng.nextInt(5000000) + 100000);
+            // 1. CHỈ RẢI DATA TRONG NĂM NAY (Từ tháng 1 đến tháng hiện tại)
+            for (int month = 1; month <= currentMonth; month++) {
+                // Lấy số ngày tối đa của tháng đó (tránh lỗi ngày 31 tháng 2)
+                int maxDaysInMonth = YearMonth.of(currentYear, month).lengthOfMonth();
+
+                // Nếu là tháng hiện tại, chỉ random đến ngày hôm nay để không dính "giao dịch đến từ tương lai"
+                int limitDay = (month == currentMonth) ? Math.max(1, now.getDayOfMonth()) : maxDaysInMonth;
+
+                // Mỗi tháng sẽ có ngẫu nhiên 1 hoặc 2 giao dịch
+                int numTx = rng.nextInt(2) + 1;
+                for (int i = 0; i < numTx; i++) {
+                    int randomDay = rng.nextInt(limitDay) + 1;
+                    int randomHour = rng.nextInt(14) + 8; // Random từ 8h sáng đến 21h tối
+                    int randomMin = rng.nextInt(60);
+
+                    LocalDateTime fakeDate = LocalDateTime.of(currentYear, month, randomDay, randomHour, randomMin);
+
+                    // Đảm bảo an toàn không lưu thời gian quá hiện tại
+                    if (fakeDate.isBefore(now)) {
+                        targetDates.add(fakeDate);
+                    }
+                }
+            }
+
+            // 2. RẢI THÊM VÀO 7 NGÀY GẦN NHẤT (Để biểu đồ tuần luôn nhấp nhô đẹp)
+            for (int i = 0; i < 7; i++) {
+                LocalDateTime fakeDate = now.minusDays(i).minusHours(rng.nextInt(5));
+                // Đảm bảo ngày đó vẫn thuộc năm nay (đề phòng test vào mùng 1-5 tháng 1)
+                if (fakeDate.getYear() == currentYear) {
+                    targetDates.add(fakeDate);
+                }
+            }
+
+            // 3. SẮP XẾP TỪ QUÁ KHỨ ĐẾN HIỆN TẠI (Quan trọng: Để cộng balanceBefore/balanceAfter cho khớp)
+            Collections.sort(targetDates);
+
+            // 4. LƯU GIAO DỊCH
+            for (LocalDateTime fakeDate : targetDates) {
+                // Random số tiền từ 500,000đ đến 3,500,000đ
+                BigDecimal amount = BigDecimal.valueOf(rng.nextInt(3000000) + 500000);
                 BigDecimal balBefore = runningBalance;
                 BigDecimal balAfter = balBefore.add(amount);
 
@@ -708,9 +778,14 @@ public class CompleteDemoDataSeeder implements CommandLineRunner {
                         .amount(amount)
                         .balanceBefore(balBefore)
                         .balanceAfter(balAfter)
-                        .description("Thu nhập đặt phòng ngày " + LocalDate.now().minusDays(i))
+                        .description("Thu nhập đặt phòng (" + fakeDate.toLocalDate() + ")")
                         .build();
-                walletTransactionRepository.save(txn);
+
+                // Lưu Entity
+                txn = walletTransactionRepository.save(txn);
+
+                // Ép cập nhật lại created_at bằng Native Query (Hàm updateCreatedAt bạn đã tạo)
+                walletTransactionRepository.updateCreatedAt(txn.getWalletTransactionId(), fakeDate);
 
                 runningBalance = balAfter;
             }

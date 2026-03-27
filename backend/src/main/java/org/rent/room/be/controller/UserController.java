@@ -11,6 +11,7 @@ import org.rent.room.be.dto.request.user.CreateUsersRequest;
 import org.rent.room.be.dto.request.user.UpdateUserRequest;
 import org.rent.room.be.dto.request.user.UpdateUserStatusRequest;
 import org.rent.room.be.dto.response.UserResponse;
+import org.rent.room.be.dto.response.user.NewUserStatsResponse;
 import org.rent.room.be.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -94,6 +95,20 @@ public class UserController {
                         .code(200)
                         .message("Cập nhật thông tin thành công")
                         .result(userService.updateUser(id, request))
+                        .build()
+        );
+    }
+
+    @GetMapping("/stats/new-users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<NewUserStatsResponse>> getNewUserStats(
+            @RequestParam(defaultValue = "30d") String range
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.<NewUserStatsResponse>builder()
+                        .code(200)
+                        .message("Get new user stats successfully")
+                        .result(userService.getNewUserStats(range))
                         .build()
         );
     }
