@@ -100,11 +100,20 @@ public class BookingController {
 
     @PostMapping("/booking-intents")
     public ApiResponse<?> createBookingIntent(@Valid @RequestBody BookingRequest request) {
-        return ApiResponse.builder()
-                .code(200)
-                .message("Create booking intent successfully")
-                .result(bookingService.createBookingIntent(request))
-                .build();
+
+       try{
+           return ApiResponse.builder()
+                   .code(200)
+                   .message("Create booking intent successfully")
+                   .result(bookingService.createBookingIntent(request))
+                   .build();
+       } catch (Exception e) {
+           return ApiResponse.builder()
+                   .code(500)
+                   .message(e.getMessage())
+                   .build();
+       }
+
     }
 
 

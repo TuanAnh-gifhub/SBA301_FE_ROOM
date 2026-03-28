@@ -70,10 +70,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         <Link to="/admin/bookings/list">Danh sách đơn đặt</Link>,
         "/admin/bookings/list",
       ),
-      // getItem(
-      //   <Link to="/admin/bookings/check-in">Check-in/Check-out</Link>,
-      //   "/admin/bookings/check-in",
-      // ),
     ]),
 
     // 3. Quản lý Tài nguyên (Phòng ốc) -> BỎ HẾT CHILD

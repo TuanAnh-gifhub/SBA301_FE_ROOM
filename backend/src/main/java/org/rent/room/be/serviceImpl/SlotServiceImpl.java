@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -195,7 +196,28 @@ public class SlotServiceImpl implements SlotService {
             return buildResponse(slot, req, targetRoomCode, false,
                     String.format("Thời gian phải bằng %d phút", originalMinutes));
         }
+        LocalTime newStart = req.getNewStartTime().toLocalTime();
+        LocalTime newEnd = req.getNewEndTime().toLocalTime();
 
+        RentalArea rentalArea = slot.getRoomCopy().getRoom().getRentalArea();
+
+        if (rentalArea.getOpenTime() != null && rentalArea.getCloseTime() != null) {
+            if (newStart.isBefore(rentalArea.getOpenTime()) ||
+                    newEnd.isAfter(rentalArea.getCloseTime())) {
+
+                return buildResponse(
+                        slot,
+                        req,
+                        targetRoomCode,
+                        false,
+                        String.format(
+                                "Khung giờ phải nằm trong thời gian hoạt động (%s - %s)",
+                                rentalArea.getOpenTime(),
+                                rentalArea.getCloseTime()
+                        )
+                );
+            }
+        }
         boolean conflict = slotRepository.existsConflictByRoom(
                 targetRoomId, req.getNewStartTime(), req.getNewEndTime(), slotId
         );

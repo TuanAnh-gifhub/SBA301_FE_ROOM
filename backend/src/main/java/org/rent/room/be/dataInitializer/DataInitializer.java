@@ -225,10 +225,6 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    // ====================================================================================
-    // PHẦN 2: NGƯỜI DÙNG & VÍ (FULL TIMELINE)
-    // ====================================================================================
-
     private void seedUsers() {
         Role adminRole = roleRepository.findByRoleName("ADMIN").get();
         Role ownerRole = roleRepository.findByRoleName("OWNER").get();
@@ -298,9 +294,6 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    // ====================================================================================
-    // PHẦN 3: RENTAL AREAS, ROOMS, POSTS
-    // ====================================================================================
 
     private List<RentalArea> seedRentalAreasAndRooms(User owner1, User owner2) {
         List<City> cities = cityRepository.findAll();
