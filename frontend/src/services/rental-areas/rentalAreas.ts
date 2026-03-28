@@ -38,6 +38,8 @@ export interface CreateRentalAreaRequest {
   contactPhone?: string;
   cityId: number;
   images: File[];
+  openTime?: string; // Thêm trường này (định dạng "HH:mm")
+  closeTime?: string;
 }
 
 export interface UpdateRentalAreaRequest {
@@ -60,7 +62,8 @@ const rentalAreasService = {
     if (data.contactName) formData.append("contactName", data.contactName);
     if (data.contactPhone) formData.append("contactPhone", data.contactPhone);
     formData.append("cityId", String(data.cityId));
-
+    if (data.openTime) formData.append("openTime", data.openTime);
+    if (data.closeTime) formData.append("closeTime", data.closeTime);
     data.images.forEach((file) => {
       formData.append("images", file);
     });
