@@ -117,3 +117,17 @@ export const dashboardService = {
     return res.data.result;
   },
 };
+
+export const getAllBookings = async (params?: {
+  bookingStatus?: string;
+  keyword?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+}) => {
+  const response = await api.get(`/bookings`, {
+    params: params,
+  });
+  return response.data;
+};

@@ -98,7 +98,7 @@ const LoginPage = ({ isOpen, onClose }: LoginPageProps) => {
 
       if (errorResponse?.code === 1000) {
         setErrorMessage("Email hoặc mật khẩu không chính xác.");
-      } else if (errorResponse?.message?.includes("Google")) {
+      } else if (errorResponse?.message?.includes("Social account")) {
         setErrorMessage(
           "Tài khoản này được liên kết với Google. Vui lòng chọn 'Đăng nhập với Google'.",
         );

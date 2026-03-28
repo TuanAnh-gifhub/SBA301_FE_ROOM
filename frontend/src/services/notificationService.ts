@@ -29,18 +29,22 @@ export interface NotificationResponse {
   createdAt: string;
 }
 
+export interface BroadcastRequest {
+  title: string;
+  message: string;
+  link?: string;
+}
+
 const notificationService = {
-  
   getMyNotifications: async (
     page: number = 0,
-    size: number = 10
+    size: number = 10,
   ): Promise<ApiResponse<PageResponse<NotificationResponse>>> => {
-    const response = await api.get<ApiResponse<PageResponse<NotificationResponse>>>(
-      `/notifications/my-notification`,
-      {
-        params: { page, size },
-      }
-    );
+    const response = await api.get<
+      ApiResponse<PageResponse<NotificationResponse>>
+    >(`/notifications/my-notification`, {
+      params: { page, size },
+    });
     return response.data;
   },
 
@@ -63,6 +67,16 @@ const notificationService = {
   ): Promise<ApiResponse<void>> => {
     const response = await api.delete<ApiResponse<void>>(
       `/notifications/${notificationId}`,
+    );
+    return response.data;
+  },
+
+  broadcastNotification: async (
+    payload: BroadcastRequest,
+  ): Promise<ApiResponse<void>> => {
+    const response = await api.post<ApiResponse<void>>(
+      `/notifications/broadcast`,
+      payload,
     );
     return response.data;
   },

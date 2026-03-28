@@ -7,6 +7,7 @@ import org.rent.room.be.entity.Notification;
 import org.rent.room.be.entity.User;
 import org.rent.room.be.mapper.NotificationMapper;
 import org.rent.room.be.repository.NotificationRepository;
+import org.rent.room.be.repository.UserRepository;
 import org.rent.room.be.service.NotificationService;
 import org.rent.room.be.service.UserService;
 import org.springframework.data.domain.Page;
@@ -17,10 +18,14 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
     private final NotificationMapper notificationMapper;
     private final SimpMessagingTemplate messagingTemplate;
     private final UserService userService;
@@ -62,6 +67,44 @@ public class NotificationServiceImpl implements NotificationService {
         return notificationPage.map(notificationMapper::toResponse);
     }
 
+    @Transactional
+    @Override
+    public void sendNotificationToAllUsers(String title, String message, String link) {
+        // 1. Lấy tất cả người dùng trong hệ thống (có thể lọc thêm điều kiện isActive = true nếu cần)
+        List<User> allUsers = userRepository.findAll();
+        List<Notification> notifications = new ArrayList<>();
+
+        // 2. Tạo thông báo cho từng người
+        for (User user : allUsers) {
+            Notification notification = Notification.builder()
+                    .notificationTitle(title != null ? title : "Thông báo hệ thống")
+                    .notificationBody(message)
+                    .link(link)
+                    .recipient(user)
+                    // Bạn có thể tạo thêm enum NotificationType.SYSTEM nếu chưa có,
+                    // ở đây mình dùng tuỳ chọn mặc định để nhảy vào case "default" của bạn
+                    .type(NotificationType.BOOKING) // Đổi thành type SYSTEM/ADMIN nếu enum của bạn có
+                    .isRead(false)
+                    .isDeleted(false)
+                    .build();
+
+            notifications.add(notification);
+        }
+
+        // 3. Lưu toàn bộ vào DB cùng lúc cho tối ưu hiệu năng
+        notificationRepository.saveAll(notifications);
+
+        // 4. Gửi real-time qua WebSocket cho tất cả người dùng đang online
+        for (Notification notification : notifications) {
+            NotificationResponse response = notificationMapper.toResponse(notification);
+            messagingTemplate.convertAndSendToUser(
+                    notification.getRecipient().getUserId().toString(),
+                    "/queue/notifications",
+                    response
+            );
+        }
+    }
+
     private void setNotificationContent(Notification notification, String senderName, String rawContent) {
         switch (notification.getType()) {
             case CHAT:
@@ -75,8 +118,8 @@ public class NotificationServiceImpl implements NotificationService {
                 }
                 break;
             case BOOKING:
-                notification.setNotificationTitle("Cập nhật phòng thuê");
-                notification.setNotificationBody("Yêu cầu đặt phòng của bạn đã có thay đổi mới.");
+                notification.setNotificationTitle("Có đơn đặt phòng mới!");
+                notification.setNotificationBody(rawContent);
                 break;
 
             default:

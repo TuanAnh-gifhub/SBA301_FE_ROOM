@@ -440,6 +440,24 @@ public class DataInitializer implements CommandLineRunner {
         int[] ratings = {5, 5, 5, 4, 4};
         int bookingCount = 0, reviewCount = 0, commentIdx = 0;
 
+        // --- BƯỚC THÊM MỚI: Lấy danh sách RoomCopy thuộc RentalArea này ---
+        List<Room> areaRooms = roomRepository.findByRentalArea_RentalAreaId(area.getRentalAreaId());
+        List<RoomCopy> availableCopies = new ArrayList<>();
+        for (Room room : areaRooms) {
+            // Lấy các RoomCopy thuộc về Room này
+            List<RoomCopy> copiesForRoom = roomCopyRepository.findAll().stream()
+                    .filter(rc -> rc.getRoom() != null && rc.getRoom().getRoomId().equals(room.getRoomId()))
+                    .toList();
+            availableCopies.addAll(copiesForRoom);
+        }
+
+        // Nếu khu vực này chưa có RoomCopy nào thì bỏ qua để tránh lỗi
+        if (availableCopies.isEmpty()) {
+            log.warn("[FullDataInitializer] Khu vực {} không có RoomCopy, bỏ qua seed booking.", area.getRentalAreaName());
+            return new int[]{0, 0};
+        }
+        // ------------------------------------------------------------------
+
         LocalDateTime now = LocalDateTime.now();
         List<LocalDateTime> targetDates = new ArrayList<>();
 
@@ -471,12 +489,24 @@ public class DataInitializer implements CommandLineRunner {
             bookingRepository.updateCreatedAt(savedBooking.getBookingId(), start);
             bookingCount++;
 
+            // --- BƯỚC THÊM MỚI: Chọn ngẫu nhiên 1 RoomCopy cho Booking này ---
+            RoomCopy selectedRoomCopy = availableCopies.get(rng.nextInt(availableCopies.size()));
+
             // Thêm Slots
             LocalDateTime slotStart = start;
             while (slotStart.isBefore(end)) {
                 LocalDateTime slotEnd = slotStart.plusHours(1);
                 if (slotEnd.isAfter(end)) slotEnd = end;
-                slotRepository.save(Slot.builder().startTime(slotStart).endTime(slotEnd).price(price.divide(BigDecimal.valueOf(durationHrs), 2, RoundingMode.HALF_UP)).slotStatus(SlotStatus.BOOKED).booking(savedBooking).build());
+
+                slotRepository.save(Slot.builder()
+                        .startTime(slotStart)
+                        .endTime(slotEnd)
+                        .price(price.divide(BigDecimal.valueOf(durationHrs), 2, RoundingMode.HALF_UP))
+                        .slotStatus(SlotStatus.BOOKED)
+                        .booking(savedBooking)
+                        .roomCopy(selectedRoomCopy) // <--- FIX LỖI: Gán RoomCopy vào Slot
+                        .build());
+
                 slotStart = slotEnd;
             }
 
