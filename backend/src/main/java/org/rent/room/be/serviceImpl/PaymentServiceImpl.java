@@ -356,17 +356,28 @@ public class PaymentServiceImpl implements PaymentService {
             String description,
             String source
     ) {
-        // WARNING:
-        // Current database schema for wallet_transactions has a CHECK constraint
-        // on transaction_type that does NOT include BOOKING_PAYMENT.
-        // Attempting to persist a BOOKING_PAYMENT row causes DataIntegrityViolationException
-        // on commit (similar to the legacy withdraw issue).
-        //
-        // To keep the booking payment flow stable without changing legacy DB constraints,
-        // we SKIP writing these BOOKING_PAYMENT transactions entirely.
-        // Booking and payment records are still created; only the extra wallet log is omitted.
-        log.warn("Skip creating wallet BOOKING_PAYMENT transaction for bookingId={} due to legacy DB check constraint.", bookingId);
-        return;
+        if (wallet == null || bookingId == null || amount == null) {
+            return;
+        }
+        if (walletTransactionRepository.existsByBookingIdAndType(bookingId, WalletTxType.BOOKING_PAYMENT)) {
+            return;
+        }
+        WalletTransaction tx = WalletTransaction.builder()
+                .wallet(wallet)
+                .type(WalletTxType.BOOKING_PAYMENT)
+                .status(WalletTxStatus.COMPLETED)
+                .amount(amount)
+                .balanceBefore(before)
+                .balanceAfter(after)
+                .description(description)
+                .bookingId(bookingId)
+                .metadata(writeMetadata(new LinkedHashMap<>(Map.of("source", source))))
+                .build();
+        try {
+            walletTransactionRepository.save(tx);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Failed to create BOOKING_PAYMENT transaction for bookingId={} due to DB constraint.", bookingId, e);
+        }
     }
 
     private void validateIntentOwnership(BookingIntent intent, User currentUser) {

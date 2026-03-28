@@ -97,10 +97,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     // 6. Tài chính
     getItem("Tài chính & Hóa đơn", "sub_finance", <DollarOutlined />, [
       getItem(
-        <Link to="/admin/invoices">Hóa đơn dịch vụ</Link>,
-        "/admin/invoices",
-      ),
-      getItem(
         <Link to="/admin/transactions">Lịch sử giao dịch</Link>,
         "/admin/transactions",
       ),
