@@ -4,5 +4,5 @@ public enum PaymentStatus {
     PENDING,
     SUCCESS,
     FAILED,
-    REFUNDED // Đã hoàn tiền (nếu cần)
+    REFUNDED
 }
