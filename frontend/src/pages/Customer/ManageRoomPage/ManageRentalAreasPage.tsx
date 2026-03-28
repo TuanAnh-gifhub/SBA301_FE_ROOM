@@ -106,6 +106,8 @@ const ManageRentalAreasPage: React.FC = () => {
     contactPhone?: string;
     cityId: string;
     images: File[];
+    openTime?: string;
+    closeTime?: string;
   }) => {
     setCreateLoading(true);
     try {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Form, Input, Modal, Select, Upload, message } from "antd";
+import { Form, Input, Modal, Select, TimePicker, Upload, message } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import {
   EnvironmentOutlined,
@@ -10,7 +10,7 @@ import {
 } from "@ant-design/icons";
 import type { CityResponse } from "../../../services/cities/cities";
 import BlockingLoadingOverlay from "./BlockingLoadingOverlay";
-
+import dayjs from "dayjs";
 const { Option } = Select;
 
 type FormValues = {
@@ -19,6 +19,8 @@ type FormValues = {
   contactName?: string;
   contactPhone?: string;
   cityId: number;
+  openTime?: dayjs.Dayjs;
+  closeTime?: dayjs.Dayjs;
 };
 
 type Props = {
@@ -57,7 +59,12 @@ const CreateRentalAreaModal: React.FC<Props> = ({
       }
 
       setSubmitting(true);
-      await onSubmit({ ...values, images });
+      await onSubmit({
+        ...values,
+        images,
+        openTime: values.openTime?.format("HH:mm"),
+        closeTime: values.closeTime?.format("HH:mm"),
+      });
       form.resetFields();
       setFileList([]);
     } catch {
@@ -238,7 +245,33 @@ const CreateRentalAreaModal: React.FC<Props> = ({
               </div>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              label="Giờ mở cửa"
+              name="openTime"
+              rules={[{ required: true, message: "Chọn giờ mở cửa" }]}
+            >
+              <TimePicker
+                format="HH:mm"
+                size="large"
+                className="w-full rounded-xl"
+                placeholder="08:00"
+              />
+            </Form.Item>
 
+            <Form.Item
+              label="Giờ đóng cửa"
+              name="closeTime"
+              rules={[{ required: true, message: "Chọn giờ đóng cửa" }]}
+            >
+              <TimePicker
+                format="HH:mm"
+                size="large"
+                className="w-full rounded-xl"
+                placeholder="22:00"
+              />
+            </Form.Item>
+          </div>
           <div className={`${cardClass} mt-4`}>
             <div className={sectionTitleClass}>Ảnh tòa nhà</div>
 

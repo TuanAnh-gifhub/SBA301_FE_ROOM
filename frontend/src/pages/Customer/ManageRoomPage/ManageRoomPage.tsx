@@ -152,6 +152,8 @@ const ManageRoomPage: React.FC = () => {
     contactPhone?: string;
     cityId: number;
     images: File[];
+    openTime?: string;
+    closeTime?: string;
   }) => {
     setCreateLoading(true);
     try {
