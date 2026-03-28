@@ -118,8 +118,8 @@ public class NotificationServiceImpl implements NotificationService {
                 }
                 break;
             case BOOKING:
-                notification.setNotificationTitle("Cập nhật phòng thuê");
-                notification.setNotificationBody("Yêu cầu đặt phòng của bạn đã có thay đổi mới.");
+                notification.setNotificationTitle("Có đơn đặt phòng mới!");
+                notification.setNotificationBody(rawContent);
                 break;
 
             default:

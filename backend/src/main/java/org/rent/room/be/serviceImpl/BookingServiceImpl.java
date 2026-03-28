@@ -81,6 +81,9 @@ public class BookingServiceImpl implements BookingService {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Override
     public BookingIntentResponse getBookingIntentById(UUID bookingIntentId) {
 
@@ -337,6 +340,28 @@ public class BookingServiceImpl implements BookingService {
                 .build();
 
         bookingRepository.save(booking);
+
+        try {
+            User renter = booking.getRenter();
+            User owner = booking.getRentalArea().getOwner();
+
+            if (owner != null) {
+                String message = String.format("Khách hàng %s vừa đặt thành công phòng tại khu vực %s. Mã booking: %s",
+                        renter.getUserName(),
+                        booking.getRentalArea().getRentalAreaName(),
+                        booking.getBookingId().toString().substring(0, 8).toUpperCase());
+
+                notificationService.createAndSendNotification(
+                        renter,
+                        owner,
+                        NotificationType.BOOKING,
+                        message
+                );
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi gửi thông báo đặt phòng: " + e.getMessage());
+        }
+
         List<SlotResponse> slotResponses = new ArrayList<>();
         ;
         for (IntentSlot intentSlot : bookingIntent.getSlots()) {
