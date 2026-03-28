@@ -234,7 +234,7 @@ public class DataInitializer implements CommandLineRunner {
 
         LocalDateTime startOfYear = LocalDateTime.now().withDayOfYear(1);
         List<User> coreUsers = List.of(
-                User.builder().userName("RenterName").email("renter@gmail.com").passwordHash(passwordEncoder.encode("12345678")).role(renterRole).active(true).build(),
+                User.builder().userName("RenterName").email("renter@gmail.com").passwordHash(passwordEncoder.encode("12345678")).phone("0900000000").role(renterRole).active(true).build(),
                 User.builder().userName("OwnerName").email("owner@gmail.com").passwordHash(passwordEncoder.encode("12345678")).role(ownerRole).active(true).build(),
                 User.builder().userName("AdminName").email("admin@gmail.com").passwordHash(passwordEncoder.encode("12345678")).role(adminRole).active(true).build(),
                 User.builder().userName("Quang").email("quang@gmail.com").passwordHash(passwordEncoder.encode("12345678")).role(adminRole).active(true).build(),
@@ -653,3 +653,4 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 }
+
