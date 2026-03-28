@@ -49,6 +49,8 @@ import ScanQR from "../pages/Owner/ScanQR";
 import SuccessQrPage from "../pages/Owner/SuccessQrPage";
 import ProductDetailPage from "../pages/Customer/ProductDetail/ProductDetailPage";
 import AdminReviewPage from "../pages/Admin/ReviewManagement/AdminReviewPage";
+import BookingManagement from "../pages/Admin/BookingManagement/BookingManagement";
+import NotificationManagement from "../pages/Admin/NotificationManagement/NotificationManagement";
 
 export const router = createBrowserRouter([
   {
@@ -237,6 +239,10 @@ export const router = createBrowserRouter([
         element: <UserManagement />,
       },
       {
+        path: "bookings/list",
+        element: <BookingManagement />,
+      },
+      {
         path: "posts",
         element: <PostManagementPage />,
       },
@@ -276,6 +282,10 @@ export const router = createBrowserRouter([
       {
         path: "wallet-freeze",
         element: <WalletFreezeManagementPage />,
+      },
+      {
+        path: "notifications",
+        element: <NotificationManagement />,
       },
       {
         path: "reviews",

@@ -215,12 +215,19 @@ public class BookingSpecification {
             }
 
             if (keyword != null && !keyword.isBlank()) {
-                predicates.add(
-                        cb.like(
-                                cb.lower(root.get("title")),
-                                "%" + keyword.toLowerCase() + "%"
-                        )
-                );
+                String searchKeyword = "%" + keyword.toLowerCase() + "%";
+                Join<Booking, User> renterJoin = root.join("renter");
+
+                List<Predicate> orPredicates = new ArrayList<>();
+                orPredicates.add(cb.like(cb.lower(root.get("bookingTitle")), searchKeyword));
+                orPredicates.add(cb.like(cb.lower(renterJoin.get("userName")), searchKeyword));
+
+                try {
+                    UUID searchId = UUID.fromString(keyword.trim());
+                    orPredicates.add(cb.equal(root.get("bookingId"), searchId));
+                } catch (IllegalArgumentException e) {
+                }
+                predicates.add(cb.or(orPredicates.toArray(new Predicate[0])));
             }
 
 

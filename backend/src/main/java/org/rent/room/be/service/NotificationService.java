@@ -15,4 +15,6 @@ public interface NotificationService {
             User sender, User recipient, NotificationType type, String rawContent);
 
     Page<NotificationResponse> getMyNotification(int page, int size);
+
+    void sendNotificationToAllUsers(String title, String message, String link);
 }

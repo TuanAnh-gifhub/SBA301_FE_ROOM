@@ -27,7 +27,19 @@ const UpdateBookingModal = ({
     }
   }, [booking, form]);
 
+  const currentStatus = booking?.bookingStatus || booking?.status;
+
+  const isLocked =
+    currentStatus === "COMPLETED" || currentStatus === "CANCELLED";
+
   const handleSubmit = async () => {
+    if (isLocked) {
+      message.warning(
+        "Booking này đã hoàn thành hoặc đã hủy, không thể cập nhật thêm!",
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       const values = await form.validateFields();
@@ -38,7 +50,11 @@ const UpdateBookingModal = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-      message.error(error.response?.data?.message || "Có lỗi xảy ra");
+      let errorMsg = error.response?.data?.message || "Có lỗi xảy ra";
+      if (errorMsg.includes("Api system have some problems")) {
+        errorMsg = errorMsg.replace("Api system have some problems", "").trim();
+      }
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -63,9 +79,7 @@ const UpdateBookingModal = ({
           <Select>
             <Select.Option value="BOOKED">Đã đặt</Select.Option>
             <Select.Option value="COMPLETED">Hoàn thành</Select.Option>
-            <Select.Option value="CANCELLED">
-              Hủy đơn 
-            </Select.Option>
+            <Select.Option value="CANCELLED">Hủy đơn</Select.Option>
           </Select>
         </Form.Item>
 

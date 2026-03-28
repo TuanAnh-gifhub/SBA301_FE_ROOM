@@ -2,14 +2,13 @@ package org.rent.room.be.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.rent.room.be.base.ApiResponse;
+import org.rent.room.be.dto.request.notification.BroadcastNotificationRequest;
 import org.rent.room.be.dto.response.notification.NotificationResponse;
 import org.rent.room.be.service.NotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,6 +26,23 @@ public class NotificationController {
                 .code(200)
                 .result(notificationService.getMyNotification(page, size))
                 .message("Get my notification successful")
+                .build());
+    }
+
+    @PostMapping("/broadcast")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> broadcastNotification(
+            @RequestBody BroadcastNotificationRequest request) {
+
+        notificationService.sendNotificationToAllUsers(
+                request.getTitle(),
+                request.getMessage(),
+                request.getLink()
+        );
+
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .code(200)
+                .message("Đã gửi thông báo đến tất cả người dùng thành công")
                 .build());
     }
 }

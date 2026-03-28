@@ -1017,8 +1017,4 @@ public class BookingServiceImpl implements BookingService {
                 .build();
     }
 
-
-
-
-
 }

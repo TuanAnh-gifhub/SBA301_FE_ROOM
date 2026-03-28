@@ -43,7 +43,6 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   isDark,
-  adminUser,
   handleLogout,
 }) => {
   const location = useLocation();
@@ -63,18 +62,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     getItem(<Link to="/admin">Dashboard</Link>, "/admin", <AppstoreOutlined />),
 
     getItem("Quản lý Đặt phòng", "sub_booking", <CalendarOutlined />, [
-      getItem(
-        <Link to="/admin/bookings/calendar">Lịch phòng (Calendar)</Link>,
-        "/admin/bookings/calendar",
-      ),
+      // getItem(
+      //   <Link to="/admin/bookings/calendar">Lịch phòng (Calendar)</Link>,
+      //   "/admin/bookings/calendar",
+      // ),
       getItem(
         <Link to="/admin/bookings/list">Danh sách đơn đặt</Link>,
         "/admin/bookings/list",
       ),
-      getItem(
-        <Link to="/admin/bookings/check-in">Check-in/Check-out</Link>,
-        "/admin/bookings/check-in",
-      ),
+      // getItem(
+      //   <Link to="/admin/bookings/check-in">Check-in/Check-out</Link>,
+      //   "/admin/bookings/check-in",
+      // ),
     ]),
 
     // 3. Quản lý Tài nguyên (Phòng ốc) -> BỎ HẾT CHILD
@@ -126,6 +125,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     getItem(
       <Link to="/admin/reviews">Đánh giá từ khách</Link>,
       "/admin/reviews",
+      <StarOutlined />,
+    ),
+
+    getItem(
+      <Link to="/admin/notifications">Thông báo</Link>,
+      "/admin/notifications",
       <StarOutlined />,
     ),
 
